@@ -1,40 +1,40 @@
 # Architecture Decision Records
 
-Use ADRs only for important decisions whose rationale is likely to matter later.
+後から判断理由を確認する可能性が高い重要な設計判断だけをADRとして残します。
 
-## When to create an ADR
+## ADRを作る条件
 
-- The decision affects multiple components or boundaries.
-- Reasonable alternatives exist.
-- Future contributors or agents may ask why the choice was made.
+- 複数のcomponentや境界へ影響する
+- 合理的な代替案が存在する
+- 将来の開発者やAIエージェントが「なぜこの設計なのか」を確認する可能性が高い
 
-Small implementation choices should remain in Git history or the relevant issue.
+小さな実装判断はGit履歴または関連Issueに残します。
 
-## Minimal format
+## 最小フォーマット
 
 ```md
-# Title
+# タイトル
 
 Status: Proposed | Accepted | Superseded
 
 ## Context
 
-Why a decision is needed.
+なぜ判断が必要か。
 
 ## Options
 
-1. Option A
-2. Option B
+1. 案A
+2. 案B
 
 ## Decision
 
-Chosen option.
+採用した案。
 
 ## Reason
 
-Why it was chosen.
+採用理由。
 
 ## Consequences
 
-Important trade-offs or follow-up constraints.
+重要なトレードオフや追加制約。
 ```
