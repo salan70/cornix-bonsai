@@ -1,14 +1,14 @@
 # Fixtures
 
-Fixtures are representative, sanitized inputs used to validate parsing, round-trip behavior, analysis, and rendering.
+Fixtureは、parse、round-trip、analysis、renderingを検証するための代表的かつsanitize済みの入力データです。
 
-Planned coverage:
+想定する範囲:
 
-- minimal keymap
+- 最小keymap
 - layers
 - Tap Dance
 - Combo
 - settings
-- unknown / preserved `.vil` fields
+- 未知または保持対象の`.vil` field
 
-Do not commit a personal keyboard configuration as a public fixture without reviewing and sanitizing it first.
+個人利用中のキーボード設定をPublic fixtureとして追加する場合は、内容を確認し、必要なsanitizeを行ってからcommitします。
