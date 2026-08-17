@@ -1,7 +1,7 @@
-# Documentation
+# ドキュメント
 
-- `decisions/`: accepted or proposed architecture decisions and their rationale.
-- GitHub Issues: active research, design questions, spikes, and implementation work.
-- Tests / fixtures: executable evidence that assumptions and conversions hold.
+- `decisions/`: 重要な設計判断とその理由をADRとして記録する
+- GitHub Issue: 進行中の調査、設計上の問い、Spike、実装作業を管理する
+- Tests / fixtures: 仮定や変換が成立することを実行可能な形で検証する
 
-Project requirements and higher-level planning are maintained separately from implementation documentation to avoid duplication.
+要件や上位方針は、実装ドキュメントと重複しないよう別途管理します。
