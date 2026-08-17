@@ -1,24 +1,24 @@
-# Decision title
+# 判断タイトル
 
 Status: Proposed
 
 ## Context
 
-Why a decision is needed.
+なぜ判断が必要か。
 
 ## Options
 
-1. Option A
-2. Option B
+1. 案A
+2. 案B
 
 ## Decision
 
-Chosen option.
+採用した案。
 
 ## Reason
 
-Why it was chosen.
+採用理由。
 
 ## Consequences
 
-Important trade-offs or follow-up constraints.
+重要なトレードオフや追加制約。
