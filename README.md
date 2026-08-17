@@ -1,23 +1,23 @@
 # Cornix Bonsai
 
-Keymap editor for Cornix LP 💚
+Cornix LP向けのキーマップ編集ツール 💚
 
-Cornix Bonsai is a local-first tool for reading, editing, validating, visualizing, and versioning Cornix LP keymaps from a browser, CLI, Git, and AI agents.
+Cornix Bonsaiは、Cornix LPのキーマップをブラウザ・CLI・Git・AIエージェントから読み取り、編集、検証、可視化、バージョン管理するためのローカルファーストなツールです。
 
-## Status
+## 現在の状況
 
-Early design / research phase.
+設計・調査の初期段階です。
 
-## Direction
+## 方針
 
-- Cornix LP first
-- Semantic model independent from raw Vial representation
-- `keymap.yaml` as Git-managed desired state
-- Browser UI and CLI sharing the same core
-- `.vil` import / export
-- Validation, reference analysis, semantic diff, SVG / PDF rendering
-- Device read through Vial / WebHID
-- Human-confirmed device writes with backup and verification
-- AI agents may edit configuration and run checks, but may not write directly to the keyboard
+- Cornix LPを最初の対象とする
+- rawなVial表現から独立したSemantic Modelを持つ
+- Git管理するdesired stateとして`keymap.yaml`を使う
+- Browser UIとCLIで同じCoreを共有する
+- `.vil`のimport / exportに対応する
+- validation、reference analysis、semantic diff、SVG / PDF renderingを行う
+- Vial / WebHID経由で実機からreadする
+- 実機writeはbackupとverifyを伴い、人間の明示操作でのみ行う
+- AIエージェントは設定編集や検証を行えるが、実機へ直接writeしない
 
-Important architectural decisions are recorded under `docs/decisions/`.
+重要な設計判断は`docs/decisions/`にADRとして記録します。
