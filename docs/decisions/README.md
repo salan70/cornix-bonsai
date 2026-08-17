@@ -15,26 +15,26 @@
 ```md
 # タイトル
 
-Status: Proposed | Accepted | Superseded
+状態: 提案中 | 採用 | 廃止
 
-## Context
+## 背景
 
 なぜ判断が必要か。
 
-## Options
+## 選択肢
 
 1. 案A
 2. 案B
 
-## Decision
+## 決定
 
 採用した案。
 
-## Reason
+## 理由
 
 採用理由。
 
-## Consequences
+## 影響
 
 重要なトレードオフや追加制約。
 ```
