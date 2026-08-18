@@ -44,7 +44,7 @@ const MACRO_CHUNK = 28;
 const DEFINITION_CHUNK = 32;
 const DEFAULT_TIMEOUT_MS = 3000;
 
-class VialSession {
+export class VialSession {
   constructor(device, { timeoutMs = DEFAULT_TIMEOUT_MS, onRoundTrip } = {}) {
     this.device = device;
     this.timeoutMs = timeoutMs;

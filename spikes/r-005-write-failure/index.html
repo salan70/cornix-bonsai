@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>R-005 write / recovery probe (Cornix LP)</title>
+    <style>
+      body {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        margin: 1.5rem;
+        line-height: 1.5;
+      }
+      button {
+        margin: 0 0.4rem 0.4rem 0;
+        padding: 0.4rem 0.8rem;
+      }
+      button.write {
+        background: #fee;
+        border: 1px solid #b00;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 0.8rem;
+        overflow-x: auto;
+        max-height: 20rem;
+      }
+      label {
+        margin-right: 1rem;
+      }
+      .warn {
+        color: #b00;
+      }
+      ol li {
+        margin-bottom: 0.3rem;
+      }
+      section {
+        border-top: 1px solid #ddd;
+        padding-top: 0.6rem;
+        margin-top: 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>R-005 write / recovery probe</h1>
+    <p class="warn">
+      このページは <strong>実機の keymap を書き換えます</strong>。手順 1 の backup を保存するまで
+      write 系のボタンは押せません。書き換えるのは下で指定した 1 箇所だけです。 終了時は手順 7
+      で必ず元の値へ戻してください。
+    </p>
+
+    <p>
+      <label>
+        transport:
+        <select id="transport">
+          <option value="usb">USB</option>
+          <option value="ble">Bluetooth (BLE)</option>
+        </select>
+      </label>
+      <label>
+        timeout(ms):
+        <input id="timeout" type="number" value="3000" min="200" step="100" size="6" />
+      </label>
+    </p>
+
+    <section>
+      <h2>0. device を選ぶ</h2>
+      <button id="list">getDevices()</button>
+      <button id="request">requestDevice（0xFF60 filter）</button>
+      <button id="unlock">unlock 状態を読む</button>
+    </section>
+
+    <section>
+      <h2>1. backup を取る（必須）</h2>
+      <p>read フロー全体を実行して JSON で保存する。これが唯一の復元元になる。</p>
+      <button id="backup">全 read して backup を保存</button>
+    </section>
+
+    <section>
+      <h2>2. 書き換える 1 箇所を決める</h2>
+      <p>
+        既定は layer 9 の (0,0)。definition が宣言していて、かつ baseline.vil では
+        <code>KC_NO</code> の位置を選んである。
+      </p>
+      <p>
+        <label>layer <input id="layer" type="number" value="9" min="0" size="3" /></label>
+        <label>row <input id="row" type="number" value="0" min="0" size="3" /></label>
+        <label>col <input id="col" type="number" value="0" min="0" size="3" /></label>
+        <label>書き込む keycode <input id="keycode" value="0x0004" size="8" /></label>
+      </p>
+      <button id="readTarget">対象の現在値を読む</button>
+      <p id="target"></p>
+    </section>
+
+    <section>
+      <h2>3〜4. write して即座に読み直す</h2>
+      <button id="write" class="write" disabled>write 1 回 → 再 read</button>
+    </section>
+
+    <section>
+      <h2>5. 電源を切って戻す</h2>
+      <p>
+        ケーブルを抜く（BLE なら電源を切る）→ 挿し直す → 下のボタン。RAM 上の値ではなく flash
+        に載った値が読める。
+      </p>
+      <button id="afterReboot">再接続後に対象を読む</button>
+    </section>
+
+    <section>
+      <h2>6. write の直後に切断する</h2>
+      <p>
+        押した直後にケーブルを抜く。write が途中で切れたときに何が残るかを見る。 再接続してから手順
+        5 のボタンで確認する。
+      </p>
+      <button id="writeBurst" class="write" disabled>連続 write を開始（押したら抜く）</button>
+    </section>
+
+    <section>
+      <h2>7. 元に戻す（必須）</h2>
+      <button id="restore" class="write" disabled>backup の値へ戻す → 再 read</button>
+      <button id="verifyAll">全 read して backup と突き合わせる</button>
+    </section>
+
+    <section>
+      <button id="save">記録を JSON で保存</button>
+      <button id="copy">記録を clipboard へコピー</button>
+    </section>
+
+    <p id="status" class="warn"></p>
+    <pre id="log"></pre>
+
+    <script type="module">
+      import {
+        describeDevice,
+        isVialDevice,
+        requestVialDevice,
+        runReadFlow,
+      } from "../r-004-webhid-macos/probe.mjs";
+      import { applyDiff, readSingleKeycode, readUnlockStatus } from "./write-probe.mjs";
+
+      const logEl = document.getElementById("log");
+      const statusEl = document.getElementById("status");
+      const record = {
+        userAgent: navigator.userAgent,
+        startedAt: new Date().toISOString(),
+        events: [],
+      };
+      let device = null;
+      let backup = null; // 手順 1 の read 結果
+      let backupKeycode = null; // 手順 2 で読んだ対象の元の値
+
+      const stamp = () => new Date().toISOString().slice(11, 23);
+      function log(entry) {
+        const text = typeof entry === "string" ? entry : JSON.stringify(entry, null, 2);
+        logEl.textContent += `[${stamp()}] ${text}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+      function note(kind, payload) {
+        record.events.push({ at: new Date().toISOString(), kind, payload });
+        log({ [kind]: payload });
+      }
+
+      if (!("hid" in navigator)) {
+        statusEl.textContent = "この browser は WebHID を持っていない（Safari など）";
+      }
+
+      navigator.hid.addEventListener("connect", (e) => note("connect", describeDevice(e.device)));
+      navigator.hid.addEventListener("disconnect", (e) => {
+        note("disconnect", describeDevice(e.device));
+        if (device === e.device) {
+          // 切断後の HIDDevice は sendReport が返らなくなる（R-004 実測）。参照を捨てる。
+          device = null;
+          statusEl.textContent = "device が切断された。参照を破棄した";
+        }
+      });
+
+      const transport = () => document.getElementById("transport").value;
+      const timeoutMs = () => Number(document.getElementById("timeout").value);
+      const num = (id) => Number(document.getElementById(id).value);
+      const target = () => ({ layer: num("layer"), row: num("row"), col: num("col") });
+      const keycode = () => Number(document.getElementById("keycode").value);
+      const hex = (v) => `0x${v.toString(16).padStart(4, "0")}`;
+
+      // 切断を挟むと同じ物理 device でも別の HIDDevice になる。必ず取り直す。
+      async function refreshDevice() {
+        const devices = await navigator.hid.getDevices();
+        const found = devices.find(isVialDevice) ?? null;
+        if (found && found !== device) {
+          note("refreshDevice", { 差し替えた: true, ...describeDevice(found) });
+          device = found;
+        } else if (!found) {
+          note("refreshDevice", { 見つからない: true });
+        }
+        return device;
+      }
+
+      function requireDevice() {
+        if (!device) {
+          statusEl.textContent = "先に device を選ぶ";
+          return false;
+        }
+        return true;
+      }
+
+      function unlockWriteButtons() {
+        for (const id of ["write", "writeBurst", "restore"]) {
+          document.getElementById(id).disabled = backup === null;
+        }
+      }
+
+      document.getElementById("list").addEventListener("click", async () => {
+        const devices = await navigator.hid.getDevices();
+        note("getDevices", { count: devices.length, devices: devices.map(describeDevice) });
+        if (!device) device = devices.find(isVialDevice) ?? null;
+      });
+
+      document.getElementById("request").addEventListener("click", async () => {
+        const found = await requestVialDevice();
+        if (!found) return note("request", "device が選ばれなかった");
+        device = found;
+        note("selected", { transport: transport(), ...describeDevice(found) });
+      });
+
+      // read のみ。unlock 操作（物理キーの長押し）は行わない。
+      document.getElementById("unlock").addEventListener("click", async () => {
+        if (!(await refreshDevice())) return;
+        note("unlockStatus", await readUnlockStatus(device, { timeoutMs: timeoutMs() }));
+      });
+
+      document.getElementById("backup").addEventListener("click", async () => {
+        if (!(await refreshDevice())) return;
+        statusEl.textContent = "backup 用の read 中";
+        const result = await runReadFlow(device, { timeoutMs: timeoutMs() });
+        statusEl.textContent = "";
+        if (result.errors.length > 0) {
+          note("backupFailed", result.errors);
+          statusEl.textContent = "read が完走しなかった。backup にならないので write しない";
+          return;
+        }
+        backup = result;
+        note("backup", {
+          transport: transport(),
+          steps: result.steps,
+          roundTrip: result.roundTrip,
+        });
+        download(`r-005-backup-${transport()}-${Date.now()}.json`, { backup: result });
+        unlockWriteButtons();
+        statusEl.textContent = "backup を保存した。write を解禁する";
+      });
+
+      document.getElementById("readTarget").addEventListener("click", async () => {
+        if (!(await refreshDevice())) return;
+        const value = await readSingleKeycode(device, { ...target(), timeoutMs: timeoutMs() });
+        backupKeycode = value;
+        document.getElementById("target").textContent =
+          `現在値: ${hex(value)}（元に戻すときはこの値を書く）`;
+        note("readTarget", { ...target(), value: hex(value) });
+      });
+
+      document.getElementById("write").addEventListener("click", async () => {
+        if (!requireDevice() || backup === null) return;
+        if (backupKeycode === null) {
+          statusEl.textContent = "先に手順 2 で現在値を読む";
+          return;
+        }
+        if (!confirm(`実機の ${JSON.stringify(target())} を ${hex(keycode())} に書き換えます`))
+          return;
+        await refreshDevice();
+        const result = await applyDiff(device, [{ kind: "keymap", ...target(), to: keycode() }], {
+          timeoutMs: timeoutMs(),
+        });
+        note("write", { ...target(), to: hex(keycode()), from: hex(backupKeycode), ...result });
+      });
+
+      // 5 件連続で write する。押した直後にケーブルを抜くと、どこまで残るかが見える。
+      document.getElementById("writeBurst").addEventListener("click", async () => {
+        if (!requireDevice() || backup === null) return;
+        if (!confirm("同じ 1 箇所へ 5 回連続で write します。押したらケーブルを抜いてください"))
+          return;
+        await refreshDevice();
+        const entries = [1, 2, 3, 4, 5].map((n) => ({ kind: "keymap", ...target(), to: n }));
+        const result = await applyDiff(device, entries, {
+          timeoutMs: timeoutMs(),
+          onProgress: ({ n, label, ms }) => log(`${n} 往復目 ${label} ${ms.toFixed(1)}ms`),
+        });
+        note("writeBurst", result);
+      });
+
+      document.getElementById("afterReboot").addEventListener("click", async () => {
+        if (!(await refreshDevice())) return;
+        const value = await readSingleKeycode(device, { ...target(), timeoutMs: timeoutMs() });
+        note("afterReboot", {
+          ...target(),
+          value: hex(value),
+          backupKeycode: backupKeycode === null ? null : hex(backupKeycode),
+        });
+      });
+
+      document.getElementById("restore").addEventListener("click", async () => {
+        if (!requireDevice() || backupKeycode === null) {
+          statusEl.textContent = "戻す値が分からない。手順 2 を先に行う";
+          return;
+        }
+        await refreshDevice();
+        const result = await applyDiff(
+          device,
+          [{ kind: "keymap", ...target(), to: backupKeycode }],
+          { timeoutMs: timeoutMs() },
+        );
+        note("restore", { ...target(), to: hex(backupKeycode), ...result });
+        statusEl.textContent =
+          result.applied.length === 1 ? "元の値へ戻した" : "戻せていない。手順 7 をやり直す";
+      });
+
+      // backup と現在の実機状態を突き合わせる。復元できたかの最終確認。
+      document.getElementById("verifyAll").addEventListener("click", async () => {
+        if (!(await refreshDevice())) return;
+        if (!backup) {
+          statusEl.textContent = "backup が無い";
+          return;
+        }
+        statusEl.textContent = "verify 用の read 中";
+        const now = await runReadFlow(device, { timeoutMs: timeoutMs() });
+        statusEl.textContent = "";
+        const diff = Object.entries(backup.raw ?? {}).filter(
+          ([k, v]) => JSON.stringify(v) !== JSON.stringify(now.raw?.[k]),
+        );
+        note("verifyAll", {
+          一致: diff.length === 0,
+          差分のある項目: diff.map(([k]) => k),
+        });
+      });
+
+      function download(name, payload) {
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        log(`保存した: ${name}`);
+      }
+
+      document.getElementById("save").addEventListener("click", () => {
+        download(`r-005-${transport()}-${Date.now()}.json`, record);
+      });
+
+      document.getElementById("copy").addEventListener("click", async () => {
+        await navigator.clipboard.writeText(JSON.stringify(record, null, 2));
+        statusEl.textContent = "clipboard へコピーした";
+      });
+    </script>
+  </body>
+</html>
