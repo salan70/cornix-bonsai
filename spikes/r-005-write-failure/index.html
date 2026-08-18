@@ -63,6 +63,11 @@
 
     <section>
       <h2>0. device を選ぶ</h2>
+      <p>
+        WebHID の権限は origin 単位で、port も origin に含まれる。R-004（<code>:8173</code>）で
+        許可済みでも、この origin（<code>:8175</code>）では初回の <code>getDevices()</code> は 必ず
+        0 件になる。<code>requestDevice</code> で選び直す。
+      </p>
       <button id="list">getDevices()</button>
       <button id="request">requestDevice（0xFF60 filter）</button>
       <button id="unlock">unlock 状態を読む</button>
@@ -274,8 +279,20 @@
 
       on("list", async () => {
         const devices = await navigator.hid.getDevices();
-        note("getDevices", { count: devices.length, devices: devices.map(describeDevice) });
+        note("getDevices", {
+          origin: location.origin,
+          count: devices.length,
+          devices: devices.map(describeDevice),
+        });
         if (!device) device = devices.find(isVialDevice) ?? null;
+        // WebHID の権限は origin 単位で、port も origin の一部。
+        // R-004（8173）で許可していても、この origin（8175）には引き継がれない。
+        statusEl.textContent =
+          devices.length === 0
+            ? `${location.origin} では未許可。requestDevice を押して chooser から選ぶ`
+            : device
+              ? ""
+              : "device は見えているが 0xFF60 の collection が無い";
       });
 
       on("request", async () => {

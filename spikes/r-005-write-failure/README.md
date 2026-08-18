@@ -62,7 +62,9 @@ R-004 の `probe.mjs` は `VialSession` を `export` するようにだけ変更
 
 write 系のボタンは、手順 1 の backup を保存するまで押せない。
 
-0. device を選び、unlock 状態と uptime を読む（uptime は手順 5 の基準値になる）
+0. device を選び、unlock 状態と uptime を読む（uptime は手順 5 の基準値になる）。
+   WebHID の権限は origin 単位で port も含むため、R-004（`:8173`）で許可済みでも
+   この origin（`:8175`）の初回 `getDevices()` は 0 件になる。`requestDevice` で選び直す
 1. 全 read して backup を JSON で保存する（唯一の復元元）
 2. 書き換える 1 箇所を決めて現在値を読む。既定は layer 9 の `(0,0)`
    （definition が宣言済みで、`baseline.vil` では `KC_NO` の位置）
