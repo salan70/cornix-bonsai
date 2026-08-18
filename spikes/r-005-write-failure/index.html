@@ -386,6 +386,7 @@
       const BURST_LAYERS = [9, 8, 7, 6, 5];
       const burstValueFor = (i) => 0x0004 + (i % 90);
       let burstTargets = null;
+      let burstReadBackValues = null;
       const burstStatus = (text) => {
         document.getElementById("burstStatus").textContent = text;
       };
@@ -463,22 +464,42 @@
           roundTrip,
         });
         lastUptimeMs = uptime.uptimeMs;
+        burstReadBackValues = values;
         burstStatus(`残った ${kept.length} / ${values.length} 件`);
       });
 
+      // 書き戻すのは実際に非ゼロになっている位置だけ。
+      // 元から 0x0000 の位置へ 0x0000 を書いても flash に item が 1 つ増えるだけで、
+      // 無駄に storage を消費する（RMK の store_item は値が同じでも追記する）。
       on("burstRestore", async () => {
         if (!requireDevice()) return;
-        if (!burstTargets?.length) {
+        const source =
+          burstReadBackValues ??
+          (burstTargets
+            ? (await readBackPositions(device, { targets: burstTargets, timeoutMs: timeoutMs() }))
+                .values
+            : null);
+        if (!source) {
           burstStatus("対象の一覧が無い");
+          return;
+        }
+        const dirty = source.filter((v) => v.value !== 0);
+        if (dirty.length === 0) {
+          burstStatus("戻す対象が無い（すべて 0x0000）");
           return;
         }
         await refreshDevice();
         const result = await burstWrite(device, {
-          targets: burstTargets,
+          targets: dirty,
           valueFor: () => 0x0000,
           timeoutMs: timeoutMs(),
         });
-        note("burstRestore", { 対象: burstTargets.length, ...result });
+        note("burstRestore", {
+          対象: dirty.length,
+          対象の位置: dirty.map((v) => `${v.layer}/${v.row}/${v.col}=${hex(v.value)}`),
+          ...result,
+        });
+        burstReadBackValues = null;
         burstStatus(
           result.error === null
             ? `${result.acked} 件を 0x0000 へ戻した。6-3 で確認する`
