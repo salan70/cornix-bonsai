@@ -1,8 +1,56 @@
+# Node.js
 node_modules/
 dist/
-coverage/
 .vite/
-.DS_Store
+*.tsbuildinfo
+.npm
+.pnpm-store/
+
+# Nix / direnv
+.direnv/
+result
+result-*
+
+# 環境変数
+# .envrc は Git 管理対象（秘匿情報を入れない方針）。
 .env
 .env.*
 !.env.example
+
+# Coverage
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Cornix workspace の生成物・バックアップ
+cornix/generated/
+cornix/backups/
+
+# Claude runtime artifacts
+.claude/cache/
+.claude/backups/
+.claude/debug/
+.claude/history.jsonl
+.claude/projects/
+.claude/file-history/
+.claude/ide/
+.claude/paste-cache/
+.claude/plans/
+.claude/plugins/
+.claude/session-env/
+.claude/sessions/
+.claude/shell-snapshots/
+.claude/tasks/
+.claude/telemetry/
+.claude/todos/
+.claude/usage-data/
+.claude/stats-cache.json
+.claude/settings.local.json
+!.claude/settings.json
