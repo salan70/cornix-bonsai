@@ -118,6 +118,10 @@ readはvial-guiと同じ順序・解釈で行い、得られたwire値をdeviceS
   （`KC_VOLD` / `KC_VOLU`）で、左のknobで音量が動くことをユーザーが確認した。
   encoder 1は`0x0150` / `0x014F`（`LCTL(KC_LEFT)` / `LCTL(KC_RIGHT)`）。
   詳細は`2026-08-18_r-004-webhid-macos.md`
+- ~~`0x13` DynamicKeymapSetBufferをwrite経路で使えるか~~ → **解決**（R-005）。使わない。
+  read（`0x12`）とoffsetの単位もendiannessも食い違ううえ、flashへは`try_send`で送るため
+  取りこぼす。VIAと同じ`size`（byte数）を渡すとRMKがreport長を超えて読みpanicする。
+  詳細は`2026-08-18_r-005-write-failure.md`とADR 0005
 - macro bufferをaction単位へ分解する処理（`macro_deserialize_v2`相当）は未実装・未検証。
   `.vil`の`macro` fieldを埋めるのに要る。D-002の入力
 - RMKの`to_via_keycode`が落とすKeyActionが、Cornix LPの出荷keymapに実在するかは未確認。

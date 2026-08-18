@@ -163,7 +163,8 @@ Issue #4の完了条件は満たした。残るのは次の点。
 - BLEのmax 512.4msが何に由来するか未確認（connection interval更新、firmwareのflash read、
   OS側のscheduling）。timeout値の根拠としては3000msで十分に余裕がある
 - 往復timeoutを一律3000msとしたが、BLEのp95（57.5ms）とmax（512.4ms）から
-  もっと詰められる。UIの応答性を見てR-005以降で決める
+  もっと詰められる。R-005では決めず、**D-005へ移した**。writeの往復がreadより遅いかを
+  実機で測る必要があり、値はApplyフローのUI応答性と併せて決める
 - R-003から持ち越し: macro bufferのaction単位への分解（実機のmacro bufferは全byte 0で、
   検証材料が無い。D-002で扱う）
 - RMKの`to_via_keycode`が落とすKeyActionの実在は、依然として確認できていない。

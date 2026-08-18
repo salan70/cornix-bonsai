@@ -110,5 +110,8 @@ custom keycodeの意味をそこから導出する。配列をコードにhard-c
 - ユーザーの実機firmware versionが未確定。`layout_options == 0`からV1.10以降とまでは言えるが、
   definitionを実機から読めば`layouts.labels`に版が入っている（R-003）
 - `settings`のqsidとRMK側の対応は未調査。D-003の入力
-- RMKのvial実装がvial-qmkと異なる箇所は`GetEncoder`以外にも存在しうる。
-  実機writeの前にR-005で洗う
+- ~~RMKのvial実装がvial-qmkと異なる箇所は`GetEncoder`以外にも存在しうる~~ → **解決**（R-005）。
+  write経路の差異を洗った。`DynamicKeymapReset`(`0x06`)と`DynamicKeymapSetEncoder`(`0x15`)は
+  RMKでは何もせず、`BootloaderJump`(`0x0B`)はvial-qmkと違いunlockを確認しない。
+  `DynamicKeymapSetBuffer`(`0x13`)はoffsetの単位もendiannessもreadと非対称。
+  詳細は`2026-08-18_r-005-write-failure.md`
