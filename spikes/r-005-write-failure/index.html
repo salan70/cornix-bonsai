@@ -133,6 +133,35 @@
     <p id="status" class="warn"></p>
     <pre id="log"></pre>
 
+    <!--
+      module script の読み込み自体が失敗すると、module 内では何も拾えず
+      すべてのボタンが無反応になる。それを表に出すための classic script。
+    -->
+    <script>
+      window.__moduleLoaded = false;
+      const bootLog = (text) => {
+        const el = document.getElementById("log");
+        el.textContent += `[boot] ${text}\n`;
+        document.getElementById("status").textContent = text;
+      };
+      window.addEventListener("error", (e) => {
+        bootLog(`error: ${e.message ?? e.type} (${e.filename ?? ""}:${e.lineno ?? ""})`);
+      });
+      window.addEventListener("unhandledrejection", (e) => {
+        bootLog(`unhandled rejection: ${e.reason}`);
+      });
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          if (!window.__moduleLoaded) {
+            bootLog(
+              "module が読み込まれていない。console を見る。" +
+                "http://localhost:8175 を Chromium 系 browser で開いているか確認する",
+            );
+          }
+        }, 500);
+      });
+    </script>
+
     <script type="module">
       import {
         describeDevice,
@@ -165,19 +194,25 @@
         log({ [kind]: payload });
       }
 
-      if (!("hid" in navigator)) {
-        statusEl.textContent = "この browser は WebHID を持っていない（Safari など）";
+      // navigator.hid は WebHID 非対応 browser と、secure context でない場合（file:// など）に
+      // undefined になる。ここで素通しすると module 全体が落ち、
+      // 以降のボタンが 1 つも登録されないまま無反応になる。
+      const hasHid = "hid" in navigator && navigator.hid;
+      if (!hasHid) {
+        statusEl.textContent =
+          "navigator.hid が無い。Chromium 系 browser で http://localhost:8175 を開く（file:// は不可）";
+        log(statusEl.textContent);
+      } else {
+        navigator.hid.addEventListener("connect", (e) => note("connect", describeDevice(e.device)));
+        navigator.hid.addEventListener("disconnect", (e) => {
+          note("disconnect", describeDevice(e.device));
+          if (device === e.device) {
+            // 切断後の HIDDevice は sendReport が返らなくなる（R-004 実測）。参照を捨てる。
+            device = null;
+            statusEl.textContent = "device が切断された。参照を破棄した";
+          }
+        });
       }
-
-      navigator.hid.addEventListener("connect", (e) => note("connect", describeDevice(e.device)));
-      navigator.hid.addEventListener("disconnect", (e) => {
-        note("disconnect", describeDevice(e.device));
-        if (device === e.device) {
-          // 切断後の HIDDevice は sendReport が返らなくなる（R-004 実測）。参照を捨てる。
-          device = null;
-          statusEl.textContent = "device が切断された。参照を破棄した";
-        }
-      });
 
       const transport = () => document.getElementById("transport").value;
       const timeoutMs = () => Number(document.getElementById("timeout").value);
@@ -199,6 +234,30 @@
         return device;
       }
 
+      /**
+       * click handler を包む。async handler が投げた例外は既定では
+       * unhandled rejection になり、画面には何も出ない。必ず log へ出す。
+       */
+      function on(id, handler) {
+        const el = document.getElementById(id);
+        if (!el) {
+          log(`button が見つからない: ${id}`);
+          return;
+        }
+        el.addEventListener("click", async (event) => {
+          if (!hasHid) {
+            statusEl.textContent = "navigator.hid が無いので何もできない";
+            return;
+          }
+          try {
+            await handler(event);
+          } catch (error) {
+            note("error", { button: id, error: String(error) });
+            statusEl.textContent = `${id}: ${error}`;
+          }
+        });
+      }
+
       function requireDevice() {
         if (!device) {
           statusEl.textContent = "先に device を選ぶ";
@@ -213,13 +272,13 @@
         }
       }
 
-      document.getElementById("list").addEventListener("click", async () => {
+      on("list", async () => {
         const devices = await navigator.hid.getDevices();
         note("getDevices", { count: devices.length, devices: devices.map(describeDevice) });
         if (!device) device = devices.find(isVialDevice) ?? null;
       });
 
-      document.getElementById("request").addEventListener("click", async () => {
+      on("request", async () => {
         const found = await requestVialDevice();
         if (!found) return note("request", "device が選ばれなかった");
         device = found;
@@ -227,20 +286,20 @@
       });
 
       // read のみ。unlock 操作（物理キーの長押し）は行わない。
-      document.getElementById("unlock").addEventListener("click", async () => {
+      on("unlock", async () => {
         if (!(await refreshDevice())) return;
         note("unlockStatus", await readUnlockStatus(device, { timeoutMs: timeoutMs() }));
       });
 
       // 手順 5 の基準値。write の前に一度読んでおく。
-      document.getElementById("uptime").addEventListener("click", async () => {
+      on("uptime", async () => {
         if (!(await refreshDevice())) return;
         const uptime = await readUptime(device, { timeoutMs: timeoutMs() });
         lastUptimeMs = uptime.uptimeMs;
         note("uptime", uptime);
       });
 
-      document.getElementById("backup").addEventListener("click", async () => {
+      on("backup", async () => {
         if (!(await refreshDevice())) return;
         statusEl.textContent = "backup 用の read 中";
         const result = await runReadFlow(device, { timeoutMs: timeoutMs() });
@@ -261,7 +320,7 @@
         statusEl.textContent = "backup を保存した。write を解禁する";
       });
 
-      document.getElementById("readTarget").addEventListener("click", async () => {
+      on("readTarget", async () => {
         if (!(await refreshDevice())) return;
         const value = await readSingleKeycode(device, { ...target(), timeoutMs: timeoutMs() });
         backupKeycode = value;
@@ -270,7 +329,7 @@
         note("readTarget", { ...target(), value: hex(value) });
       });
 
-      document.getElementById("write").addEventListener("click", async () => {
+      on("write", async () => {
         if (!requireDevice() || backup === null) return;
         if (backupKeycode === null) {
           statusEl.textContent = "先に手順 2 で現在値を読む";
@@ -286,7 +345,7 @@
       });
 
       // 5 件連続で write する。押した直後にケーブルを抜くと、どこまで残るかが見える。
-      document.getElementById("writeBurst").addEventListener("click", async () => {
+      on("writeBurst", async () => {
         if (!requireDevice() || backup === null) return;
         if (!confirm("同じ 1 箇所へ 5 回連続で write します。押したらケーブルを抜いてください"))
           return;
@@ -300,7 +359,7 @@
       });
 
       // 電源が本当に落ちたかは uptime でしか確かめられない。値を読む前に必ず確認する。
-      document.getElementById("afterReboot").addEventListener("click", async () => {
+      on("afterReboot", async () => {
         if (!(await refreshDevice())) return;
         const uptime = await readUptime(device, { timeoutMs: timeoutMs() });
         const rebooted = lastUptimeMs !== null && uptime.uptimeMs < lastUptimeMs;
@@ -319,7 +378,7 @@
           : "uptime が巻き戻っていない。電源が落ちていないので、この結果は根拠にならない";
       });
 
-      document.getElementById("restore").addEventListener("click", async () => {
+      on("restore", async () => {
         if (!requireDevice() || backupKeycode === null) {
           statusEl.textContent = "戻す値が分からない。手順 2 を先に行う";
           return;
@@ -336,7 +395,7 @@
       });
 
       // backup と現在の実機状態を突き合わせる。復元できたかの最終確認。
-      document.getElementById("verifyAll").addEventListener("click", async () => {
+      on("verifyAll", async () => {
         if (!(await refreshDevice())) return;
         if (!backup) {
           statusEl.textContent = "backup が無い";
@@ -364,14 +423,18 @@
         log(`保存した: ${name}`);
       }
 
-      document.getElementById("save").addEventListener("click", () => {
+      on("save", () => {
         download(`r-005-${transport()}-${Date.now()}.json`, record);
       });
 
-      document.getElementById("copy").addEventListener("click", async () => {
+      on("copy", async () => {
         await navigator.clipboard.writeText(JSON.stringify(record, null, 2));
         statusEl.textContent = "clipboard へコピーした";
       });
+
+      // ここまで到達していれば全ボタンが登録されている。
+      window.__moduleLoaded = true;
+      log(`module 読み込み完了（WebHID: ${hasHid ? "あり" : "なし"}）`);
     </script>
   </body>
 </html>

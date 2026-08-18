@@ -91,6 +91,20 @@ Bluetooth 設定で切断する）か、通信範囲外へ持ち出す。
 
 生データは `~/Downloads/r-005-*.json` へ落ちる。コミットしない。
 
+## 動かないときに見るところ
+
+ボタンを押しても何も起こらない場合、module 自体が読み込まれていない可能性が高い。
+その場合は画面の log に `[boot] module が読み込まれていない` が出る。順に確認する。
+
+1. `serve.mjs` を起動しているか。ポートは **8175**（R-004 の 8173 ではない）
+2. `http://localhost:8175` を開いているか。`file://` では `navigator.hid` が
+   undefined になり、WebHID は一切使えない
+3. Chromium 系 browser か。Safari / Firefox は WebHID を持たない
+4. browser の console に出ているエラー。import に失敗していれば URL が出る
+
+`[boot] module 読み込み完了` が出ていれば全ボタンが登録されている。
+その状態で反応が無い場合は log と status 行に理由が出る。
+
 ## 検証していないこと
 
 - `EepromReset`(`0x0A`) と `BootloaderJump`(`0x0B`)。mock でのみ扱い、実機へは送らない
