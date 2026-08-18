@@ -8,13 +8,21 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = dirname(here);
-const entry = "r-005-write-failure/index.html";
+const entry = "/r-005-write-failure/index.html";
 const port = Number(process.env.PORT ?? 8175);
 const types = { ".html": "text/html; charset=utf-8", ".mjs": "text/javascript; charset=utf-8" };
 
 createServer(async (req, res) => {
-  const path = normalize(new URL(req.url, "http://localhost").pathname).replace(/^\/+/, "");
-  const file = join(root, path === "" ? entry : path);
+  const pathname = normalize(new URL(req.url, "http://localhost").pathname);
+  // `/` で index.html を返すと、document URL が `/` になって
+  // `./write-probe.mjs` が `/write-probe.mjs` に解決され 404 になる。
+  // 相対 import を成立させるため、実際の path へ redirect する。
+  if (pathname === "/" || pathname === "/r-005-write-failure") {
+    res.writeHead(302, { location: entry }).end();
+    return;
+  }
+  const path = pathname.replace(/^\/+/, "");
+  const file = join(root, path);
   if (!file.startsWith(root)) {
     res.writeHead(403).end();
     return;
@@ -26,4 +34,6 @@ createServer(async (req, res) => {
   } catch {
     res.writeHead(404).end("not found");
   }
-}).listen(port, () => console.log(`http://localhost:${port} を Chromium 系 browser で開く`));
+}).listen(port, () =>
+  console.log(`http://localhost:${port}${entry} を Chromium 系 browser で開く`),
+);

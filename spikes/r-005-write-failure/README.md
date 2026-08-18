@@ -28,8 +28,13 @@ nix develop -c node spikes/r-005-write-failure/self-check.mjs
 
 ```bash
 nix develop -c node spikes/r-005-write-failure/serve.mjs
-# http://localhost:8175 を Chromium 系 browser で開く
+# http://localhost:8175/r-005-write-failure/index.html を Chromium 系 browser で開く
+# （http://localhost:8175 は同じ URL へ redirect する）
 ```
+
+公開 root を `spikes/` に置いているのは、R-004 の `probe.mjs` を相対 import するため。
+`/` で index.html を直接返すと document URL が `/` になり、`./write-probe.mjs` が
+`/write-probe.mjs` へ解決されて 404 になる。そのため `/` は実際の path へ redirect している。
 
 ## 構成
 
@@ -96,7 +101,8 @@ Bluetooth 設定で切断する）か、通信範囲外へ持ち出す。
 ボタンを押しても何も起こらない場合、module 自体が読み込まれていない可能性が高い。
 その場合は画面の log に `[boot] module が読み込まれていない` が出る。順に確認する。
 
-1. `serve.mjs` を起動しているか。ポートは **8175**（R-004 の 8173 ではない）
+1. `serve.mjs` を起動しているか。ポートは **8175**（R-004 の 8173 ではない）。
+   別の instance が 8175 を掴んだままだと、古い code が応答し続ける
 2. `http://localhost:8175` を開いているか。`file://` では `navigator.hid` が
    undefined になり、WebHID は一切使えない
 3. Chromium 系 browser か。Safari / Firefox は WebHID を持たない
