@@ -2,9 +2,9 @@
 
 対象Issue: #5 `[R-005] 実機write失敗時の状態と復旧方法を調査する`
 
-実機writeはまだ行っていない。この時点の内容は、RMK / vial-guiの実装読解と、
-故障を注入できるmockでの再現から得たもの。実機での検証手順は
-`spikes/r-005-write-failure/README.md`に用意し、ユーザーの操作で行う。
+実機検証は2026-08-18に完了した。macOS 26（Darwin 25.5.0）+ Chromium系browser、
+Cornix LP firmware V1.12、**BLE接続**、write操作はすべてユーザーが実行している。
+前半はRMK / vial-guiの実装読解とmockでの再現、後半が実機の実測。
 
 ## 調査方法
 
@@ -17,8 +17,8 @@
   `src/main/python/util.py`の`hid_send`を読んだ
 - Spike `spikes/r-005-write-failure/`を作り、R-003のmock deviceにwrite commandと
   RAM / flashの分離、故障注入を足して失敗モードを再現した
-- 実機は使っていない。write系commandを実機へ送るのはAGENTS.mdの禁止操作にあたるため、
-  実機手順は人間が押すボタンとして`index.html`に用意した
+- 実機へのwriteはAGENTS.mdの禁止操作にあたるため、AIからは一切送っていない。
+  `index.html`に手順0〜7のボタンを用意し、ユーザーが押した。電源断も同様
 
 ## Fact
 
@@ -132,6 +132,62 @@
   未適用のentryは元のまま。keymapのflash itemが`(layer, row, col)`ごとに独立しているため
 - rollbackはbackupの値を同じ差分writeで書き戻すだけで成立する。firmware側の機能は要らない
 
+## Fact（実機測定）
+
+環境: macOS（Darwin 25.5.0）、Chromium系browser、Cornix LP firmware V1.12、BLE接続。
+生データは`~/Downloads/r-005-*.json`（コミットしていない）。
+
+### 単一writeは電源断を越えて残る
+
+- layer 9の`(0,0)`（definition宣言済みで値は`0x0000`、layer 9はほぼ未使用）へ
+  `0x05` DynamicKeymapSetKeyCodeで書き、再readで一致を確認した
+- 電源スイッチを切って入れ直したあと、同じ位置を読んで**値が残っていた**
+- 再起動したことは**uptime**（`0x02 0x01`、RMKの`Instant::now().as_millis()`）で確認した。
+  565462ms → 52455msへ巻き戻っている。BLE切断だけでは電源が落ちないため、この確認は必須
+
+### write中に電源を切ると、ackより1件少なく残る
+
+layer 9〜5の**現在`0x0000`の位置269件**へ、verifyの再readを挟まず連続writeし、
+その最中に本体の電源スイッチを切った。値はindexから決めているため、
+別の位置へ入ったwriteがあれば読み戻しで検出できる。
+
+| 観測                     | 値                                |
+| ------------------------ | --------------------------------- |
+| 対象                     | 269件                             |
+| ackが返った              | **17件**                          |
+| 電源断後に残っていた     | **16件**                          |
+| 消えていた               | 253件                             |
+| 値が位置と対応しないもの | **0件**                           |
+| 最後に残ったindex        | 15                                |
+| 最初に消えたindex        | 16                                |
+| 停止の検出               | `sendReport`でのtimeout（3000ms） |
+
+- **ackが返った最後の1件だけがflashに載っていない**。
+  `FLASH_CHANNEL`へ送った直後にackを返す実装から予測されるとおりの結果
+- 境界は連続しており、順序の乱れも誤配置も無い。部分適用は常に「先頭からN件」の形になる
+- 電源断の検出は`sendReport`が返らないことによる。R-004で観測した永久pendingと同じ形で、
+  timeoutが無ければ無言で止まる
+
+### 往復latency（BLE）
+
+| 操作                           | 往復 | 総時間 | p50    | p95     | max     |
+| ------------------------------ | ---- | ------ | ------ | ------- | ------- |
+| 全read（backup）               | 168  | 5.56s  | 30.0ms | 31.5ms  | 437.7ms |
+| 空き位置の走査（read 1件ずつ） | 280  | 9.55s  | 30.0ms | 40.5ms  | 484.2ms |
+| 連続write（verifyなし）        | 17   | 0.96s  | 45.0ms | 174.7ms | 174.7ms |
+| 読み戻し（read 1件ずつ）       | 269  | 13.39s | 30.2ms | 77.1ms  | 539.9ms |
+
+- **writeの往復はreadより遅い**（p50で30.0ms → 45.0ms）
+- 全readは5.56s。R-004の実測（7.03s）より速い。同じ168往復でp50は43.7ms → 30.0ms
+
+### 権限とdeviceの見え方
+
+- reload後も`getDevices()`が3件を返した。権限は永続化されている（R-004と一致）
+- ただし**権限はorigin単位**で、R-004の`:8173`とR-005の`:8175`は別origin。
+  初回の`getDevices()`は0件になり、`requestDevice`をやり直す必要がある
+- 電源断でも3つの`HIDDevice`すべてに`disconnect`が飛び、再接続で`connect`が3つ飛ぶ。
+  切断前のdeviceは再利用できず、`getDevices()`から取り直した（R-004と一致）
+
 ## Inference
 
 - flash書き込みが実際に失敗する条件は、`SSError::FullStorage`（`sequential-storage`が
@@ -154,16 +210,16 @@ writeは単一entry commandに限り、ackを成功と見なさず、1件ごと�
 
 ## Open Question
 
-- **実機での検証が未了**。`spikes/r-005-write-failure/index.html`の手順0〜7をユーザーが実行すれば、
-  以下が確認できる。実施後にこのログとADRへ反映する。
-  transportはUSB / BLEどちらでもよい（R-004でread結果が全byte一致している）。
-  ただし電源断の観測は、Cornix LPがbatteryを積んでいるためケーブルを抜くだけでは成立しない。
-  uptime（`0x02 0x01`）が巻き戻ったかどうかで再起動を確認する
-  - write直後の再readとack（RMKの実装から予想される挙動と一致するか）
-  - 電源再投入後に値が残るか（RAMとflashの乖離が実機で起きるか）
-  - write連続実行中に切断したときの部分状態
-  - Cornix LPの`GetUnlockStatus`が返す値（`vial_lock` featureの有効 / 無効）
-  - write往復のlatency（readのp50と同等か、flash書き込みのぶん遅いか）
+- ~~実機での検証が未了~~ → **解決**（2026-08-18、BLE接続で実施）。
+  単一writeは電源断を越えて残り、連続write中の電源断では
+  ackより1件少ない件数だけが残った。writeの往復はreadより遅い（p50 45.0ms / 30.0ms）
+- **USB接続での再測が未了**。今回はBLEのみ。R-004ではread結果が全byte一致したが、
+  writeのlatencyとack / flashのズレ幅がtransportで変わるかは未確認
+- ackとflashのズレが**常に1 entryなのか**は1回の測定では言えない。
+  storage taskが`store_item`にかける時間とwriteの間隔次第では複数件になりうる。
+  再現を取るなら、writeの間隔を変えて数回繰り返す必要がある
+- Cornix LPの`GetUnlockStatus`が返す値（`vial_lock` featureの有効 / 無効）は未取得。
+  writeがlockに影響されない以上Applyの設計は変わらないため、優先度は低い
 - `sequential-storage`のGCが走るタイミングとwrite latencyへの影響は未確認。
   1往復の応答が遅くなる可能性があるが、実測しないと分からない
 - flashの摩耗。差分writeは1 entryにつき1 itemを追記するため、Applyを繰り返すとGCが頻発する。

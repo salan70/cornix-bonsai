@@ -3,7 +3,8 @@
 状態: 採用
 
 2026-08-18に、Cornix LPのfirmwareであるRMK（tag `rmk-v0.8.2`）のwrite経路とstorage実装を読み、
-故障を注入できるmock（Spike: `spikes/r-005-write-failure/`）で失敗モードを再現して決めた。
+故障を注入できるmock（Spike: `spikes/r-005-write-failure/`）で失敗モードを再現し、
+実機（BLE接続、firmware V1.12）でwriteと電源断を実測して決めた。
 
 ## 背景
 
@@ -49,6 +50,21 @@ mockでの再現（`nix develop -c node spikes/r-005-write-failure/self-check.mj
 最後の行が重要で、VIA / vial-guiの`size`はbyte数だがRMKはentry数として扱う。
 その値をそのまま送るとRMKは32 byteのreportを超えて読みにいき、Rustのslice indexでpanicする。
 
+実機での実測（詳細は作業ログ）。BLE接続、電源スイッチによる電源断で確認した。
+
+- 単一entry write（`0x05`）で書いた値は、**電源断を越えて残った**。
+  uptime（`0x02 0x01`）が565秒から52秒へ巻き戻ったことで再起動を確認している
+- 空き269箇所へ連続writeし、その最中に電源を切ったところ、
+  **ackが返ったのは17件、電源断後に残っていたのは16件**だった。
+  最後にackが返った1件だけがflashに載っていない
+- 残った位置と消えた位置の**境界は連続**しており、順序の入れ替わりも、
+  別の位置へ入ったwriteも1件も無かった（値をindexから決めて突き合わせた）
+- writeの往復はreadより遅い。read単発がp50 30.0msなのに対し、
+  write（verifyなし）はp50 45.0ms / p95 174.7ms
+
+つまり**ackとflashのズレは実在し、その幅は1 entry**である。
+`FLASH_CHANNEL`へ送った直後にackを返すという実装から予測される挙動と一致した。
+
 ## 選択肢
 
 1. vial-guiと同じくackを成功と見なし、Apply後に全readで突き合わせる
@@ -83,8 +99,11 @@ mockでの再現（`nix develop -c node spikes/r-005-write-failure/self-check.mj
 - 案3は毎回のApplyに全read（BLEで7秒）と電源再投入を課す。flash書き込みの失敗はstorageが
   壊れているか満杯のときにしか起きず、常時警戒するには代償が大きすぎる
 - 部分状態は安全に再開できる。適用済みのentryは`(layer, row, col)`単位で独立したflash itemになり、
-  中断しても巻き戻らず、触っていないentryを壊しもしない。だから「途中まで適用された実機」を
-  次のApplyの入力として扱える
+  中断しても巻き戻らず、触っていないentryを壊しもしない。実機でも、適用済みは連続した前半部分として
+  残り、順序の乱れも誤った位置への書き込みも観測されなかった。
+  だから「途中まで適用された実機」を次のApplyの入力として扱える
+- 電源断を挟んだ場合、実機のRAMはflashから作り直されるため、**再接続後の全readは
+  永続化された状態そのものを返す**。復旧に必要なのは全readとdiffの再計算だけで足りる
 - rollbackをfirmwareへ期待できない。transactionは無く、`EepromReset`はfirmware既定へ戻すだけで
   ユーザーの元の状態には戻さない。復元元はhost側のbackupしか存在しない
 - 全buffer write（`0x13`）は、readとの非対称、`try_send`の取りこぼし、sizeの解釈違いによるpanicの
@@ -96,8 +115,11 @@ mockでの再現（`nix develop -c node spikes/r-005-write-failure/self-check.mj
 
 - D-005のApplyは「全read backup → validation → diff → 人間確認 → 1件ずつwrite + 再read →
   失敗したら中断し全readからやり直す」を必須手順とする。backupが取れなければwriteへ進まない
-- 差分N件のwriteは2N往復になる。BLEのp50 43.7ms（R-004実測）ならN=50で約4.4秒。
-  進捗表示は往復数ベースで出す（ADR 0004と同じ）
+- 差分N件のwriteは2N往復になる。writeの往復はreadより遅く、実測でp50 45.0ms。
+  N=50なら約4.5秒かかる。進捗表示は往復数ベースで出す（ADR 0004と同じ）
+- Applyが電源断で中断した場合、**最後にackが返った1 entryは反映されていない可能性がある**。
+  再接続後の全readはその状態を正しく返すので、diffを取り直せば次のApplyで埋まる。
+  「ackが返ったのだから書けているはず」という前提でdiffを縮めてはいけない（D-005の入力）
 - verifyの比較単位はADR 0003のまま。write側も同じ単位で1件ずつ突き合わせる（D-003の入力）
 - backup JSONはApplyごとに保存し、UIから復元できる導線を持つ。置き場所はD-004で決める
 - macroは当面write経路を持たない。RMKの実装が途中で、`0x0F`はbuffer全体をflashへflushする。
