@@ -1,0 +1,10 @@
+{
+  "include": {
+    "code": {
+      "typescript": {
+        "patterns": ["src/**/*.ts", "packages/*/src/**/*.ts"]
+      }
+    },
+    "docs": ["docs/specs/**/*.md"]
+  }
+}
