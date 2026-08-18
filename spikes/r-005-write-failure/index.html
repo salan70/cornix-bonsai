@@ -174,7 +174,12 @@
         requestVialDevice,
         runReadFlow,
       } from "../r-004-webhid-macos/probe.mjs";
-      import { applyDiff, readSingleKeycode, readUnlockStatus } from "./write-probe.mjs";
+      import {
+        applyDiff,
+        readSingleKeycode,
+        readUnlockStatus,
+        readUptime,
+      } from "./write-probe.mjs";
 
       const logEl = document.getElementById("log");
       const statusEl = document.getElementById("status");
