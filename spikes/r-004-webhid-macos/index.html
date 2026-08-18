@@ -52,9 +52,13 @@
       <button id="list">getDevices() を見る</button>
       <button id="request">requestDevice（0xFF60 filter）</button>
       <button id="requestAny">requestDevice（filter なし）</button>
+      <button id="ping">1 command だけ送る</button>
       <button id="read">read フローを実行</button>
+      <button id="read2">read フローを 2 回連続で実行</button>
+      <button id="close">close()</button>
       <button id="forget">forget()</button>
       <button id="copy">結果を JSON でコピー</button>
+      <button id="save">結果を JSON で保存</button>
     </p>
 
     <p id="status" class="warn"></p>
@@ -65,6 +69,7 @@
         describeDevice,
         isVialDevice,
         requestAnyDevice,
+        pingDevice,
         requestVialDevice,
         runReadFlow,
       } from "./probe.mjs";
@@ -98,7 +103,10 @@
       navigator.hid.addEventListener("disconnect", (e) => {
         note("disconnect", describeDevice(e.device));
         if (device === e.device) {
-          statusEl.textContent = "device が切断された。再取得が要るか getDevices() で確かめる";
+          // 切断後の HIDDevice は opened を true のまま返しつつ sendReport が返らなくなる。
+          // 参照を捨てて getDevices() から取り直す。
+          device = null;
+          statusEl.textContent = "device が切断された。参照を破棄した";
         }
       });
 
@@ -108,6 +116,19 @@
       function timeoutMs() {
         return Number(document.getElementById("timeout").value);
       }
+      // read の直前に必ず呼ぶ。切断を挟むと同じ物理 device でも別の HIDDevice になる。
+      async function refreshDevice() {
+        const devices = await navigator.hid.getDevices();
+        const found = devices.find(isVialDevice) ?? null;
+        if (found && found !== device) {
+          note("refreshDevice", { 差し替えた: true, ...describeDevice(found) });
+          device = found;
+        } else if (!found) {
+          note("refreshDevice", { 差し替えた: false, 見つからない: true });
+        }
+        return device;
+      }
+
       function adopt(found) {
         if (!found) {
           note("request", "device が選ばれなかった");
@@ -139,14 +160,9 @@
         adopt(await requestAnyDevice());
       });
 
-      document.getElementById("read").addEventListener("click", async () => {
-        if (!device) {
-          statusEl.textContent = "先に device を選ぶ";
-          return;
-        }
-        statusEl.textContent = "read 中";
-        const startedAt = performance.now();
-        let last = startedAt;
+      async function readOnce(round) {
+        statusEl.textContent = `read 中（${round}）`;
+        let last = performance.now();
         const result = await runReadFlow(device, {
           timeoutMs: timeoutMs(),
           onProgress: ({ n, label, ms }) => {
@@ -158,7 +174,51 @@
           },
         });
         statusEl.textContent = "";
-        note("readFlow", { transport: transport(), timeoutMs: timeoutMs(), ...result });
+        note("readFlow", { transport: transport(), round, timeoutMs: timeoutMs(), ...result });
+        return result;
+      }
+
+      document.getElementById("read").addEventListener("click", async () => {
+        if (!device) {
+          statusEl.textContent = "先に device を選ぶ";
+          return;
+        }
+        await refreshDevice();
+        note("beforeRead", { opened: device.opened });
+        await readOnce("単発");
+      });
+
+      // 2 回目が詰まるかどうかを、間に何も挟まずに確かめる。
+      document.getElementById("read2").addEventListener("click", async () => {
+        if (!device) {
+          statusEl.textContent = "先に device を選ぶ";
+          return;
+        }
+        await refreshDevice();
+        note("beforeRead", { opened: device.opened });
+        await readOnce("1 回目");
+        note("betweenReads", { opened: device.opened });
+        await readOnce("2 回目");
+      });
+
+      // BLE の切り分け用。read フロー全体ではなく 1 往復だけ試す。
+      document.getElementById("ping").addEventListener("click", async () => {
+        await refreshDevice();
+        if (!device) {
+          statusEl.textContent = "device が無い。requestDevice する";
+          return;
+        }
+        note("ping", {
+          transport: transport(),
+          opened: device.opened,
+          ...(await pingDevice(device, timeoutMs())),
+        });
+      });
+
+      document.getElementById("close").addEventListener("click", async () => {
+        if (!device) return;
+        await device.close();
+        note("close", { opened: device.opened });
       });
 
       document.getElementById("forget").addEventListener("click", async () => {
@@ -166,6 +226,17 @@
         await device.forget();
         note("forget", "権限を破棄した。再読み込み後に getDevices() が空なら永続化されていない");
         device = null;
+      });
+
+      // read した生 byte も含むため、貼り付けではなくファイルで持ち帰る用。
+      document.getElementById("save").addEventListener("click", () => {
+        const blob = new Blob([JSON.stringify(record, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `r-004-${transport()}-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        statusEl.textContent = `保存した: ${a.download}`;
       });
 
       document.getElementById("copy").addEventListener("click", async () => {

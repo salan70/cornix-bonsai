@@ -7,6 +7,9 @@ macOS の Chromium 系 browser から Cornix LP へ **read だけ** を行い、
 
 write 系 command は 1 つも実装していません（AGENTS.md の禁止操作）。
 
+2026-08-18 に USB / BLE の両方で実測済みです（結果は
+`docs/tasks/ai-logs/2026-08-18_r-004-webhid-macos.md`）。再測定するときの手順として残しています。
+
 ## 実機なしで確認できること
 
 ```bash
@@ -34,14 +37,21 @@ nix develop -c node spikes/r-004-webhid-macos/serve.mjs
 USB と BLE を **別々に** 記録します。BLE は先に macOS の Bluetooth 設定でペアリングしておきます
 （browser は OS がペアリング済みの BT HID しか見ません）。
 
+**切断を挟んだら device を取り直す**こと。切断前の `HIDDevice` は `opened` が `true` のまま
+`sendReport` が永久に pending になります（実測）。`read` 系のボタンは実行前に `getDevices()` から
+取り直しますが、`requestDevice` で選び直した方が確実です。
+
 1. transport を選ぶ（WebHID からは transport を判別できないため、記録用の手入力）
 2. `getDevices()` を見る — 権限が残っているか
 3. `requestDevice（0xFF60 filter）` — chooser に出るか。出なければ `filter なし` で列挙し、
    OS がその device をどう見せているかを記録する
-4. `read フローを実行` — 168 往復の総時間・p50 / p95 / max・timeout の有無
-5. USB を抜く / BLE の電源を切る → `disconnect` event が出るか、再接続で `connect` が出るか
-6. page を再読み込みして `getDevices()` — 権限が永続化されているか（0 件なら ephemeral）
-7. `結果を JSON でコピー` して作業ログへ貼る
+4. `1 command だけ送る` — 1 往復だけの疎通確認。transport 固有の失敗の切り分けに使う
+5. `read フローを実行` — 168 往復の総時間・p50 / p95 / max・timeout の有無
+   （実測: USB 340ms / BLE 7.03s）
+6. USB を抜く / BLE の電源を切る → `disconnect` event が出るか、再接続で `connect` が出るか
+7. page を再読み込みして `getDevices()` — 権限が永続化されているか（実測では 3 件返る）
+8. `結果を JSON で保存` — read した生 byte（definition の xz、keymap 全 byte、encoder、
+   tap dance / combo / settings / macro buffer）を含む。fixture との突き合わせに使う
 
 ### 記録する項目
 
