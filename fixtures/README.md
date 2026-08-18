@@ -12,3 +12,9 @@ Fixtureは、parse、round-trip、analysis、renderingを検証するための�
 - 未知または保持対象の`.vil` field
 
 個人利用中のキーボード設定をPublic fixtureとして追加する場合は、内容を確認し、必要なsanitizeを行ってからcommitします。
+
+## `cornix-lp/`
+
+- `baseline.vil`: Cornix LPの実export（Vial `vial_protocol: 6` / `via_protocol: 9`）。
+  macro・combo・key_overrideは未使用のため空で、テキストなどの個人情報は含まない。
+  `uid`は実機のキーボードidをそのまま残している（round-tripの検証に必要なため）。
