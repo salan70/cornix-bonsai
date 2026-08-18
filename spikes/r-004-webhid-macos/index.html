@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>R-004 WebHID probe (Cornix LP)</title>
+    <style>
+      body {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        margin: 1.5rem;
+        line-height: 1.5;
+      }
+      button {
+        margin: 0 0.4rem 0.4rem 0;
+        padding: 0.4rem 0.8rem;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 0.8rem;
+        overflow-x: auto;
+        max-height: 24rem;
+      }
+      label {
+        margin-right: 1rem;
+      }
+      .warn {
+        color: #b00;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>R-004 WebHID probe</h1>
+    <p>
+      Cornix LP に対して <strong>read 系 command のみ</strong> を送り、transport ごとの挙動と
+      所要時間を記録します。write は行いません。
+    </p>
+
+    <p>
+      <label>
+        transport:
+        <select id="transport">
+          <option value="usb">USB</option>
+          <option value="ble">Bluetooth (BLE)</option>
+        </select>
+      </label>
+      <label>
+        timeout(ms):
+        <input id="timeout" type="number" value="3000" min="200" step="100" size="6" />
+      </label>
+    </p>
+
+    <p>
+      <button id="list">getDevices() を見る</button>
+      <button id="request">requestDevice（0xFF60 filter）</button>
+      <button id="requestAny">requestDevice（filter なし）</button>
+      <button id="read">read フローを実行</button>
+      <button id="forget">forget()</button>
+      <button id="copy">結果を JSON でコピー</button>
+    </p>
+
+    <p id="status" class="warn"></p>
+    <pre id="log"></pre>
+
+    <script type="module">
+      import {
+        describeDevice,
+        isVialDevice,
+        requestAnyDevice,
+        requestVialDevice,
+        runReadFlow,
+      } from "./probe.mjs";
+
+      const logEl = document.getElementById("log");
+      const statusEl = document.getElementById("status");
+      const record = {
+        userAgent: navigator.userAgent,
+        startedAt: new Date().toISOString(),
+        events: [],
+      };
+      let device = null;
+
+      const stamp = () => new Date().toISOString().slice(11, 23);
+      function log(entry) {
+        const text = typeof entry === "string" ? entry : JSON.stringify(entry, null, 2);
+        logEl.textContent += `[${stamp()}] ${text}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+      function note(kind, payload) {
+        record.events.push({ at: new Date().toISOString(), kind, payload });
+        log({ [kind]: payload });
+      }
+
+      if (!("hid" in navigator)) {
+        statusEl.textContent = "この browser は WebHID を持っていない（Safari など）";
+      }
+
+      // 抜き差し / 電源断で connect / disconnect がどう飛ぶかを見る。
+      navigator.hid.addEventListener("connect", (e) => note("connect", describeDevice(e.device)));
+      navigator.hid.addEventListener("disconnect", (e) => {
+        note("disconnect", describeDevice(e.device));
+        if (device === e.device) {
+          statusEl.textContent = "device が切断された。再取得が要るか getDevices() で確かめる";
+        }
+      });
+
+      function transport() {
+        return document.getElementById("transport").value;
+      }
+      function timeoutMs() {
+        return Number(document.getElementById("timeout").value);
+      }
+      function adopt(found) {
+        if (!found) {
+          note("request", "device が選ばれなかった");
+          return;
+        }
+        device = found;
+        note("selected", {
+          transport: transport(),
+          vialCollection: isVialDevice(found),
+          ...describeDevice(found),
+        });
+      }
+
+      document.getElementById("list").addEventListener("click", async () => {
+        const devices = await navigator.hid.getDevices();
+        note("getDevices", {
+          transport: transport(),
+          count: devices.length,
+          devices: devices.map(describeDevice),
+        });
+        if (!device) device = devices.find(isVialDevice) ?? null;
+      });
+
+      document.getElementById("request").addEventListener("click", async () => {
+        adopt(await requestVialDevice());
+      });
+
+      document.getElementById("requestAny").addEventListener("click", async () => {
+        adopt(await requestAnyDevice());
+      });
+
+      document.getElementById("read").addEventListener("click", async () => {
+        if (!device) {
+          statusEl.textContent = "先に device を選ぶ";
+          return;
+        }
+        statusEl.textContent = "read 中";
+        const startedAt = performance.now();
+        let last = startedAt;
+        const result = await runReadFlow(device, {
+          timeoutMs: timeoutMs(),
+          onProgress: ({ n, label, ms }) => {
+            const now = performance.now();
+            if (now - last > 500 || n === 1) {
+              logEl.textContent += `[${stamp()}] ${n} 往復目 ${label} ${ms.toFixed(1)}ms\n`;
+              last = now;
+            }
+          },
+        });
+        statusEl.textContent = "";
+        note("readFlow", { transport: transport(), timeoutMs: timeoutMs(), ...result });
+      });
+
+      document.getElementById("forget").addEventListener("click", async () => {
+        if (!device) return;
+        await device.forget();
+        note("forget", "権限を破棄した。再読み込み後に getDevices() が空なら永続化されていない");
+        device = null;
+      });
+
+      document.getElementById("copy").addEventListener("click", async () => {
+        await navigator.clipboard.writeText(JSON.stringify(record, null, 2));
+        statusEl.textContent = "clipboard へコピーした";
+      });
+    </script>
+  </body>
+</html>
