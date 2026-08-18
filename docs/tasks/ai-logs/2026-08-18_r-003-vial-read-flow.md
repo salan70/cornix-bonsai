@@ -102,8 +102,8 @@
 - ユーザーの実機firmware（Cornix LP V1.10以降）はRMK 0.8系でbuildされている。
   根拠はqsid集合が`rmk-v0.8.2`の`SettingKey`と完全一致し、mainにある0x19が無いこと。
   RMKのversionを直接読むcommandは無いため、これ以上は絞れない
-- encoder 0が左手、1が右手（ADR 0002のInferenceのまま）。readフロー側からは新しい根拠が出ない。
-  definitionにもfirmwareにもknobの物理位置情報が無いため、実機で確かめるほかない
+- ~~encoder 0が左手、1が右手（ADR 0002のInferenceのまま）~~ → 2026-08-18の実機確認でFactになった。
+  下のOpen Questionを参照
 
 ## Decision
 
@@ -113,11 +113,18 @@ readはvial-guiと同じ順序・解釈で行い、得られたwire値をdeviceS
 
 ## Open Question
 
-- **encoder indexと左右の物理knobの対応が未確認**。実機が要る。write不要の手順:
-  `baseline.vil`の状態でlayer 0のknobを回し、音量が動く方がencoder 0、
-  カーソルが単語単位で動く（`LCTL(KC_LEFT)` / `LCTL(KC_RIGHT)`）方がencoder 1
+- ~~encoder indexと左右の物理knobの対応が未確認~~ → **解決**（2026-08-18の実機確認）。
+  **encoder 0が左手、encoder 1が右手**。実機のencoder 0 layer 0は`0x00AA` / `0x00A9`
+  （`KC_VOLD` / `KC_VOLU`）で、左のknobで音量が動くことをユーザーが確認した。
+  encoder 1は`0x0150` / `0x014F`（`LCTL(KC_LEFT)` / `LCTL(KC_RIGHT)`）。
+  詳細は`2026-08-18_r-004-webhid-macos.md`
 - macro bufferをaction単位へ分解する処理（`macro_deserialize_v2`相当）は未実装・未検証。
   `.vil`の`macro` fieldを埋めるのに要る。D-002の入力
 - RMKの`to_via_keycode`が落とすKeyActionが、Cornix LPの出荷keymapに実在するかは未確認。
   実在する場合、その位置は常に`KC_NO`としてreadされる
-- 168往復の所要時間とtimeoutはtransport依存。R-004で測る
+- ~~168往復の所要時間とtimeoutはtransport依存~~ → **解決**。USB 340ms / BLE 7.0s。
+  `2026-08-18_r-004-webhid-macos.md`とADR 0004
+- 実機readと`baseline.vil`の突き合わせで、keymap 1箇所（layer 3の`(3,2)`が実機`0x00E3` = 左GUI、
+  `baseline.vil`は`KC_NO`）とtap dance 2件が食い違った。**`baseline.vil`はexport時点のsnapshotであり、
+  現在の実機状態ではない**。fixtureを「現在の実機」と同一視しないこと。
+  definition / settings / combo / macro / layout_options / encoderは一致した

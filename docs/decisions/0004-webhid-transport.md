@@ -1,8 +1,8 @@
 # WebHIDのdeviceは0xFF60 collectionで選び、transportに依存しない単一sessionでApplyを閉じる
 
-状態: 提案中
+状態: 採用
 
-実機（USB / BLE）での確認が未了。確認後に「採用」へ更新するか、結論を差し替える。
+2026-08-18にmacOS + Chromium系browser、Cornix LP firmware V1.12で、USB / BLEの双方を実測した。
 
 ## 背景
 
@@ -11,7 +11,8 @@ Applyフロー（AGENTS.md）はread → backup → validation → diff → writ
 168往復ある。macOS + Chromiumで、この往復をどちらのtransportでも同じコードで通せるのか、
 また接続や権限がどこで切れうるのかを決めないと、UIとerror処理の形が決まらない。
 
-R-004の調査（Spike: `spikes/r-004-webhid-macos/`）で、実機なしに以下が確認できた。
+R-004の調査（Spike: `spikes/r-004-webhid-macos/`）で以下が確認できた。前半はprotocol / browser実装から、
+後半は実機の実測から得たもの。
 
 - Cornix LPのVial用collectionはusage page `0xFF60` / usage `0x61`、input / output各32 byte、
   report IDなし。RMKの`ViaReport`（`rmk/src/descriptor.rs`）はUSBとBLEで同じdescriptorを使う
@@ -31,6 +32,18 @@ R-004の調査（Spike: `spikes/r-004-webhid-macos/`）で、実機なしに以�
   それ以外はephemeralで、切断やbrowser終了で失われる。WebHIDはserial numberをJSへ出さないため、
   永続化されるかどうかはgetDevices()の結果からしか観測できない
 
+実機の実測（詳細は`docs/tasks/ai-logs/2026-08-18_r-004-webhid-macos.md`）。
+
+- 1台が**3つの`HIDDevice`**に割れる（Vial / keyboard / mouse・consumer・system control）。
+  USBでもBLEでも同じ3分割で、`0xFF60` / `0x61`のfilterで1つに絞れる
+- **BLE接続時もVial collectionが見える**。macOSは2つ目以降のHID over GATT serviceも
+  IOHIDDeviceとして生やしている
+- 168往復の実測は**USB 340ms（p50 2.0ms） / BLE 7.03s（p50 43.7ms、max 512.4ms）**。
+  **read結果はUSBとBLEで全byte一致**した
+- 権限は**永続化される**。reload後の`getDevices()`が3件を返した
+- **切断前の`HIDDevice`は再利用できない**。`opened`が`true`のまま`sendReport`が
+  解決も拒否もせず永久にpendingになる。再接続後は`getDevices()`から取り直す必要がある
+
 ## 選択肢
 
 1. transportごとに接続層を分け、USB用とBLE用で別のread / write経路を持つ
@@ -48,9 +61,11 @@ R-004の調査（Spike: `spikes/r-004-webhid-macos/`）で、実機なしに以�
 - transportをUIに表示しない。判別できないものを表示しない
 - Applyフローは1回の接続sessionの中で閉じる。session中に`disconnect`が来たら、
   途中まで進んだ操作を継続せず中断する
-- 権限はephemeralである前提で組む。起動時に`getDevices()`が空でも異常として扱わず、
-  chooserを出す導線を常に持つ
-- timeoutは往復ごとに設ける。値はtransportで変えず、実測のp95から一律に決める
+- `disconnect`を受けたら`HIDDevice`の参照を捨てる。再接続後は必ず`getDevices()`から取り直す。
+  切断前のdeviceを使い回さない
+- timeoutは往復ごとに必ず設ける。`sendReport`のawaitも含めてtimeoutと競わせる。
+  値はtransportで変えず一律とし、初期値は3000msとする
+- 起動時に`getDevices()`が空でも異常として扱わず、chooserを出す導線を常に持つ
 
 ## 理由
 
@@ -59,17 +74,19 @@ R-004の調査（Spike: `spikes/r-004-webhid-macos/`）で、実機なしに以�
   差は往復latencyとdisconnectの起きやすさだけになる。これはtimeoutと中断で吸収できる
 - 168往復の途中で切断された場合、read結果は部分的でbackupにならない。
   session単位で中断する方が、部分状態を持ち回るより壊れ方が単純
-- 権限が永続化されるかはserial numberの有無に依存し、BLEでmacOSがserialを
-  どう見せるかは未確認。永続化を前提にすると、されなかった場合に導線が消える
+- 切断後のdeviceは`opened`で見分けられず、`sendReport`が例外も出さずに固まる。
+  timeoutを置かないとApplyが無言で止まる
+- 権限は実測では永続化されたが、それに依存した導線（chooserを出さない）は、
+  serial numberの見え方が変わった環境で機能しなくなる
 - 案3はCornix LPが無線前提のキーボードである以上、MVPの価値を大きく削る。
   非対応にするのは実機で動かないと確認できてからでよい
 
 ## 影響
 
-- 168往復の総時間はtransportで大きく変わりうる。BLEのconnection intervalが
-  往復ごとに効くため、進捗表示は往復数ベースで出す必要がある
-- Applyのたびにchooserが出る可能性がある。UIは「毎回選び直す」を許容する形にする
-- BLE経由でVial collectionがmacOSに見えるかは未検証。見えない場合、この判断のうち
-  transport非依存の部分だけが残り、BLE対応は別の判断になる
+- 168往復の総時間はtransportで20倍違う（USB 0.34s / BLE 7.0s）。BLEでは進捗表示が要る。
+  表示は往復数ベースで出す（時間からの推定はしない）
+- write後verifyの再readもBLEでは7秒かかる。Applyの体感時間はBLEが支配的になる
+- 切断検知と再取得はDevice I/O層の責務にする。UI側に`HIDDevice`を持たせない
+- read結果がtransportで一致するため、backupや`.vil` exportはtransportを記録しなくてよい
 - 同一の物理deviceが複数の`HIDDevice`として見える場合（USB / BLEを同時に接続した場合を含む）、
   どれを選ぶかはユーザーに委ねる。アプリ側で自動選択しない

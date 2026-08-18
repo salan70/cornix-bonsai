@@ -89,10 +89,9 @@
 
 ## Inference
 
-- encoder 0が左手、encoder 1が右手。根拠は、definition上でencoder 0のペアが
-  encoder 1より左に置かれていること、および実exportでencoder 0が音量
-  （`KC_VOLD` / `KC_VOLU`）で左knob押下`(2,6)`が`KC_MUTE`であること。
-  definitionには物理位置の情報がないため、実機での確認が要る
+- ~~encoder 0が左手、encoder 1が右手~~ → **2026-08-18の実機確認でFactになった**。
+  layer 0で左のknobを回すと音量が動く（実機のencoder 0は`KC_VOLD` / `KC_VOLU`）。
+  詳細は`2026-08-18_r-004-webhid-macos.md`
 - 左右の別はrow番号で決まる（0〜3が左）が、これはdefinitionの物理x座標から読み取った結果であり、
   definitionが変わればこの前提も変わる。renderingはrow番号ではなく座標を使うべき
 - `layouts.labels`をfirmware versionの表示に流用しているのは公式firmware側の設計で、
