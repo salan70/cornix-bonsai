@@ -154,8 +154,11 @@ writeは単一entry commandに限り、ackを成功と見なさず、1件ごと�
 
 ## Open Question
 
-- **実機での検証が未了**。`spikes/r-005-write-failure/index.html`の手順1〜7をユーザーが実行すれば、
-  以下が確認できる。実施後にこのログとADRへ反映する
+- **実機での検証が未了**。`spikes/r-005-write-failure/index.html`の手順0〜7をユーザーが実行すれば、
+  以下が確認できる。実施後にこのログとADRへ反映する。
+  transportはUSB / BLEどちらでもよい（R-004でread結果が全byte一致している）。
+  ただし電源断の観測は、Cornix LPがbatteryを積んでいるためケーブルを抜くだけでは成立しない。
+  uptime（`0x02 0x01`）が巻き戻ったかどうかで再起動を確認する
   - write直後の再readとack（RMKの実装から予想される挙動と一致するか）
   - 電源再投入後に値が残るか（RAMとflashの乖離が実機で起きるか）
   - write連続実行中に切断したときの部分状態

@@ -15,6 +15,7 @@
 import { VialSession } from "../r-004-webhid-macos/probe.mjs";
 
 const CMD = {
+  GET_KEYBOARD_VALUE: 0x02,
   GET_KEYCODE: 0x04,
   SET_KEYCODE: 0x05,
   VIAL_PREFIX: 0xfe,
@@ -107,6 +108,12 @@ export const setSettingCmd = (qsid, value) => [
 export const getSettingCmd = (qsid) => [CMD.VIAL_PREFIX, VIAL.SETTINGS_GET, ...le16(qsid)];
 
 export const getUnlockStatusCmd = () => [CMD.VIAL_PREFIX, VIAL.GET_UNLOCK_STATUS];
+
+// 起動からの経過ミリ秒。RMK は Instant::now().as_millis() を BE で返す
+// （rmk/src/host/via/mod.rs の ViaKeyboardInfo::Uptime）。
+// 電源が本当に落ちたかを、値が巻き戻ったかどうかで確認するために使う。
+const VIA_UPTIME = 0x01;
+export const getUptimeCmd = () => [CMD.GET_KEYBOARD_VALUE, VIA_UPTIME];
 
 // --- 差分 write --------------------------------------------------------------
 
@@ -223,6 +230,23 @@ export async function readSingleKeycode(device, { layer, row, col, timeoutMs }) 
       `get keymap ${layer}/${row}/${col}`,
     );
     return readBe16(back, 4);
+  } finally {
+    session.close();
+  }
+}
+
+/**
+ * 起動からの経過時間を読む。
+ * 電源再投入したつもりで uptime が巻き戻っていなければ、device は落ちていない。
+ * Cornix LP は battery を積んでいるため、USB を抜いただけでは電源が切れない場合がある。
+ */
+export async function readUptime(device, { timeoutMs } = {}) {
+  if (!device.opened) await device.open();
+  const session = new VialSession(device, { timeoutMs });
+  try {
+    const back = await session.request(getUptimeCmd(), "via uptime");
+    const ms = ((back[2] << 24) | (back[3] << 16) | (back[4] << 8) | back[5]) >>> 0;
+    return { uptimeMs: ms, uptimeSec: Math.round(ms / 100) / 10 };
   } finally {
     session.close();
   }

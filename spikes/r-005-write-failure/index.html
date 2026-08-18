@@ -66,6 +66,7 @@
       <button id="list">getDevices()</button>
       <button id="request">requestDevice（0xFF60 filter）</button>
       <button id="unlock">unlock 状態を読む</button>
+      <button id="uptime">uptime を読む</button>
     </section>
 
     <section>
@@ -97,11 +98,16 @@
 
     <section>
       <h2>5. 電源を切って戻す</h2>
-      <p>
-        ケーブルを抜く（BLE なら電源を切る）→ 挿し直す → 下のボタン。RAM 上の値ではなく flash
-        に載った値が読める。
+      <p class="warn">
+        <strong>ケーブルを抜くだけでは足りない。</strong>Cornix LP は battery を積んでいるため、USB
+        を抜いても動き続けることがある。電源スイッチを切る（または battery を外す）こと。RAM
+        が生きたままだと、flash に載っていない値をそのまま読んでしまう。
       </p>
-      <button id="afterReboot">再接続後に対象を読む</button>
+      <p>
+        電源を入れ直したら下のボタンを押す。uptime
+        が巻き戻っていなければ再起動していないので、その回の結果は捨てる。
+      </p>
+      <button id="afterReboot">再接続後に uptime と対象を読む</button>
     </section>
 
     <section>
@@ -146,6 +152,7 @@
       let device = null;
       let backup = null; // 手順 1 の read 結果
       let backupKeycode = null; // 手順 2 で読んだ対象の元の値
+      let lastUptimeMs = null; // 手順 5 で再起動を確認するための基準値
 
       const stamp = () => new Date().toISOString().slice(11, 23);
       function log(entry) {
@@ -225,6 +232,14 @@
         note("unlockStatus", await readUnlockStatus(device, { timeoutMs: timeoutMs() }));
       });
 
+      // 手順 5 の基準値。write の前に一度読んでおく。
+      document.getElementById("uptime").addEventListener("click", async () => {
+        if (!(await refreshDevice())) return;
+        const uptime = await readUptime(device, { timeoutMs: timeoutMs() });
+        lastUptimeMs = uptime.uptimeMs;
+        note("uptime", uptime);
+      });
+
       document.getElementById("backup").addEventListener("click", async () => {
         if (!(await refreshDevice())) return;
         statusEl.textContent = "backup 用の read 中";
@@ -284,14 +299,24 @@
         note("writeBurst", result);
       });
 
+      // 電源が本当に落ちたかは uptime でしか確かめられない。値を読む前に必ず確認する。
       document.getElementById("afterReboot").addEventListener("click", async () => {
         if (!(await refreshDevice())) return;
+        const uptime = await readUptime(device, { timeoutMs: timeoutMs() });
+        const rebooted = lastUptimeMs !== null && uptime.uptimeMs < lastUptimeMs;
         const value = await readSingleKeycode(device, { ...target(), timeoutMs: timeoutMs() });
         note("afterReboot", {
+          ...uptime,
+          再起動を確認できた: rebooted,
+          前回のuptimeMs: lastUptimeMs,
           ...target(),
           value: hex(value),
           backupKeycode: backupKeycode === null ? null : hex(backupKeycode),
         });
+        lastUptimeMs = uptime.uptimeMs;
+        statusEl.textContent = rebooted
+          ? ""
+          : "uptime が巻き戻っていない。電源が落ちていないので、この結果は根拠にならない";
       });
 
       document.getElementById("restore").addEventListener("click", async () => {
