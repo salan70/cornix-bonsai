@@ -116,12 +116,22 @@
     </section>
 
     <section>
-      <h2>6. write の直後に切断する</h2>
+      <h2>6. write の途中で電源を切る</h2>
       <p>
-        押した直後にケーブルを抜く。write が途中で切れたときに何が残るかを見る。 再接続してから手順
-        5 のボタンで確認する。
+        Apply の最中に電池が切れた場合に相当する。BLE 接続だけを一瞬で切るのは現実的でないので、
+        <strong>本体の電源スイッチを切る</strong>。切断と電源断が同時に起きる。
       </p>
-      <button id="writeBurst" class="write" disabled>連続 write を開始（押したら抜く）</button>
+      <p>
+        対象は layer 9 → 5 の <strong>現在 0x0000 の位置だけ</strong>。非ゼロの位置には触らない。
+        値は index から決めるので、読み戻したときに別の位置へ入った write も検出できる。 BLE では 1
+        件あたり約 30ms、270 件で 8 秒前後の窓になる。
+      </p>
+      <p class="warn">6-2 と 6-3 の間でページを再読み込みしないこと。対象の一覧が失われる。</p>
+      <button id="burstScan">6-1. 空き位置を洗い出す</button>
+      <button id="burstRun" class="write" disabled>6-2. 連続 write（押したら電源を切る）</button>
+      <button id="burstReadBack">6-3. 再接続後に読み戻す</button>
+      <button id="burstRestore" class="write" disabled>6-4. 触った位置を 0x0000 に戻す</button>
+      <p id="burstStatus"></p>
     </section>
 
     <section>
@@ -179,6 +189,9 @@
         readSingleKeycode,
         readUnlockStatus,
         readUptime,
+        scanEmptyPositions,
+        burstWrite,
+        readBackPositions,
       } from "./write-probe.mjs";
 
       const logEl = document.getElementById("log");
@@ -277,7 +290,7 @@
       }
 
       function unlockWriteButtons() {
-        for (const id of ["write", "writeBurst", "restore"]) {
+        for (const id of ["write", "restore"]) {
           document.getElementById(id).disabled = backup === null;
         }
       }
@@ -367,17 +380,110 @@
       });
 
       // 5 件連続で write する。押した直後にケーブルを抜くと、どこまで残るかが見える。
-      on("writeBurst", async () => {
+      // 手順 6。空き位置へ連続 write し、その最中に電源を落としてもらう。
+      // 値は index から決める。読み戻して位置と値の対応が崩れていれば、
+      // write が別の位置へ入ったということになる。
+      const BURST_LAYERS = [9, 8, 7, 6, 5];
+      const burstValueFor = (i) => 0x0004 + (i % 90);
+      let burstTargets = null;
+      const burstStatus = (text) => {
+        document.getElementById("burstStatus").textContent = text;
+      };
+
+      on("burstScan", async () => {
+        if (!(await refreshDevice())) return;
+        burstStatus("空き位置を走査中");
+        const { empty, used, roundTrip } = await scanEmptyPositions(device, {
+          layers: BURST_LAYERS,
+          timeoutMs: timeoutMs(),
+        });
+        burstTargets = empty;
+        note("burstScan", {
+          layers: BURST_LAYERS,
+          空き: empty.length,
+          使用中: used.length,
+          使用中の位置: used.map((u) => `${u.layer}/${u.row}/${u.col}=${hex(u.value)}`),
+          roundTrip,
+        });
+        document.getElementById("burstRun").disabled = backup === null || empty.length === 0;
+        burstStatus(
+          `対象 ${empty.length} 件。BLE なら約 ${(empty.length * 0.03).toFixed(1)} 秒の窓`,
+        );
+      });
+
+      on("burstRun", async () => {
         if (!requireDevice() || backup === null) return;
-        if (!confirm("同じ 1 箇所へ 5 回連続で write します。押したらケーブルを抜いてください"))
+        if (!burstTargets?.length) {
+          burstStatus("先に 6-1 を実行する");
+          return;
+        }
+        if (!confirm(`${burstTargets.length} 件へ連続 write します。開始したら本体の電源を切る`))
           return;
         await refreshDevice();
-        const entries = [1, 2, 3, 4, 5].map((n) => ({ kind: "keymap", ...target(), to: n }));
-        const result = await applyDiff(device, entries, {
+        const result = await burstWrite(device, {
+          targets: burstTargets,
+          valueFor: burstValueFor,
           timeoutMs: timeoutMs(),
-          onProgress: ({ n, label, ms }) => log(`${n} 往復目 ${label} ${ms.toFixed(1)}ms`),
+          onProgress: ({ n, ms }) => {
+            if (n % 20 === 0) log(`${n} 件目 ${ms.toFixed(1)}ms`);
+          },
         });
-        note("writeBurst", result);
+        note("burstRun", { 対象: burstTargets.length, ...result });
+        document.getElementById("burstRestore").disabled = false;
+        burstStatus(`ack が返ったのは ${result.acked} 件。電源を入れ直して 6-3 へ`);
+      });
+
+      on("burstReadBack", async () => {
+        if (!(await refreshDevice())) return;
+        if (!burstTargets?.length) {
+          burstStatus("対象の一覧が無い。6-1 からやり直す");
+          return;
+        }
+        const uptime = await readUptime(device, { timeoutMs: timeoutMs() });
+        const { values, roundTrip } = await readBackPositions(device, {
+          targets: burstTargets,
+          timeoutMs: timeoutMs(),
+        });
+        const kept = values.filter((v, i) => v.value === burstValueFor(i));
+        const cleared = values.filter((v) => v.value === 0);
+        const odd = values.filter((v, i) => v.value !== 0 && v.value !== burstValueFor(i));
+        // ack が返った件数と残った件数の差が「ack は返ったが flash に載らなかった」ぶん。
+        const firstCleared = values.findIndex((v) => v.value === 0);
+        const lastKept = values.reduce((acc, v, i) => (v.value === burstValueFor(i) ? i : acc), -1);
+        note("burstReadBack", {
+          ...uptime,
+          再起動を確認できた: lastUptimeMs !== null && uptime.uptimeMs < lastUptimeMs,
+          対象: values.length,
+          残った: kept.length,
+          消えた: cleared.length,
+          値が対応しない: odd.map((v) => `${v.layer}/${v.row}/${v.col}=${hex(v.value)}`),
+          最初に消えたindex: firstCleared,
+          最後に残ったindex: lastKept,
+          境界が連続している: firstCleared === -1 || lastKept < firstCleared,
+          roundTrip,
+        });
+        lastUptimeMs = uptime.uptimeMs;
+        burstStatus(`残った ${kept.length} / ${values.length} 件`);
+      });
+
+      on("burstRestore", async () => {
+        if (!requireDevice()) return;
+        if (!burstTargets?.length) {
+          burstStatus("対象の一覧が無い");
+          return;
+        }
+        await refreshDevice();
+        const result = await burstWrite(device, {
+          targets: burstTargets,
+          valueFor: () => 0x0000,
+          timeoutMs: timeoutMs(),
+        });
+        note("burstRestore", { 対象: burstTargets.length, ...result });
+        burstStatus(
+          result.error === null
+            ? `${result.acked} 件を 0x0000 へ戻した。6-3 で確認する`
+            : `途中で失敗した（${result.acked} 件）。もう一度押す`,
+        );
       });
 
       // 電源が本当に落ちたかは uptime でしか確かめられない。値を読む前に必ず確認する。

@@ -12,7 +12,13 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createPersistentMockDevice, FLASH_CHANNEL_SIZE } from "./mock-persistence.mjs";
-import { applyDiff, readSingleKeycode } from "./write-probe.mjs";
+import {
+  applyDiff,
+  burstWrite,
+  readBackPositions,
+  readSingleKeycode,
+  scanEmptyPositions,
+} from "./write-probe.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../..");
@@ -414,6 +420,60 @@ const hex = (v) => (v === null || v === undefined ? "-" : `0x${v.toString(16).pa
     mock.events.some((e) => e.kind === "firmwarePanic"),
     "0x13: 範囲外読み出しが起きる（Rust の slice index panic）",
   );
+}
+
+// --- 14. 連続 write の途中で電源が落ちた（実機手順 6 と同じ形） ---------------
+{
+  // 実機手順 6 は「空き位置を洗い出す → 連続 write → 途中で電源断 → 読み戻す」。
+  // 同じ順序を mock で通し、境界が連続することと、
+  // ack が返ったのに flash へ載らなかったぶんが数えられることを確かめる。
+  const rows = 8;
+  const cols = 7;
+  const layer = 9;
+  // 実機の layer 9 と同じ状態を作る。RAM だけでなく flash も空にしないと、
+  // 再起動時に元の値へ戻ってしまい「消えた」と区別できない。
+  const clearLayer = (m) => {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const i = layer * rows * cols + r * cols + c;
+        m.ram.keymap[i] = 0;
+        m.flash.set(0x1000 + i, 0);
+      }
+    }
+  };
+  const { mock, hid } = newDevice();
+  clearLayer(mock);
+  const scan = await scanEmptyPositions(hid, { layers: [layer], timeoutMs: TIMEOUT_MS });
+  const valueFor = (i) => 0x0004 + (i % 90);
+
+  // 走査ぶんの往復を数えたうえで、write の途中で切断する device を作り直す。
+  const cut = 20;
+  const { mock: mock2, hid: hid2 } = newDevice({ disconnectAt: cut });
+  clearLayer(mock2);
+  const burst = await burstWrite(hid2, {
+    targets: scan.empty,
+    valueFor,
+    timeoutMs: TIMEOUT_MS,
+  });
+  mock2.reboot();
+  // 読み戻しは切断済みの device では通らないので、mock の状態を直接見る。
+  const kept = scan.empty.filter(
+    (t, i) => mock2.readKeycode(t.layer, t.row, t.col) === valueFor(i),
+  ).length;
+  const firstCleared = scan.empty.findIndex((t) => mock2.readKeycode(t.layer, t.row, t.col) === 0);
+
+  record("連続 write の途中で電源が落ちた", {
+    ack: `${burst.acked} 件`,
+    afterWrite: "—",
+    afterReboot: `${kept} 件残る`,
+    expected: `${scan.empty.length} 件`,
+    detectable: "可（読み戻し）",
+    note: "ack が返った件数までが残り、境界は連続する",
+  });
+  check(scan.empty.length === rows * cols, `走査: layer ${layer} の空き ${rows * cols} 件を拾う`);
+  check(burst.error !== null && burst.acked === cut - 1, `burst: ${cut - 1} 件で止まる`);
+  check(kept === burst.acked, "burst: ack が返った件数だけが電源断後も残る");
+  check(firstCleared === burst.acked, "burst: 残った位置と消えた位置の境界が連続する");
 }
 
 // --- 結果表 ------------------------------------------------------------------

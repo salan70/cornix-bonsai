@@ -215,6 +215,100 @@ export async function applyDiff(device, entries, { timeoutMs, onProgress } = {})
   return result;
 }
 
+// Cornix LP の matrix（fixtures/cornix-lp/vial-definition-v1.12.json）。
+// R-004 の probe.mjs と同じく、この Spike は xz decoder を持たないため固定値で持つ。
+const MATRIX_ROWS = 8;
+const MATRIX_COLS = 7;
+
+/**
+ * 指定 layer を 1 keycode ずつ読み、現在 0x0000 の位置を集める。
+ * burst write の対象を「今まさに空いている位置」に限定するために使う。
+ */
+export async function scanEmptyPositions(device, { layers, timeoutMs, onProgress } = {}) {
+  if (!device.opened) await device.open();
+  const session = new VialSession(device, {
+    timeoutMs,
+    onRoundTrip: (n, label, ms) => onProgress?.({ n, label, ms }),
+  });
+  const empty = [];
+  const used = [];
+  try {
+    for (const layer of layers) {
+      for (let row = 0; row < MATRIX_ROWS; row += 1) {
+        for (let col = 0; col < MATRIX_COLS; col += 1) {
+          const back = await session.request(
+            getKeycodeCmd(layer, row, col),
+            `get keymap ${layer}/${row}/${col}`,
+          );
+          const value = readBe16(back, 4);
+          if (value === 0) empty.push({ layer, row, col });
+          else used.push({ layer, row, col, value });
+        }
+      }
+    }
+  } finally {
+    session.close();
+  }
+  return { empty, used, roundTrip: session.stats() };
+}
+
+/**
+ * 対象へ 1 件ずつ write する。verify の再 read を挟まない。
+ *
+ * 途中で電源を落とす前提の手順で使う。verify を挟むと往復が倍になり、
+ * 「どこまで ack が返ったか」の境界がぼやける。
+ * 値は index から決めるため、読み戻したときに別の位置へ入った write を検出できる。
+ */
+export async function burstWrite(device, { targets, valueFor, timeoutMs, onProgress } = {}) {
+  if (!device.opened) await device.open();
+  const session = new VialSession(device, {
+    timeoutMs,
+    onRoundTrip: (n, label, ms) => onProgress?.({ n, label, ms }),
+  });
+  const result = { acked: 0, error: null, stoppedAt: null };
+  const started = performance.now();
+  try {
+    for (const [i, t] of targets.entries()) {
+      await session.request(
+        setKeycodeCmd(t.layer, t.row, t.col, valueFor(i, t)),
+        `set keymap ${t.layer}/${t.row}/${t.col}`,
+      );
+      result.acked = i + 1;
+    }
+  } catch (error) {
+    result.error = String(error);
+    result.stoppedAt = { index: result.acked, target: targets[result.acked] };
+  } finally {
+    result.wallClockMs = Math.round((performance.now() - started) * 100) / 100;
+    result.roundTrip = session.stats();
+    result.stalledAt = session.stalledAt;
+    session.close();
+  }
+  return result;
+}
+
+/** 対象を読み戻す。電源再投入後に「何が残ったか」を数えるために使う。 */
+export async function readBackPositions(device, { targets, timeoutMs, onProgress } = {}) {
+  if (!device.opened) await device.open();
+  const session = new VialSession(device, {
+    timeoutMs,
+    onRoundTrip: (n, label, ms) => onProgress?.({ n, label, ms }),
+  });
+  const values = [];
+  try {
+    for (const t of targets) {
+      const back = await session.request(
+        getKeycodeCmd(t.layer, t.row, t.col),
+        `get keymap ${t.layer}/${t.row}/${t.col}`,
+      );
+      values.push({ ...t, value: readBe16(back, 4) });
+    }
+  } finally {
+    session.close();
+  }
+  return { values, roundTrip: session.stats() };
+}
+
 /** 1 entry だけ write する（実機 probe 用。ユーザーが押したときにだけ呼ばれる）。 */
 export async function writeSingleKeycode(device, { layer, row, col, keycode, timeoutMs }) {
   return applyDiff(device, [{ kind: "keymap", layer, row, col, to: keycode }], { timeoutMs });
