@@ -1,0 +1,45 @@
+name: typecheck
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # oxlint は型を見ない。型エラーを CI で止めるのはこの job だけ。
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # pnpm の正確なバージョンの定義元は flake.nix。ここで major だけを指定するのは、
+      # lockfile を読むのに必要な最低限であり、かつ patch 更新のたびに同期しないで済むため。
+      # package.json へ packageManager を置くと定義元が二重化するので置かない。
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      # Node のバージョンは docbridge.yml と揃える（flake の nodejs_24 に合わせている）。
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
