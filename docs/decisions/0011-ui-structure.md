@@ -175,7 +175,8 @@ backup（全read） → 差分確認 → 人間確認（warning acknowledge込�
   共有し、2つのrendererが同じ盤面を描くことになる。両者のずれはtestで抑える必要がある
 - layer名を表示に使うと決めたため、名前の置き場が要る。ADR 0009は`keymap.yaml`に
   layer名を持たないと決めているので、別の置き場をADR 0012で決める
-- `settings`の表示辞書をUIが用意する必要がある。辞書が揃うまでUIには`qsid 7: 180`が出る
+- `settings`はUIがCornix LP公式firmware V1.12のqsid辞書を用意して表示する。
+  辞書にない値は`qsid 999: 180`のようにraw表記を残す
 - 診断panelとApply確認stepで同じ診断を別の見せ方で出すため、diagnostic 1件を描く
   componentは共有できない。共有するのは文言の生成だけになる
 - Applyのmodalは書き込み中に閉じられないため、他のtabの内容を見ながら差分を確認する導線が無い。

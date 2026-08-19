@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useMemo, useState } from "react";
+import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { diffDocuments, type DiffEntry } from "../core/diff/diff.ts";
 import { setKeyAssignment } from "../core/model/edit.ts";
@@ -30,6 +30,7 @@ import {
   type WorkspaceLabels,
 } from "../workspace/labels.ts";
 import { parseAcknowledgements, serializeAcknowledgements } from "../workspace/acknowledgements.ts";
+import { settingLabel } from "../workspace/settings.ts";
 import { writeTextIfUnchanged, type WorkspaceConflictToken } from "../workspace/types.ts";
 import { BrowserWorkspaceStore, pickWorkspace, restoreWorkspace } from "./browser-workspace.ts";
 import "./styles.css";
@@ -57,6 +58,7 @@ function App(): React.JSX.Element {
   const [acknowledged, setAcknowledged] = useState<readonly string[]>([]);
   const [applyOpen, setApplyOpen] = useState(false);
   const [applyState, setApplyState] = useState<ApplyState | undefined>();
+  const applyCancellation = useRef(false);
 
   useEffect(() => {
     void restoreWorkspace().then((store) =>
@@ -229,6 +231,7 @@ function App(): React.JSX.Element {
     )
       return;
     try {
+      applyCancellation.current = false;
       const gate = applyGate;
       if (gate === undefined) return;
       if (!gate.allowed) {
@@ -244,6 +247,10 @@ function App(): React.JSX.Element {
       const backupText = serializeVil(deviceRead.document);
       await workspace.store.writeText(backupPath(), backupText);
       await workspace.store.writeText(WORKSPACE_LAYOUT.latestBackup, backupText);
+      if (applyCancellation.current) {
+        setStatus("Applyを中断した。writeは開始していない");
+        return;
+      }
       let current = state;
       for (const operation of plan.operations) {
         if (current.phase !== "writing") break;
@@ -264,6 +271,9 @@ function App(): React.JSX.Element {
                 : "protocol-error",
           );
         }
+        if (applyCancellation.current && current.phase === "writing") {
+          current = abortApply(current, "user-cancelled");
+        }
         setApplyState(current);
         if (current.phase === "aborted") break;
       }
@@ -277,6 +287,18 @@ function App(): React.JSX.Element {
     } finally {
       setProgress(undefined);
     }
+  }
+
+  function cancelApply(): void {
+    applyCancellation.current = true;
+    if (applyState?.phase === "writing") {
+      setApplyState((current) =>
+        current?.phase === "writing" ? abortApply(current, "user-cancelled") : current,
+      );
+      setStatus("Applyを中断した。進行中のI/Oの完了を待っています");
+      return;
+    }
+    setApplyOpen(false);
   }
 
   async function restoreBackup(): Promise<void> {
@@ -456,7 +478,7 @@ function App(): React.JSX.Element {
           gate={applyGate}
           onAcknowledge={(ids) => void acknowledge(ids)}
           acknowledged={acknowledged}
-          onClose={() => setApplyOpen(false)}
+          onCancel={cancelApply}
           onApply={() => void apply()}
         />
       )}
@@ -647,7 +669,7 @@ function Behaviors({
       <h2>Settings</h2>
       {Object.entries(document.settings).map(([qsid, value]) => (
         <label key={qsid}>
-          qsid {qsid}
+          {settingLabel(Number(qsid))} <span className="muted">(qsid {qsid})</span>
           <input
             type="number"
             value={value}
@@ -688,7 +710,7 @@ function ApplyDialog({
   gate,
   acknowledged,
   onAcknowledge,
-  onClose,
+  onCancel,
   onApply,
 }: {
   state: ApplyState | undefined;
@@ -696,13 +718,20 @@ function ApplyDialog({
   gate: ReturnType<typeof evaluateApplyGate> | undefined;
   acknowledged: readonly string[];
   onAcknowledge: (ids: readonly string[]) => void;
-  onClose: () => void;
+  onCancel: () => void;
   onApply: () => void;
 }): React.JSX.Element {
   return (
-    <div className="modal-backdrop">
-      <section className="modal" role="dialog" aria-modal="true">
-        <h2>Apply</h2>
+    <dialog
+      className="modal-backdrop"
+      open
+      onCancel={(event) => {
+        event.preventDefault();
+        onCancel();
+      }}
+    >
+      <section className="modal" aria-labelledby="apply-title">
+        <h2 id="apply-title">Apply</h2>
         <p>backup → 差分確認 → 人間確認 → write + reread verify → 結果</p>
         <p>{changed.length} 件の差分を1件ずつ反映します。</p>
         <ul>
@@ -724,6 +753,7 @@ function ApplyDialog({
               ))}
             </ul>
             <button
+              disabled={state?.phase === "writing"}
               onClick={() =>
                 onAcknowledge([
                   ...new Set([
@@ -751,15 +781,21 @@ function ApplyDialog({
           <p className="error">{state.reason}。再接続後にfull readからやり直してください。</p>
         )}
         <div className="modal-actions">
-          <button onClick={onClose}>閉じる</button>
-          <button onClick={() => onAcknowledge([])}>warning確認を解除</button>
-          <button className="primary" disabled={gate?.allowed !== true} onClick={onApply}>
+          <button onClick={onCancel}>{state?.phase === "writing" ? "中断" : "閉じる"}</button>
+          <button disabled={state?.phase === "writing"} onClick={() => onAcknowledge([])}>
+            warning確認を解除
+          </button>
+          <button
+            className="primary"
+            disabled={gate?.allowed !== true || state?.phase !== "awaitingConfirmation"}
+            onClick={onApply}
+          >
             確認してApply
           </button>
         </div>
         <small>acknowledged: {acknowledged.length}</small>
       </section>
-    </div>
+    </dialog>
   );
 }
 

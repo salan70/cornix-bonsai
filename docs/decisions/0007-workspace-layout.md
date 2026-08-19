@@ -54,7 +54,7 @@ Spikeで確認できた事実。
   `:`はWindowsのファイル名に使えないため落とす
 - **local serviceに持たせない責務**: filesystem、file watching、実機I/O、workspace API。
   つまりlocal serviceを置かない
-- xz decoderはbrowserで動くものを別途入れる。選定は未了
+- xz decoderはbrowser/Nodeで動く`xz-decompress`を採用し、WebHID adapterからprotocolへ注入する
 
 ## 理由
 

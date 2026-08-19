@@ -112,8 +112,9 @@ Applyの状態機械はvalidationの結果を引数に取っていない。ま�
 - 語彙表は閉じていない。載っていない表記はwarningになるため、**実運用で語彙を足していく
   前提**になる。足し忘れは「Applyが1回止まる」で済み、静かな取り違えにはならない
 - alias表も閉じていない。取りこぼしは差分に残るだけなので、追加は随時でよい
-- `settings`の表示辞書はCornix Bonsaiが持たない。UIが辞書を渡さない限り、settingsは
-  qsidのまま表示される（D-004以降の入力）
+- Coreは表示辞書を持たず任意の`SettingsVocabulary`を受け取る。現行UIは
+  `src/workspace/settings.ts`のCornix LP公式firmware V1.12辞書を渡し、辞書に無いqsidは
+  `qsid N`のraw表記へフォールバックする
 - 大量変更の閾値（20件・30%）に実測の裏付けは無い。acknowledgeで越えられるため、
   外した場合の代償は「確認が1回増える」で収まる
 - semantic diffはmacroと`key_override` / `alt_repeat_key`をrawのJSON比較でしか扱わない。

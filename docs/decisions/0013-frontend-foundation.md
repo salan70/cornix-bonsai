@@ -3,7 +3,7 @@
 状態: 採用
 
 2026-08-19に、ADR 0011のwireframeが必要とするUIの範囲を確認して決めた。
-今回は選定の記録だけで、依存の追加もscaffoldも行っていない。実機操作も行っていない。
+2026-08-20にこの方針に沿ったVite + ReactのMVPを実装した。実機操作はこの記録では行っていない。
 
 ## 背景
 
@@ -82,5 +82,5 @@ state管理について。
   無視しているので、そこは追加不要
 - `<dialog>`を使うため、modalのfocus trapとEscの挙動はbrowser任せになる。
   Apply中に閉じさせない要件（ADR 0011）は`<dialog>`のcancel eventを止めて実現する
-- browserで動くxz decoderの選定（ADR 0007のOpen Question）はここでも決めていない。
-  依存の追加はfrontend実装時に別途判断する
+- browserで動くxz decoderは`xz-decompress`を採用し、`src/device/webhid.ts`からprotocolへ
+  注入する。coreはdecoderの実装を知らない
