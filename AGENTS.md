@@ -47,13 +47,33 @@ just docbridge-audit   # 未ドキュメント / 未リンクの監査
 
 main ブランチへの直接コミットが可能です。feature branch は任意。
 
+## コミット方針
+
+**ユーザーの指示を待たずに、作業単位ごとに commit します。** 完了報告のたびに commit の
+可否を確認する必要はありません。手順は `git-operations` スキルに従います。
+
+粒度は**判断 1 つ = commit 1 つ**です。ADR・`docs/specs/`・実装・test・fixture・作業ログを
+1 つの commit にまとめ、判断とその根拠が 1 か所で追えるようにします。Spike が判断の
+根拠になっている場合は同じ commit へ含めます。既存の history がこの粒度で並んでいます。
+
+commit しないもの:
+
+- test・typecheck・lint のいずれかが通らない状態
+- 依頼スコープ外の変更（別 commit に分けるのではなく、そもそも行わない）
+
+`push` と pull request の作成は依頼された場合のみ行います。
+
+pre-commit フックはピン留めした toolchain を要求するため、**`nix develop -c git commit`**
+（または direnv 済みシェル）で実行します。素の `git commit` は oxfmt が見つからず失敗します。
+
 ## 許可する操作
 
 - プロジェクトのソースコード・ドキュメントを編集する
 - workspace fixtureやexampleがある場合に`keymap.yaml`を編集する
 - validation、analysis、diff、render、exportを実行する
 - test・fixtureを作成、更新する
-- 依頼された場合にcommit・pull requestを作成する
+- 作業単位ごとにcommitする（「コミット方針」を参照）
+- 依頼された場合にpull requestを作成する
 
 ## 禁止する操作
 
