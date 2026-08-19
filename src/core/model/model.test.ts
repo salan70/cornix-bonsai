@@ -7,7 +7,7 @@ import { parseDefinition, toPhysicalLayout } from "../definition/parse.ts";
 import type { KeyboardDefinition } from "../definition/types.ts";
 import { parseVil } from "../vil/parse.ts";
 import { serializeVil } from "../vil/serialize.ts";
-import { KeymapEditError, setKeyAssignment } from "./edit.ts";
+import { KeymapEditError, setEncoderAssignment, setKeyAssignment } from "./edit.ts";
 import { buildKeymapView, readKeycode } from "./keymap-view.ts";
 import { resolveLayoutOptions } from "./layout-options.ts";
 
@@ -124,4 +124,12 @@ test("物理キーの無い位置（-1）へは書けない", () => {
 
 test("範囲外の位置へは書けない", () => {
   throws(() => setKeyAssignment(baseline, { layer: 99, row: 0, col: 0 }, "KC_B"), KeymapEditError);
+});
+
+test("encoderの編集は対象方向だけを差し替える", () => {
+  const edited = setEncoderAssignment(baseline, { layer: 0, index: 0, direction: 0 }, "KC_A");
+
+  strictEqual(edited.encoderLayout[0]?.[0]?.[0], "KC_A");
+  strictEqual(edited.encoderLayout[0]?.[0]?.[1], "KC_VOLU");
+  strictEqual(baseline.encoderLayout[0]?.[0]?.[0], "KC_VOLD");
 });

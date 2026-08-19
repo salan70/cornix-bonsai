@@ -5,6 +5,8 @@
  * `src/core/` の意味モデルからは参照しない。
  */
 
+import type { WorkspaceFileStore } from "./types.ts";
+
 /** @doc docs/specs/workspace-cli.md#配置 */
 export const WORKSPACE_LAYOUT = {
   keymap: "keymap.yaml",
@@ -21,6 +23,26 @@ export function definitionPath(digest: string): string {
     throw new Error(`definition digest が SHA-256 ではない: ${digest}`);
   }
   return `${WORKSPACE_LAYOUT.definitions}/${digest.slice(0, 16)}.json`;
+}
+
+/** @doc docs/specs/workspace-cli.md#readdefinitionbinding */
+export async function readDefinitionBinding(
+  store: Pick<WorkspaceFileStore, "readBytes">,
+  path: string,
+  digest: string,
+  provider: Sha256Provider,
+): Promise<string> {
+  const expectedPath = definitionPath(digest);
+  if (path !== expectedPath) {
+    throw new Error(`definition binding pathがdigestと一致しない: ${path}`);
+  }
+  const bytes = await store.readBytes(path);
+  if (bytes === undefined) throw new Error(`${path} が見つからない`);
+  const actualDigest = await sha256Hex(bytes, provider);
+  if (actualDigest !== digest) {
+    throw new Error(`definition digestが一致しない: expected=${digest} actual=${actualDigest}`);
+  }
+  return new TextDecoder().decode(bytes);
 }
 
 export function backupPath(date = new Date()): string {

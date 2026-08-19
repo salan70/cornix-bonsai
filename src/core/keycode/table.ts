@@ -69,7 +69,7 @@ const CUSTOM_PATTERN = /^USER(\d{2})$/;
 const MOMENTARY_PATTERN = /^MO\((\d+)\)$/;
 const LAYER_TAP_PATTERN = /^LT(\d+)\((.+)\)$/;
 const TAP_DANCE_PATTERN = /^TD\((\d+)\)$/;
-const MACRO_PATTERN = /^M(\d+)$/;
+const MACRO_PATTERN = /^M\((\d+)\)$/;
 
 /** definition と実機申告の容量から正規化テーブルを作る。  *
  * @doc docs/specs/semantic-model.md#createkeycodetable

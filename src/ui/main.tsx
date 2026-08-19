@@ -3,10 +3,11 @@ import { createRoot } from "react-dom/client";
 import { diffDocuments, type DiffEntry } from "../core/diff/diff.ts";
 import { createKeycodeTable } from "../core/keycode/table.ts";
 import { describeKeycode } from "../core/diff/describe.ts";
-import { setKeyAssignment } from "../core/model/edit.ts";
+import { setEncoderAssignment, setKeyAssignment } from "../core/model/edit.ts";
 import { buildKeymapView } from "../core/model/keymap-view.ts";
 import { analyzeReachability } from "../core/validation/reachability.ts";
 import { collectReferenceUsage } from "../core/validation/reference-usage.ts";
+import { classifyKeycode } from "../core/validation/keycode-vocabulary.ts";
 import {
   abortApply,
   createApplyPlan,
@@ -19,14 +20,20 @@ import type { WriteTarget } from "../core/apply/targets.ts";
 import { evaluateApplyGate } from "../core/validation/gate.ts";
 import { validateApplyKeymap, validateKeymap } from "../core/validation/validate.ts";
 import { createDiagnostic } from "../core/validation/types.ts";
-import { parseDefinition } from "../core/definition/parse.ts";
+import { keyCenter, parseDefinition } from "../core/definition/parse.ts";
 import { parseKeymapYaml } from "../core/keymap-yaml/parse.ts";
 import { serializeKeymapYaml } from "../core/keymap-yaml/serialize.ts";
 import { parseVil } from "../core/vil/parse.ts";
 import { serializeVil } from "../core/vil/serialize.ts";
 import { DeviceIoError } from "../device/protocol.ts";
 import { WebHidAdapter, type ReadDeviceResult, type WebHidConnection } from "../device/webhid.ts";
-import { backupPath, definitionPath, sha256Hex, WORKSPACE_LAYOUT } from "../workspace/layout.ts";
+import {
+  backupPath,
+  definitionPath,
+  readDefinitionBinding,
+  sha256Hex,
+  WORKSPACE_LAYOUT,
+} from "../workspace/layout.ts";
 import {
   EMPTY_LABELS,
   layerLabel,
@@ -40,6 +47,9 @@ import { BrowserWorkspaceStore, pickWorkspace, restoreWorkspace } from "./browse
 import "./styles.css";
 
 type Tab = "Keymap" | "Overview" | "Behaviors" | "References";
+type Selection =
+  | { readonly kind: "key"; readonly row: number; readonly col: number }
+  | { readonly kind: "encoder"; readonly index: number; readonly direction: "ccw" | "cw" };
 interface WorkspaceModel {
   readonly store: BrowserWorkspaceStore;
   readonly document: ReturnType<typeof parseKeymapYaml>["document"];
@@ -54,9 +64,10 @@ function App(): React.JSX.Element {
   const [workspace, setWorkspace] = useState<WorkspaceModel | undefined>();
   const [tab, setTab] = useState<Tab>("Keymap");
   const [layer, setLayer] = useState(0);
-  const [selection, setSelection] = useState<{ row: number; col: number } | undefined>();
+  const [selection, setSelection] = useState<Selection | undefined>();
   const [device, setDevice] = useState<WebHidConnection | undefined>();
   const [deviceRead, setDeviceRead] = useState<ReadDeviceResult | undefined>();
+  const [deviceDefinitionDigest, setDeviceDefinitionDigest] = useState<string | undefined>();
   const [status, setStatus] = useState("workspaceを選択してください");
   const [progress, setProgress] = useState<string | undefined>();
   const [acknowledged, setAcknowledged] = useState<readonly string[]>([]);
@@ -114,8 +125,26 @@ function App(): React.JSX.Element {
       { path: workspace.binding.definitionPath, digest: workspace.binding.definitionDigest },
       targets,
     );
+    const definitionMismatch = deviceDefinitionDigest !== workspace.binding.definitionDigest;
+    const diagnostics = definitionMismatch
+      ? Object.freeze([
+          ...validationResult.evidence.diagnostics,
+          createDiagnostic(
+            "compatibility/definition-mismatch",
+            "error",
+            { kind: "document" },
+            deviceDefinitionDigest === undefined
+              ? "実機definitionのdigestを取得できていないためApplyできない"
+              : `実機definitionがworkspace bindingと異なる（workspace=${workspace.binding.definitionDigest} device=${deviceDefinitionDigest}）`,
+            {
+              workspace: workspace.binding.definitionDigest,
+              device: deviceDefinitionDigest ?? "missing",
+            },
+          ),
+        ])
+      : validationResult.evidence.diagnostics;
     if (targets.length === changed.length)
-      return evaluateApplyGate(validationResult.evidence, acknowledged);
+      return evaluateApplyGate({ ...validationResult.evidence, diagnostics }, acknowledged);
     const unsupported = createDiagnostic(
       "apply/unsupported-change",
       "error",
@@ -126,11 +155,11 @@ function App(): React.JSX.Element {
     return evaluateApplyGate(
       {
         ...validationResult.evidence,
-        diagnostics: Object.freeze([...validationResult.evidence.diagnostics, unsupported]),
+        diagnostics: Object.freeze([...diagnostics, unsupported]),
       },
       acknowledged,
     );
-  }, [acknowledged, changed, deviceRead, workspace]);
+  }, [acknowledged, changed, deviceDefinitionDigest, deviceRead, workspace]);
 
   async function openWorkspace(): Promise<void> {
     try {
@@ -180,6 +209,10 @@ function App(): React.JSX.Element {
         setStatus("Vial deviceが選択されなかった");
         return;
       }
+      setDeviceRead(undefined);
+      setDeviceDefinitionDigest(undefined);
+      setApplyOpen(false);
+      setApplyState(undefined);
       setDevice(next);
       setStatus("接続済み");
     } catch (error) {
@@ -192,6 +225,9 @@ function App(): React.JSX.Element {
       await device?.close();
       setDevice(undefined);
       setDeviceRead(undefined);
+      setDeviceDefinitionDigest(undefined);
+      setApplyOpen(false);
+      setApplyState(undefined);
       setStatus("切断した");
     } catch (error) {
       setStatus(message(error));
@@ -200,13 +236,14 @@ function App(): React.JSX.Element {
 
   async function readDevice(): Promise<void> {
     if (device === undefined) return;
+    setApplyOpen(false);
+    setApplyState(undefined);
     try {
       const result = await device.read((event) => setProgress(`${event.label} (${event.count})`));
-      setDeviceRead(result);
+      const definitionText = JSON.stringify(result.definition, null, 2) + "\n";
+      const digest = await sha256Hex(new TextEncoder().encode(definitionText), globalThis.crypto);
       let mismatch = false;
       if (workspace !== undefined) {
-        const definitionText = JSON.stringify(result.definition, null, 2) + "\n";
-        const digest = await sha256Hex(new TextEncoder().encode(definitionText), globalThis.crypto);
         const path = definitionPath(digest);
         await workspace.store.writeText(path, definitionText);
         if (
@@ -216,6 +253,8 @@ function App(): React.JSX.Element {
           mismatch = true;
         }
       }
+      setDeviceDefinitionDigest(digest);
+      setDeviceRead(result);
       setStatus(
         mismatch
           ? "実機のfull readは完了したが、definitionまたはUIDがworkspaceと異なる。desired stateは上書きしていない"
@@ -228,7 +267,17 @@ function App(): React.JSX.Element {
     }
   }
 
-  async function apply(): Promise<void> {
+  function createConfirmationState(
+    gate: NonNullable<typeof applyGate>,
+    snapshot: ReadDeviceResult["snapshot"],
+  ): ApplyState | undefined {
+    if (!gate.allowed) return undefined;
+    const input = createValidatedApplyInput(gate, snapshot);
+    const plan = createApplyPlan(input);
+    return { phase: "awaitingConfirmation", plan };
+  }
+
+  async function openApply(): Promise<void> {
     if (
       workspace === undefined ||
       device === undefined ||
@@ -238,6 +287,9 @@ function App(): React.JSX.Element {
       return;
     try {
       applyCancellation.current = false;
+      const backupText = serializeVil(deviceRead.document);
+      await workspace.store.writeText(backupPath(), backupText);
+      await workspace.store.writeText(WORKSPACE_LAYOUT.latestBackup, backupText);
       const gate = applyGate;
       if (gate === undefined) return;
       if (!gate.allowed) {
@@ -245,18 +297,33 @@ function App(): React.JSX.Element {
         setApplyState(undefined);
         return;
       }
+      setApplyOpen(true);
+      setApplyState(createConfirmationState(gate, deviceRead.snapshot));
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
+  async function apply(): Promise<void> {
+    if (
+      workspace === undefined ||
+      device === undefined ||
+      deviceRead === undefined ||
+      applyState?.phase !== "awaitingConfirmation"
+    )
+      return;
+    try {
+      applyCancellation.current = false;
+      const gate = applyGate;
+      if (gate === undefined) return;
       const input = createValidatedApplyInput(gate, deviceRead.snapshot);
       const plan = createApplyPlan(input);
-      const state = confirmApply(plan, plan.fingerprint);
-      setApplyOpen(true);
-      setApplyState(state);
-      const backupText = serializeVil(deviceRead.document);
-      await workspace.store.writeText(backupPath(), backupText);
-      await workspace.store.writeText(WORKSPACE_LAYOUT.latestBackup, backupText);
+      const state = confirmApply(plan, applyState.plan.fingerprint);
       if (applyCancellation.current) {
         setStatus("Applyを中断した。writeは開始していない");
         return;
       }
+      setApplyState(state);
       let current = state;
       for (const operation of plan.operations) {
         if (current.phase !== "writing") break;
@@ -320,8 +387,8 @@ function App(): React.JSX.Element {
     }
   }
 
-  async function acknowledge(ids: readonly string[]): Promise<void> {
-    if (workspace === undefined) return;
+  async function acknowledge(ids: readonly string[]): Promise<boolean> {
+    if (workspace === undefined) return false;
     try {
       const next = [...new Set(ids)].sort();
       await workspace.store.writeText(
@@ -330,18 +397,60 @@ function App(): React.JSX.Element {
       );
       setAcknowledged(next);
       setWorkspace({ ...workspace, acknowledged: next });
+      return true;
     } catch (error) {
+      setStatus(message(error));
+      return false;
+    }
+  }
+
+  async function acknowledgeForApply(ids: readonly string[]): Promise<void> {
+    if (!(await acknowledge(ids))) return;
+    const gate = applyGate;
+    if (gate === undefined || deviceRead === undefined) {
+      setApplyState(undefined);
+      return;
+    }
+    const nextAcknowledged = [...new Set(ids)].sort();
+    const nextGate = evaluateApplyGate(gate.evidence, nextAcknowledged);
+    if (!nextGate.allowed) {
+      setApplyState(undefined);
+      return;
+    }
+    try {
+      setApplyState(createConfirmationState(nextGate, deviceRead.snapshot));
+    } catch (error) {
+      setApplyState(undefined);
       setStatus(message(error));
     }
   }
 
   function editKey(keycode: string): void {
-    if (workspace === undefined || selection === undefined) return;
+    if (workspace === undefined || selection?.kind !== "key") return;
     try {
       void save(
         setKeyAssignment(
           workspace.document,
           { layer, row: selection.row, col: selection.col },
+          keycode,
+        ),
+      );
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
+  function editEncoder(keycode: string): void {
+    if (workspace === undefined || selection?.kind !== "encoder") return;
+    try {
+      void save(
+        setEncoderAssignment(
+          workspace.document,
+          {
+            layer,
+            index: selection.index,
+            direction: selection.direction === "ccw" ? 0 : 1,
+          },
           keycode,
         ),
       );
@@ -407,6 +516,15 @@ function App(): React.JSX.Element {
           <span className="path">{workspace?.store.directory.name ?? "workspace未選択"}</span>
         </div>
         <div className="header-actions">
+          <span className="device-summary" aria-live="polite">
+            {device === undefined ? "device未接続" : `device: ${device.info.productName}`}
+            {deviceRead === undefined || workspace === undefined ? null : (
+              <>
+                {` / current UID ${deviceRead.keyboardUid} / desired UID ${workspace.document.uid}`}
+                {` / definition ${deviceDefinitionDigest === workspace.binding.definitionDigest ? "一致" : "不一致"}`}
+              </>
+            )}
+          </span>
           <button onClick={() => void openWorkspace()}>Workspace</button>
           <button onClick={() => void reload()} disabled={workspace === undefined}>
             再読込
@@ -449,7 +567,8 @@ function App(): React.JSX.Element {
               selection={selection}
               setSelection={setSelection}
               labels={workspace.labels}
-              onEdit={editKey}
+              onEditKey={editKey}
+              onEditEncoder={editEncoder}
             />
           ) : null}
           {tab === "Overview" && (
@@ -477,7 +596,7 @@ function App(): React.JSX.Element {
         <span>ⓘ {validation?.summary.information ?? 0}</span>
         <span className="status-message">{progress ?? status}</span>
         <button
-          onClick={() => void apply()}
+          onClick={() => void openApply()}
           disabled={changed.length === 0 || deviceRead === undefined}
         >
           Apply ({changed.length})
@@ -488,7 +607,7 @@ function App(): React.JSX.Element {
           state={applyState}
           changed={changed}
           gate={applyGate}
-          onAcknowledge={(ids) => void acknowledge(ids)}
+          onAcknowledge={(ids) => void acknowledgeForApply(ids)}
           acknowledged={acknowledged}
           onCancel={cancelApply}
           onApply={() => void apply()}
@@ -506,26 +625,75 @@ function KeymapTab({
   selection,
   setSelection,
   labels,
-  onEdit,
+  onEditKey,
+  onEditEncoder,
 }: {
   view: ReturnType<typeof buildKeymapView>;
   definition: ReturnType<typeof parseDefinition>;
   layer: number;
   setLayer: (value: number) => void;
-  selection: { row: number; col: number } | undefined;
-  setSelection: (value: { row: number; col: number }) => void;
+  selection: Selection | undefined;
+  setSelection: (value: Selection | undefined) => void;
   labels: WorkspaceLabels;
-  onEdit: (value: string) => void;
+  onEditKey: (value: string) => void;
+  onEditEncoder: (value: string) => void;
 }): React.JSX.Element {
-  const selected =
-    selection === undefined
-      ? undefined
-      : view.keys.find(
+  const table = createKeycodeTable(definition, view.capacities);
+  const editorRef = useRef<HTMLInputElement>(null);
+  const selectedButtonRef = useRef<HTMLButtonElement>(null);
+  const selectedKey =
+    selection?.kind === "key"
+      ? view.keys.find(
           (key) =>
             key.position.layer === layer &&
             key.position.row === selection.row &&
             key.position.col === selection.col,
-        );
+        )
+      : undefined;
+  const selectedEncoder =
+    selection?.kind === "encoder"
+      ? view.encoders.find(
+          (encoder) =>
+            encoder.layer === layer &&
+            encoder.index === selection.index &&
+            encoder.direction === selection.direction,
+        )
+      : undefined;
+
+  function selectLayer(nextLayer: number): void {
+    setLayer(nextLayer);
+    setSelection(undefined);
+  }
+
+  function focusEditor(): void {
+    editorRef.current?.focus();
+    editorRef.current?.select();
+  }
+
+  function selectKey(key: (typeof view.keys)[number]): void {
+    setSelection({ kind: "key", row: key.position.row, col: key.position.col });
+    window.requestAnimationFrame(() => selectedButtonRef.current?.focus());
+  }
+
+  function handleKeyDown(
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    key: (typeof view.keys)[number],
+  ): void {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      focusEditor();
+      return;
+    }
+    if (!event.key.startsWith("Arrow")) return;
+    const next = moveKey(view, key, event.key);
+    if (next === undefined) return;
+    event.preventDefault();
+    selectKey(next);
+  }
+
+  const input = selectedKey ?? selectedEncoder;
+  const inputDisplay =
+    input === undefined ? undefined : keycodeDisplay(input.keycode, labels, table);
   return (
     <section className="keymap-layout">
       <div className="editor-pane">
@@ -533,7 +701,7 @@ function KeymapTab({
           {Array.from({ length: view.capacities.layerCount }, (_, index) => (
             <button
               className={layer === index ? "active" : ""}
-              onClick={() => setLayer(index)}
+              onClick={() => selectLayer(index)}
               key={index}
             >
               {layerLabel(labels, index)}
@@ -545,7 +713,14 @@ function KeymapTab({
             .filter((key) => key.position.layer === layer)
             .map((key) => (
               <button
-                className={`keycap ${selected?.position.row === key.position.row && selected.position.col === key.position.col ? "selected" : ""}`}
+                ref={
+                  selection?.kind === "key" &&
+                  selection.row === key.position.row &&
+                  selection.col === key.position.col
+                    ? selectedButtonRef
+                    : undefined
+                }
+                className={`keycap ${selectedKey?.position.row === key.position.row && selectedKey.position.col === key.position.col ? "selected" : ""}`}
                 style={{
                   left: `${key.physical.x * 56}px`,
                   top: `${key.physical.y * 56}px`,
@@ -553,39 +728,236 @@ function KeymapTab({
                   height: `${key.physical.height * 54}px`,
                   transform: `rotate(${key.physical.rotationAngle}deg)`,
                 }}
-                onClick={() => setSelection({ row: key.position.row, col: key.position.col })}
+                onClick={() => selectKey(key)}
+                onKeyDown={(event) => handleKeyDown(event, key)}
                 key={`${key.position.row}:${key.position.col}`}
               >
-                <span>
-                  {key.resolved.kind === "basic"
-                    ? key.resolved.name.replace("KC_", "")
-                    : key.keycode}
-                </span>
+                {renderKeycode(keycodeDisplay(key.keycode, labels, table))}
               </button>
+            ))}
+        </div>
+        <div className="encoder-strip" aria-label="encoders">
+          {[
+            ...new Set(
+              view.encoders
+                .filter((encoder) => encoder.layer === layer)
+                .map((encoder) => encoder.index),
+            ),
+          ]
+            .sort((left, right) => left - right)
+            .map((index) => (
+              <fieldset className="encoder-slot" key={index}>
+                <legend>Encoder {index}</legend>
+                {(["ccw", "cw"] as const).map((direction) => {
+                  const encoder = view.encoders.find(
+                    (candidate) =>
+                      candidate.layer === layer &&
+                      candidate.index === index &&
+                      candidate.direction === direction,
+                  );
+                  if (encoder === undefined) return null;
+                  const isSelected =
+                    selection?.kind === "encoder" &&
+                    selection.index === index &&
+                    selection.direction === direction;
+                  return (
+                    <button
+                      ref={isSelected ? selectedButtonRef : undefined}
+                      className={`encoder-key ${isSelected ? "selected" : ""}`}
+                      onClick={() => setSelection({ kind: "encoder", index, direction })}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          focusEditor();
+                        }
+                      }}
+                      key={direction}
+                    >
+                      {renderKeycode(
+                        keycodeDisplay(encoder.keycode, labels, table),
+                        direction === "ccw" ? "↺" : "↻",
+                      )}
+                    </button>
+                  );
+                })}
+              </fieldset>
             ))}
         </div>
       </div>
       <aside className="side-panel">
-        <h2>選択中のキー</h2>
-        {selected === undefined ? (
-          <p>盤面からキーを選択してください。</p>
+        <h2>選択中の入力</h2>
+        {input === undefined ? (
+          <p>盤面またはencoderから入力を選択してください。</p>
         ) : (
           <>
             <p className="muted">
-              layer {layer} / row {selected.position.row} / col {selected.position.col}
+              {selectedKey === undefined
+                ? `layer ${layer} / encoder ${selectedEncoder?.index} / ${selectedEncoder?.direction}`
+                : `layer ${layer} / row ${selectedKey.position.row} / col ${selectedKey.position.col}`}
             </p>
             <label>
               raw keycode
-              <input value={selected.keycode} onChange={(event) => onEdit(event.target.value)} />
+              <input
+                ref={editorRef}
+                data-keymap-editor
+                value={input.keycode}
+                onChange={(event) =>
+                  selectedKey === undefined
+                    ? onEditEncoder(event.target.value)
+                    : onEditKey(event.target.value)
+                }
+                onKeyDown={(event) => {
+                  if (event.key !== "Escape") return;
+                  event.preventDefault();
+                  event.currentTarget.blur();
+                  selectedButtonRef.current?.focus();
+                }}
+              />
             </label>
             <p className="detail">
-              {describeKeycode(selected.keycode, createKeycodeTable(definition, view.capacities))}
+              {describeKeycode(input.keycode, table)}
+              {inputDisplay?.role === undefined ? null : ` · ${inputDisplay.role}`}
             </p>
           </>
         )}
       </aside>
     </section>
   );
+}
+
+function renderKeycode(display: KeycodeDisplay, prefix = ""): React.JSX.Element {
+  return (
+    <>
+      <span>
+        {prefix}
+        {display.primary}
+      </span>
+      {display.role === undefined ? null : <small>{display.role}</small>}
+    </>
+  );
+}
+
+interface KeycodeDisplay {
+  readonly primary: string;
+  readonly role?: string;
+}
+
+function keycodeDisplay(
+  keycode: string,
+  labels: WorkspaceLabels,
+  table: ReturnType<typeof createKeycodeTable>,
+): KeycodeDisplay {
+  const lexeme = classifyKeycode(keycode);
+  switch (lexeme.kind) {
+    case "none":
+      return { primary: "—", role: "No action" };
+    case "transparent":
+      return { primary: "↓", role: "Transparent" };
+    case "basic":
+      return { primary: lexeme.name.replace(/^KC_/, "") };
+    case "modified":
+      return {
+        primary: keycodeDisplay(lexeme.inner, labels, table).primary,
+        role: modifierSymbol(lexeme.modifier),
+      };
+    case "modTap":
+      return {
+        primary: keycodeDisplay(lexeme.inner, labels, table).primary,
+        role: `hold ${modifierSymbol(lexeme.modifier)}`,
+      };
+    case "layerSwitch":
+      return {
+        primary:
+          lexeme.inner === undefined
+            ? layerLabel(labels, lexeme.layer)
+            : keycodeDisplay(lexeme.inner, labels, table).primary,
+        role:
+          lexeme.inner === undefined
+            ? layerActionLabel(lexeme.action)
+            : `hold ${layerLabel(labels, lexeme.layer)}`,
+      };
+    case "tapDance":
+      return { primary: "Tap Dance", role: `#${lexeme.index}` };
+    case "macro":
+      return { primary: "Macro", role: `#${lexeme.index}` };
+    case "custom": {
+      const resolved = table.resolve(keycode);
+      return resolved.kind === "custom" ? { primary: resolved.shortName } : { primary: keycode };
+    }
+    default:
+      return { primary: keycode };
+  }
+}
+
+function modifierSymbol(modifier: string): string {
+  if (["LGUI", "RGUI", "SGUI", "LCMD", "RCMD", "SCMD", "SWIN"].includes(modifier)) return "⌘";
+  if (["LALT", "RALT", "LAG", "RAG"].includes(modifier)) return "⌥";
+  if (["LCTL", "RCTL", "LCG", "RCG", "LCA", "RCA"].includes(modifier)) return "⌃";
+  if (["LSFT", "RSFT", "LSA", "RSA"].includes(modifier)) return "⇧";
+  if (modifier === "HYPR") return "⌘⌥⌃⇧";
+  if (modifier === "MEH") return "⌥⌃⇧";
+  return modifier;
+}
+
+function layerActionLabel(action: string): string {
+  switch (action) {
+    case "momentary":
+    case "layerTap":
+    case "layerMod":
+      return "hold";
+    case "toggle":
+      return "toggle";
+    case "to":
+      return "stay";
+    case "tapToggle":
+      return "tap-toggle";
+    case "default":
+      return "default";
+    case "oneShot":
+      return "one-shot";
+    default:
+      return action;
+  }
+}
+
+function moveKey(
+  view: ReturnType<typeof buildKeymapView>,
+  current: (typeof view.keys)[number],
+  direction: string,
+): (typeof view.keys)[number] | undefined {
+  const [x, y] = keyCenter(current.physical);
+  const candidates = view.keys.filter(
+    (key) => key.position.layer === current.position.layer && key !== current,
+  );
+  const filtered = candidates.filter((candidate) => {
+    const [candidateX, candidateY] = keyCenter(candidate.physical);
+    if (direction === "ArrowLeft") return candidateX < x;
+    if (direction === "ArrowRight") return candidateX > x;
+    if (direction === "ArrowUp") return candidateY < y;
+    if (direction === "ArrowDown") return candidateY > y;
+    return false;
+  });
+  return filtered.sort(
+    (left, right) => moveScore(left, x, y, direction) - moveScore(right, x, y, direction),
+  )[0];
+}
+
+function moveScore(
+  candidate: ReturnType<typeof buildKeymapView>["keys"][number],
+  x: number,
+  y: number,
+  direction: string,
+): number {
+  const [candidateX, candidateY] = keyCenter(candidate.physical);
+  const major =
+    direction === "ArrowLeft" || direction === "ArrowRight"
+      ? Math.abs(candidateX - x)
+      : Math.abs(candidateY - y);
+  const minor =
+    direction === "ArrowLeft" || direction === "ArrowRight"
+      ? Math.abs(candidateY - y)
+      : Math.abs(candidateX - x);
+  return major + minor * 2;
 }
 
 function Overview({
@@ -784,6 +1156,16 @@ function ApplyDialog({
 }): React.JSX.Element {
   const semanticChanges = changed.filter((entry) => entry.change !== "notationOnly");
   const notationOnlyChanges = changed.filter((entry) => entry.change === "notationOnly");
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog === null) return;
+    if (!dialog.open) dialog.showModal();
+    return () => {
+      if (dialog.open) dialog.close();
+    };
+  }, []);
 
   function renderDiff(entry: DiffEntry, index: number): React.JSX.Element {
     return (
@@ -798,8 +1180,8 @@ function ApplyDialog({
 
   return (
     <dialog
+      ref={dialogRef}
       className="modal-backdrop"
-      open
       onCancel={(event) => {
         event.preventDefault();
         onCancel();
@@ -882,9 +1264,11 @@ async function loadStore(store: BrowserWorkspaceStore): Promise<WorkspaceModel> 
     WORKSPACE_LAYOUT.keymap,
   );
   const parsed = parseKeymapYaml(keymapText);
-  const definitionText = required(
-    await store.readText(parsed.binding.definitionPath),
+  const definitionText = await readDefinitionBinding(
+    store,
     parsed.binding.definitionPath,
+    parsed.binding.definitionDigest,
+    globalThis.crypto,
   );
   const labelsText = await store.readText(WORKSPACE_LAYOUT.labels);
   return {

@@ -21,6 +21,14 @@ cornix/
   generated/<name>
 ```
 
+<!-- @code src/workspace/layout.ts#readDefinitionBinding -->
+
+## readDefinitionBinding
+
+`keymap.yaml`のdefinition pathがdigestから導出したcontent-addressed pathと一致すること、
+実ファイルのSHA-256がbinding digestと一致することをBrowser / CLIの両方で検証する。
+不一致や欠落はdefinitionを解釈せずエラーにする。
+
 <!-- @code src/workspace/types.ts#writeTextIfUnchanged -->
 
 ## 外部変更競合

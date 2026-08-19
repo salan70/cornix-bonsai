@@ -11,7 +11,12 @@ import { serializeVil } from "../core/vil/serialize.ts";
 import { parseKeymapYaml } from "../core/keymap-yaml/parse.ts";
 import { serializeKeymapYaml } from "../core/keymap-yaml/serialize.ts";
 import { renderPdf, renderSvg } from "../render/keyboard.ts";
-import { definitionPath, WORKSPACE_LAYOUT, sha256Hex } from "../workspace/layout.ts";
+import {
+  definitionPath,
+  readDefinitionBinding,
+  WORKSPACE_LAYOUT,
+  sha256Hex,
+} from "../workspace/layout.ts";
 import { parseLabelsYaml, EMPTY_LABELS } from "../workspace/labels.ts";
 import { CORNIX_LP_V112_SETTINGS } from "../workspace/settings.ts";
 import { NodeWorkspaceStore } from "../workspace/node.ts";
@@ -162,9 +167,11 @@ async function loadWorkspace(root: string): Promise<LoadedWorkspace> {
     WORKSPACE_LAYOUT.keymap,
   );
   const parsed = parseKeymapYaml(keymapText);
-  const definitionText = required(
-    await store.readText(parsed.binding.definitionPath),
+  const definitionText = await readDefinitionBinding(
+    store,
     parsed.binding.definitionPath,
+    parsed.binding.definitionDigest,
+    webcrypto,
   );
   const definition = parseDefinition(definitionText);
   const labelsText = await store.readText(WORKSPACE_LAYOUT.labels);

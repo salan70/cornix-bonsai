@@ -6,8 +6,8 @@ import { collectReferenceUsage } from "./reference-usage.ts";
 const document: VilDocument = {
   version: 1,
   uid: "1",
-  layout: [[["TD(1)", "M2", "LSFT(TD(1))"]]],
-  encoderLayout: [[["KC_A", "M2"]]],
+  layout: [[["TD(1)", "M(2)", "LSFT(TD(1))"]]],
+  encoderLayout: [[["KC_A", "M(2)"]]],
   layoutOptions: 0,
   macro: [[], [], []],
   vialProtocol: 6,

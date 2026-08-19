@@ -359,7 +359,7 @@ const ONE_SHOT_MOD_PATTERN = /^OSM\((.+)\)$/;
 const NUMERIC_PATTERN = /^(0[xX][0-9a-fA-F]+|\d+)$/;
 const CUSTOM_PATTERN = /^USER(\d{2})$/;
 const TAP_DANCE_PATTERN = /^TD\((\d+)\)$/;
-const MACRO_PATTERN = /^M(\d+)$/;
+const MACRO_PATTERN = /^M\((\d+)\)$/;
 
 const LAYER_WRAPPERS: ReadonlyMap<string, LayerAction> = new Map<string, LayerAction>([
   ["MO", "momentary"],

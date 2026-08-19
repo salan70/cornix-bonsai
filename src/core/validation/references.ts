@@ -163,7 +163,7 @@ export function validateReferences(
           "reference/empty-macro",
           "warning",
           { kind: "macro", index },
-          `M${index} を参照しているが、macro ${index} は空で何も起きない`,
+          `M(${index}) を参照しているが、macro ${index} は空で何も起きない`,
           { index },
         ),
       );

@@ -118,3 +118,11 @@ Viewを経由しないため、状態の二重化が起きません。
 
 物理キーが存在しない位置（`-1`）と範囲外へは書かず、`KeymapEditError`を投げます。
 keycodeは正規化せず、渡された表記のまま置きます（ADR 0001）。
+
+<!-- @code src/core/model/edit.ts#setEncoderAssignment -->
+
+## setEncoderAssignment
+
+`(layer, encoder, direction)`のkeycodeを差し替え、新しい`VilDocument`を返す純関数です。
+存在しないencoderや方向へは配列を増やさず、`KeymapEditError`を投げます。directionは
+UIの`ccw` / `cw`からwireの`0` / `1`へadapter境界で変換します。

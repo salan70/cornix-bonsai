@@ -52,3 +52,39 @@ export function setKeyAssignment(
 
   return { ...document, layout };
 }
+
+/**
+ * encoderの1方向を差し替える。
+ *
+ * `encoder_layout[layer][index][direction]`の形を保ったままrawを返す。存在しないencoder
+ * へは書かず、keyの編集と同じくUI側の推測で配列を増やさない。
+ */
+/** @doc docs/specs/semantic-model.md#setencoderassignment */
+export function setEncoderAssignment(
+  document: VilDocument,
+  position: EncoderPosition,
+  keycode: string,
+): VilDocument {
+  const currentLayer = document.encoderLayout[position.layer];
+  const currentEncoder = currentLayer?.[position.index];
+  const current = currentEncoder?.[position.direction];
+  if (currentLayer === undefined || currentEncoder === undefined || current === undefined) {
+    throw new KeymapEditError(
+      `(layer ${position.layer}, encoder ${position.index}, direction ${position.direction}) は範囲外`,
+    );
+  }
+
+  const nextEncoder = [...currentEncoder];
+  nextEncoder[position.direction] = keycode;
+  const nextLayer = [...currentLayer];
+  nextLayer[position.index] = nextEncoder;
+  const encoderLayout = [...document.encoderLayout];
+  encoderLayout[position.layer] = nextLayer;
+  return { ...document, encoderLayout };
+}
+
+interface EncoderPosition {
+  readonly layer: number;
+  readonly index: number;
+  readonly direction: 0 | 1;
+}

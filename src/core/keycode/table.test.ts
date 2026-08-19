@@ -76,7 +76,8 @@ test("layer / tap dance / macro の語彙を容量つきで解釈する", () => 
     inner: "KC_LANG2",
   });
   deepStrictEqual(table.resolve("TD(1)"), { kind: "tapDance", index: 1 });
-  strictEqual(table.resolve("M40").kind, "outOfRange"); // macro は 32 件
+  deepStrictEqual(table.resolve("M(1)"), { kind: "macro", index: 1 });
+  strictEqual(table.resolve("M(40)").kind, "outOfRange"); // macro は 32 件
 });
 
 test("KC_NO と KC_TRNS を構造的な意味として区別する", () => {
