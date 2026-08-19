@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>D-004 Spike: workspace</title>
+    <style>
+      body {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        margin: 2rem;
+        max-width: 60rem;
+        line-height: 1.6;
+      }
+      button {
+        font: inherit;
+        padding: 0.4rem 0.9rem;
+        margin: 0.2rem 0.4rem 0.2rem 0;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 0.8rem;
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+      .step {
+        border-left: 3px solid #ccc;
+        padding-left: 1rem;
+        margin: 1.5rem 0;
+      }
+      .note {
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>D-004 Spike: workspace と localhost service</h1>
+
+    <p class="note">
+      Browser 標準 API だけで workspace の filesystem workflow が成立するかを確かめます。
+      実機は不要です。手順は上から順に人が押します。
+    </p>
+
+    <div class="step">
+      <h2>手順 0: 環境</h2>
+      <button id="probe">環境を調べる</button>
+      <pre id="out-probe">未実行</pre>
+    </div>
+
+    <div class="step">
+      <h2>手順 1: workspace ディレクトリを選ぶ</h2>
+      <p class="note">
+        空のディレクトリを新しく作って選んでください。Git 作業ツリーにするので、
+        既存のリポジトリを選んでも構いません。
+      </p>
+      <button id="pick">ディレクトリを選ぶ</button>
+      <pre id="out-pick">未実行</pre>
+    </div>
+
+    <div class="step">
+      <h2>手順 2: workspace の構造を作って読み書きする</h2>
+      <button id="write" disabled>keymap.yaml / definition / backup を書く</button>
+      <pre id="out-write">未実行</pre>
+    </div>
+
+    <div class="step">
+      <h2>手順 3: リロード後に権限が戻るか</h2>
+      <p class="note">
+        <strong>ここがこの Spike の核心です。</strong>
+        handle を IndexedDB へ保存しました。このページを<strong>リロード</strong>してから、
+        下のボタンを押してください。再度ディレクトリを選ばずに読み書きできれば、
+        local service なしで workflow が閉じます。
+      </p>
+      <button id="restore">保存した handle を復帰させる</button>
+      <pre id="out-restore">未実行</pre>
+    </div>
+
+    <div class="step">
+      <h2>手順 4: 外部の変更が見えるか</h2>
+      <p class="note">
+        AI エージェントや CLI が同じディレクトリを直接編集する想定です。
+        手順 1 で選んだディレクトリの <code>keymap.yaml</code> を、
+        エディタや <code>echo</code> で書き換えてから押してください。
+      </p>
+      <button id="reread" disabled>keymap.yaml を読み直す</button>
+      <pre id="out-reread">未実行</pre>
+    </div>
+
+    <script type="module">
+      import {
+        LAYOUT,
+        backupPath,
+        definitionDigest,
+        definitionPath,
+        pairingHeader,
+      } from "./workspace.mjs";
+
+      const $ = (id) => document.getElementById(id);
+      const show = (id, value) => {
+        $(id).textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+      };
+
+      let handle = null;
+
+      // handle は structured clone できるので IndexedDB へそのまま入る。
+      const DB = "cornix-bonsai-spike";
+      const STORE = "handles";
+
+      function openDb() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(DB, 1);
+          request.onupgradeneeded = () => request.result.createObjectStore(STORE);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async function putHandle(value) {
+        const db = await openDb();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE, "readwrite");
+          tx.objectStore(STORE).put(value, "workspace");
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      async function getHandle() {
+        const db = await openDb();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE, "readonly");
+          const request = tx.objectStore(STORE).get("workspace");
+          request.onsuccess = () => resolve(request.result ?? null);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      /** `a/b/c.json` を辿って（必要なら作って）ファイルの handle を返す。 */
+      async function fileHandle(root, path, { create }) {
+        const parts = path.split("/");
+        const name = parts.pop();
+        let dir = root;
+        for (const part of parts) {
+          dir = await dir.getDirectoryHandle(part, { create });
+        }
+        return dir.getFileHandle(name, { create });
+      }
+
+      async function writeFile(root, path, text) {
+        const file = await fileHandle(root, path, { create: true });
+        const stream = await file.createWritable();
+        await stream.write(text);
+        await stream.close();
+      }
+
+      async function readFile(root, path) {
+        const file = await fileHandle(root, path, { create: false });
+        return (await file.getFile()).text();
+      }
+
+      $("probe").onclick = () => {
+        let xz = false;
+        try {
+          new DecompressionStream("xz");
+          xz = true;
+        } catch {
+          xz = false;
+        }
+        show("out-probe", {
+          showDirectoryPicker: typeof window.showDirectoryPicker === "function",
+          secureContext: window.isSecureContext,
+          indexedDB: typeof indexedDB !== "undefined",
+          webhid: "hid" in navigator,
+          "DecompressionStream(xz)": xz,
+          origin: location.origin,
+        });
+      };
+
+      $("pick").onclick = async () => {
+        try {
+          handle = await window.showDirectoryPicker({ mode: "readwrite", id: "cornix-workspace" });
+          await putHandle(handle);
+          $("write").disabled = false;
+          $("reread").disabled = false;
+          show("out-pick", {
+            name: handle.name,
+            kind: handle.kind,
+            "IndexedDB へ保存": true,
+            権限: await handle.queryPermission({ mode: "readwrite" }),
+          });
+        } catch (error) {
+          show("out-pick", `失敗: ${error}`);
+        }
+      };
+
+      $("write").onclick = async () => {
+        try {
+          const definition = JSON.stringify({ name: "Cornix LP", matrix: { rows: 8, cols: 7 } });
+          const bytes = new TextEncoder().encode(definition);
+          const digest = await definitionDigest(bytes);
+
+          await writeFile(handle, definitionPath(digest), definition);
+          const header = pairingHeader({
+            keyboardUid: "16882930253541522617",
+            digest,
+            definitionName: "Cornix LP",
+          });
+          await writeFile(
+            handle,
+            LAYOUT.keymap,
+            `# Cornix Bonsai workspace spike\n${JSON.stringify(header, null, 2)}\n`,
+          );
+          await writeFile(
+            handle,
+            backupPath(new Date()),
+            JSON.stringify({ note: "全read backup の置き場所の確認" }),
+          );
+
+          show("out-write", {
+            書いた: [LAYOUT.keymap, definitionPath(digest), "cornix/backups/<時刻>.json"],
+            "keymap.yaml を読み直した": await readFile(handle, LAYOUT.keymap),
+          });
+        } catch (error) {
+          show("out-write", `失敗: ${error}`);
+        }
+      };
+
+      $("restore").onclick = async () => {
+        try {
+          const saved = await getHandle();
+          if (saved === null) {
+            show("out-restore", "IndexedDB に handle が無い。手順 1 からやり直す");
+            return;
+          }
+          const before = await saved.queryPermission({ mode: "readwrite" });
+          // prompt が要る場合はここでユーザー操作を挟む。
+          const after =
+            before === "granted" ? before : await saved.requestPermission({ mode: "readwrite" });
+
+          handle = saved;
+          $("write").disabled = false;
+          $("reread").disabled = false;
+          show("out-restore", {
+            name: saved.name,
+            "リロード直後の権限": before,
+            "requestPermission 後": after,
+            "再選択なしで読めたか": after === "granted" ? await readFile(saved, LAYOUT.keymap) : "不可",
+          });
+        } catch (error) {
+          show("out-restore", `失敗: ${error}`);
+        }
+      };
+
+      $("reread").onclick = async () => {
+        try {
+          show("out-reread", await readFile(handle, LAYOUT.keymap));
+        } catch (error) {
+          show("out-reread", `失敗: ${error}`);
+        }
+      };
+    </script>
+  </body>
+</html>
