@@ -36,6 +36,10 @@ lint-md:
 format:
     oxfmt --write . '!.claude/**' '!.agents/**'
 
+# 型を検査する
+typecheck:
+    pnpm typecheck
+
 # テストを実行する
 test:
     pnpm test
