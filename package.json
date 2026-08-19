@@ -5,10 +5,23 @@
   "type": "module",
   "scripts": {
     "test": "node --test \"src/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -p tsconfig.core.json && tsc -p tsconfig.app.json && tsc -p tsconfig.cli.json",
+    "build": "vite build",
+    "dev": "vite",
+    "cornix": "tsx src/cli/main.ts"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "xz-decompress": "^0.2.3"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
-    "typescript": "^5.9.3"
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.4",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.3"
   }
 }

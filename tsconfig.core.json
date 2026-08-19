@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "lib": ["es2023"], "types": ["node"] },
+  "include": [
+    "src/core/**/*.ts",
+    "src/workspace/**/*.ts",
+    "src/render/**/*.ts",
+    "src/device/protocol.ts",
+    "src/device/protocol.test.ts"
+  ]
+}

@@ -6,7 +6,44 @@ Cornix Bonsaiは、Cornix LPのキーマップをブラウザ・CLI・Git・AI�
 
 ## 現在の状況
 
-設計・調査の初期段階です。
+workspace / CLI / Web UI / WebHID adapterのMVP実装を含むローカル開発版です。実機USB/BLEの
+受入確認は実機と人間の明示操作が必要なため、mock/fixtureの自動検証とは分けて扱います。
+
+## 起動
+
+依存関係とツールチェーンはNix環境を使います。
+
+```bash
+nix develop
+just setup
+just test
+just typecheck
+just build
+```
+
+### CLI
+
+既存の`.vil`とdefinitionからworkspaceを初期化し、同じCoreで検証・解析・差分・描画・exportを
+実行できます。
+
+```bash
+pnpm run cornix -- import vil fixtures/cornix-lp/baseline.vil \
+  --definition fixtures/cornix-lp/vial-definition-v1.12.json \
+  --workspace /path/to/workspace
+pnpm run cornix -- validate --workspace /path/to/workspace
+pnpm run cornix -- analyze --workspace /path/to/workspace
+pnpm run cornix -- diff --against before.vil --workspace /path/to/workspace
+pnpm run cornix -- render --format svg --out keymap.svg --workspace /path/to/workspace
+pnpm run cornix -- render --format pdf --out keymap.pdf --workspace /path/to/workspace
+pnpm run cornix -- export vil --out keymap.vil --workspace /path/to/workspace
+```
+
+### Browser UI
+
+`pnpm run dev`で起動し、Chromium系browserでworkspace directoryを選択します。permission済みの
+directory handleはIndexedDBへ保存され、reload後に復帰します。`接続` → `実機read` → 編集 →
+`Apply`の順に操作します。Applyはbackup、validation、差分確認、人間確認、single-entry
+write、再read verifyの順で進みます。電源断後のflash durabilityは通常の成功条件に含めません。
 
 ## 方針
 

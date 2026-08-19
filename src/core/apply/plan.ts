@@ -85,6 +85,7 @@ export type AbortReason =
   | "verify-mismatch"
   | "timeout"
   | "disconnected"
+  | "protocol-error"
   | "user-cancelled"
   | "uid-mismatch";
 

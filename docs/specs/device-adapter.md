@@ -1,0 +1,37 @@
+# Device I/O adapter
+
+WebHID固有の型はadapterに閉じ、Coreとprotocolのテストは`HidDeviceLike`だけに依存する。
+対象はVial collection（usagePage `0xFF60`, usage `0x61`）、report ID `0x00`、32 byte report。
+各request/response往復には既定3000ms timeoutを適用し、disconnect後に古いdevice handleを
+再利用しない。
+
+<!-- @code src/device/protocol.ts#VialSession -->
+
+## Report session
+
+送信前にinputreportの待ち受けを用意し、`sendReport`またはinputreportのどちらかがtimeoutに
+なれば失敗する。ackはwrite成功の証明にせず、write後の同じentryの再read値だけをverifyへ渡す。
+
+<!-- @code src/device/protocol.ts#readVialDevice -->
+
+## Full read
+
+definitionとmatrix/encoderを実機から取得し、layer・macro・tap dance・combo・settings・
+keymap・encoderを`VilDocument`へ再構築する。matrixの物理キー集合はdefinitionから導出し、
+宣言されていない位置は`-1`として保持する。容量はfixtureやworkspaceから推測しない。
+
+<!-- @code src/device/protocol.ts#encodeWriteCommand -->
+<!-- @code src/device/protocol.ts#writeAndVerify -->
+
+## Single-entry write
+
+公開するwriteはkey、encoder、tap dance、combo、settingの5種類だけで、bulk buffer、macro
+buffer、reset、bootloaderのcommandは組み立てない。`write → 同一entry read → wire値比較`を
+1件単位で繰り返し、不一致・timeout・disconnectで直ちに中断する。
+
+<!-- @code src/device/webhid.ts#WebHidAdapter -->
+
+## Browser adapter
+
+`getDevices()`からの再取得と明示的chooserを分ける。permission済みdeviceが空でもchooserを
+常に表示でき、USB/BLEの区別はUIへ出さない。
