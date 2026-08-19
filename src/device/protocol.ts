@@ -64,9 +64,13 @@ export class VialSession {
   private count = 0;
   private readonly onInput = (event: unknown): void => {
     const data = extractInputReport(event);
-    if (data === undefined || this.pending === undefined) return;
+    if (this.pending === undefined) return;
     const pending = this.pending;
     this.pending = undefined;
+    if (data === undefined) {
+      pending.reject(new DeviceIoError("Vial input reportが0x00/32 byteではない", "protocol"));
+      return;
+    }
     pending.resolve(data);
   };
   private readonly onDisconnect = (): void => {
@@ -162,6 +166,12 @@ export async function readVialDevice(
   const dynamic = await session.request([0xfe, 0x0d, 0x00], "dynamic entry count");
   const tapDanceCount = dynamic[0] ?? 0;
   const comboCount = dynamic[1] ?? 0;
+  if ((dynamic[2] ?? 0) !== 0 || (dynamic[3] ?? 0) !== 0) {
+    throw new DeviceIoError(
+      "key override / alt repeat keyはこのadapterでは未対応のためfull readを中断した",
+      "protocol",
+    );
+  }
   const settingsRead = await readSettings(session, vialProtocol);
   const physicalPositions = new Set(physical.keys.map((key) => `${key.row},${key.col}`));
   const keymap = await readKeymap(
@@ -547,10 +557,16 @@ function requireValue(values: readonly number[], index: number): number {
 }
 function extractInputReport(event: unknown): Uint8Array | undefined {
   if (typeof event !== "object" || event === null) return undefined;
+  const reportId = (event as { reportId?: unknown }).reportId;
+  if (reportId !== undefined && reportId !== VIAL_REPORT_ID) return undefined;
   const data = (event as { data?: unknown }).data;
-  if (data instanceof DataView)
-    return new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
-  return data instanceof Uint8Array ? data : undefined;
+  const bytes =
+    data instanceof DataView
+      ? new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength))
+      : data instanceof Uint8Array
+        ? data
+        : undefined;
+  return bytes?.byteLength === VIAL_REPORT_SIZE ? bytes : undefined;
 }
 function readBe16(data: Uint8Array, offset: number): number {
   return ((data[offset] ?? 0) << 8) | (data[offset + 1] ?? 0);

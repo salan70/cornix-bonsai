@@ -17,6 +17,7 @@ File System Access APIでdirectoryを選択し、directory handleをIndexedDBへ
 Keymapはdefinitionの座標をHTML/CSSの絶対配置へ投影し、選択中キーのraw keycodeをside panelで
 編集する。BehaviorsはTap Dance / Combo / Settingsを直接編集して保存する。Apply warningの
 acknowledge IDは`cornix/acknowledgements.json`へ保存し、内容が変わった診断は再確認を要求する。
+Referencesはdynamic entryのusages / unusedと、layerのunreachableを診断一覧と分けて表示する。
 Settingsの表示はCornix LP公式firmware V1.12で確認したqsid辞書を使い、辞書にないqsidは
 `qsid N`のraw表記を残す。保存形式とvalidationは常にqsidを正とする。
 Applyだけは他tabへ移れない線形modalとして扱い、backup、差分、人間確認、write+verify、結果の

@@ -13,6 +13,7 @@ import { serializeKeymapYaml } from "../core/keymap-yaml/serialize.ts";
 import { renderPdf, renderSvg } from "../render/keyboard.ts";
 import { definitionPath, WORKSPACE_LAYOUT, sha256Hex } from "../workspace/layout.ts";
 import { parseLabelsYaml, EMPTY_LABELS } from "../workspace/labels.ts";
+import { CORNIX_LP_V112_SETTINGS } from "../workspace/settings.ts";
 import { NodeWorkspaceStore } from "../workspace/node.ts";
 
 interface LoadedWorkspace {
@@ -90,7 +91,9 @@ function analyze(workspace: LoadedWorkspace): number {
 async function diff(workspace: LoadedWorkspace, against: string): Promise<number> {
   if (against === "") throw new Error("cornix diff --against <file.vil> が必要");
   const before = parseVil(await readFile(resolve(workspace.root, against), "utf8"));
-  const result = diffDocuments(before, workspace.parsed.document, workspace.definition);
+  const result = diffDocuments(before, workspace.parsed.document, workspace.definition, {
+    settings: { labels: CORNIX_LP_V112_SETTINGS },
+  });
   console.log(JSON.stringify(result, mapReplacer, 2));
   return 0;
 }

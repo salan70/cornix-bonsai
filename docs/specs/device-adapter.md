@@ -19,6 +19,8 @@ WebHID固有の型はadapterに閉じ、Coreとprotocolのテストは`HidDevice
 definitionとmatrix/encoderを実機から取得し、layer・macro・tap dance・combo・settings・
 keymap・encoderを`VilDocument`へ再構築する。matrixの物理キー集合はdefinitionから導出し、
 宣言されていない位置は`-1`として保持する。容量はfixtureやworkspaceから推測しない。
+Cornix LP V1.12のkey override / alt repeat keyは0件である。非ゼロ件数を返すfirmwareは、
+未対応状態を空配列へ落とさずprotocol errorでfull readを中断する。
 
 <!-- @code src/device/protocol.ts#encodeWriteCommand -->
 <!-- @code src/device/protocol.ts#writeAndVerify -->

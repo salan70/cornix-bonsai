@@ -152,6 +152,22 @@ layer遷移を見ていません。したがって結果をerrorにはできま�
   実機が操作不能になりえます。解析が不完全なのでerrorにはせず、人間が越えられる形にします
 - `reachability/empty-layer`: information
 
+<!-- @code src/core/validation/reference-usage.ts#ReferenceUsageSummary -->
+
+## ReferenceUsageSummary
+
+References tabが表示するdynamic entryの参照回数は、validationの可否判定とは分離した
+読み取り専用の集計です。未知keycodeや数値表記の意味は推測せず、`TD(n)` / `M(n)`を
+構文として解釈できる参照だけを数えます。
+
+<!-- @code src/core/validation/reference-usage.ts#collectReferenceUsage -->
+
+## collectReferenceUsage
+
+matrix、encoder、tap dance、comboのkeycodeと、modifier / layer wrapperの内部keycodeを
+走査して参照回数を集計します。UIはこの結果とentry容量を突き合わせてunusedを示し、
+`analyzeReachability`の結果からunreachable layerも併記します。
+
 <!-- @code src/core/validation/validate.ts#validateKeymap -->
 
 ## validateKeymap

@@ -74,6 +74,16 @@ test("responseが無い場合はtimeoutとしてabortできる", async () => {
   session.close();
 });
 
+test("Vial input reportが32 byteでなければprotocol errorにする", async () => {
+  const device = new MockHidDevice(() => new Uint8Array(31));
+  const session = new VialSession(device, { timeoutMs: 100 });
+  await rejects(
+    session.request([0x01], "invalid report test"),
+    (error: unknown) => error instanceof DeviceIoError && error.reason === "protocol",
+  );
+  session.close();
+});
+
 test("disconnectは古いrequestを再利用せず明示的に失敗させる", async () => {
   const device = new MockHidDevice(() => undefined);
   const session = new VialSession(device, { timeoutMs: 1000 });
