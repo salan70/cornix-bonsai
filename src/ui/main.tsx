@@ -1,6 +1,8 @@
 import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { diffDocuments, type DiffEntry } from "../core/diff/diff.ts";
+import { createKeycodeTable } from "../core/keycode/table.ts";
+import { describeKeycode } from "../core/diff/describe.ts";
 import { setKeyAssignment } from "../core/model/edit.ts";
 import { buildKeymapView } from "../core/model/keymap-view.ts";
 import {
@@ -30,7 +32,7 @@ import {
   type WorkspaceLabels,
 } from "../workspace/labels.ts";
 import { parseAcknowledgements, serializeAcknowledgements } from "../workspace/acknowledgements.ts";
-import { settingLabel } from "../workspace/settings.ts";
+import { CORNIX_LP_V112_SETTINGS, settingLabel } from "../workspace/settings.ts";
 import { writeTextIfUnchanged, type WorkspaceConflictToken } from "../workspace/types.ts";
 import { BrowserWorkspaceStore, pickWorkspace, restoreWorkspace } from "./browser-workspace.ts";
 import "./styles.css";
@@ -89,7 +91,9 @@ function App(): React.JSX.Element {
   );
   const changed = useMemo(() => {
     if (workspace === undefined || deviceRead === undefined) return [];
-    return diffDocuments(deviceRead.document, workspace.document, workspace.definition).entries;
+    return diffDocuments(deviceRead.document, workspace.document, workspace.definition, {
+      settings: { labels: CORNIX_LP_V112_SETTINGS },
+    }).entries;
   }, [deviceRead, workspace]);
   const applyGate = useMemo(() => {
     if (workspace === undefined || deviceRead === undefined || changed.length === 0)
@@ -437,6 +441,7 @@ function App(): React.JSX.Element {
           {tab === "Keymap" && view !== undefined ? (
             <KeymapTab
               view={view}
+              definition={workspace.definition}
               layer={layer}
               setLayer={setLayer}
               selection={selection}
@@ -488,6 +493,7 @@ function App(): React.JSX.Element {
 
 function KeymapTab({
   view,
+  definition,
   layer,
   setLayer,
   selection,
@@ -496,6 +502,7 @@ function KeymapTab({
   onEdit,
 }: {
   view: ReturnType<typeof buildKeymapView>;
+  definition: ReturnType<typeof parseDefinition>;
   layer: number;
   setLayer: (value: number) => void;
   selection: { row: number; col: number } | undefined;
@@ -565,9 +572,7 @@ function KeymapTab({
               <input value={selected.keycode} onChange={(event) => onEdit(event.target.value)} />
             </label>
             <p className="detail">
-              {selected.resolved.kind === "custom"
-                ? selected.resolved.title
-                : selected.resolved.kind}
+              {describeKeycode(selected.keycode, createKeycodeTable(definition, view.capacities))}
             </p>
           </>
         )}
@@ -721,6 +726,20 @@ function ApplyDialog({
   onCancel: () => void;
   onApply: () => void;
 }): React.JSX.Element {
+  const semanticChanges = changed.filter((entry) => entry.change !== "notationOnly");
+  const notationOnlyChanges = changed.filter((entry) => entry.change === "notationOnly");
+
+  function renderDiff(entry: DiffEntry, index: number): React.JSX.Element {
+    return (
+      <li key={`${entry.subject.kind}-${index}`}>
+        <code>
+          {entry.before} → {entry.after}
+        </code>
+        <span>{entry.afterBehavior}</span>
+      </li>
+    );
+  }
+
   return (
     <dialog
       className="modal-backdrop"
@@ -734,16 +753,18 @@ function ApplyDialog({
         <h2 id="apply-title">Apply</h2>
         <p>backup → 差分確認 → 人間確認 → write + reread verify → 結果</p>
         <p>{changed.length} 件の差分を1件ずつ反映します。</p>
-        <ul>
-          {changed.slice(0, 12).map((entry, index) => (
-            <li key={index}>
-              <code>
-                {entry.before} → {entry.after}
-              </code>
-              <span>{entry.afterBehavior}</span>
-            </li>
-          ))}
-        </ul>
+        {semanticChanges.length > 0 && (
+          <>
+            <h3>挙動が変わる差分</h3>
+            <ul>{semanticChanges.slice(0, 12).map(renderDiff)}</ul>
+          </>
+        )}
+        {notationOnlyChanges.length > 0 && (
+          <details>
+            <summary>表記だけの差分 {notationOnlyChanges.length} 件</summary>
+            <ul>{notationOnlyChanges.map(renderDiff)}</ul>
+          </details>
+        )}
         {gate !== undefined && gate.acknowledgeable.length > 0 && (
           <section className="warning-box">
             <strong>warning {gate.acknowledgeable.length}件</strong>
