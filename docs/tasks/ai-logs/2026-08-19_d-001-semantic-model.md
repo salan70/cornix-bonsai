@@ -73,7 +73,8 @@ rawを唯一の状態とし、意味表現はdefinitionを引数に取る派生�
   exportはrawをそのまま書き戻すため、round-tripはこの未確認に依存しない
 - `key_override`と`macro`の意味解釈は未実装。macroのbufferをaction単位へ分解する処理
   （`macro_deserialize_v2`相当）はR-003からの持ち越しで、D-002の入力のまま
-- 型検査を機械強制する経路が無い。`just typecheck`は追加したが、pre-commitとCIには
-  入れていない。oxlintは型検査をしないため、現状TSの型エラーはcommitできてしまう
+- ~~型検査を機械強制する経路が無い~~ → **解決**（2026-08-19）。
+  `.pre-commit-config.yaml`の`typecheck` hookと`.github/workflows/typecheck.yml`を追加し、
+  commitとpushの両方で止まるようにした。わざと型エラーを入れて`Failed`になることを確認済み
 - 単一パッケージからの分割時期は未定。`core`がReact / fs / WebHIDをimportしないことは
   現状specへの明記とreviewで担保しており、lintでの機械強制は入れていない
