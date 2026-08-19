@@ -1,10 +1,9 @@
 # workspaceはBrowser標準APIだけで閉じ、definitionはcontent-addressingでkeymapと対応づける
 
-状態: 提案中
+状態: 採用
 
 2026-08-19に、配置規則とdefinitionの対応づけをSpike（`spikes/d-004-workspace/`）で検証した。
-**File System Access APIの権限復帰は未実測**のため、状態は提案中とする。
-確定にはbrowserでの手動確認が要る（後述）。
+同日、Chromium系browserの手動確認でFile System Access APIの権限復帰と外部編集の取り込みを確認した。
 
 ## 背景
 
@@ -35,7 +34,7 @@ Spikeで確認できた事実。
 
 ## 決定
 
-案1を採る（**権限復帰の実測待ち**）。
+案1を採る。
 
 - workspaceはユーザーが選んだ1つのディレクトリとし、Git作業ツリーをそのまま使う
 - 配置は以下。`.gitignore`の既存の線に合わせる
@@ -74,9 +73,7 @@ Spikeで確認できた事実。
 
 ## 影響
 
-- **この判断はFile System Access APIの権限がリロードを越えて復帰することに依存する**。
-  復帰しない場合、ユーザーは起動のたびにディレクトリを選び直すことになり、
-  案2を再検討する必要がある。Spikeの手順3がこの確認にあたる
+- File System Access APIの権限は、Chromium系browserでの手動確認によりリロード後も復帰することを確認した
 - browserからGit操作は行わない。commitとpushはユーザーまたはAIエージェントがCLIで行う
 - file watchingを持たないため、外部の変更は明示的な再読み込みで取り込む。
   編集の衝突検出は別途必要になる（未検討）
@@ -85,7 +82,7 @@ Spikeで確認できた事実。
 - definitionのdigestはファイル名に先頭16文字だけ使う。衝突確率は無視できるが、
   `keymap.yaml`には全長を記録して照合に使う
 
-## 確定に必要な手動確認
+## 手動確認結果
 
 ```bash
 nix develop -c node spikes/d-004-workspace/serve.mjs
@@ -93,5 +90,8 @@ nix develop -c node spikes/d-004-workspace/serve.mjs
 # 手順 1 → 2 → リロード → 手順 3 の順に押す
 ```
 
-手順3で「再選択なしで読めたか」が成立すれば案1を採用へ進める。
-成立しなければ案2を再検討する。
+- 手順1でworkspace `test`を選択し、手順2でworkspace構造を作成した
+- ページをリロードした後、手順3でリロード直後の権限が`granted`となり、ディレクトリを再選択せず`keymap.yaml`を読み書きできた
+- 手順4で外部から`keymap.yaml`を変更し、再読み込み後に変更内容が表示された
+- 検証用workspaceの生成物は確認後に削除した
+- 今回は実機接続、WebHID、firmware writeを行っていない
