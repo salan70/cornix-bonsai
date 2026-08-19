@@ -1,9 +1,9 @@
 /**
  * Apply gate。**severity と Apply blocking を接続する唯一の場所**。
  *
- * ADR 0008 の状態機械は validation の結果を引数に取っていない。その接続点をここに置く
- * （ADR 0010）。`createApplyPlan` を呼ぶ前に `assertApplyAllowed` を通すのが規約で、
- * gate 自身は実機にも UI にも依存しない純関数。
+ * validation evidenceをApplyの前提条件へ接続する唯一の場所（ADR 0010）。
+ * gateはvalidation対象のidentityを保持し、`createValidatedApplyInput`がそのevidenceだけを
+ * 受け取る。gate自身は実機にもUIにも依存しない純関数。
  *
  * 境界（ADR 0010）:
  *   - `error`       : 常に block。acknowledge できない
@@ -18,6 +18,7 @@
  */
 
 import type { Diagnostic } from "./types.ts";
+import { isValidationEvidence, type ValidationEvidence } from "./evidence.ts";
 
 const APPLY_ALLOWED = Symbol("ApplyAllowed");
 
@@ -32,6 +33,11 @@ export interface ApplyGate {
   readonly fatal: readonly Diagnostic[];
 }
 
+/** validation対象identityを保持したApply gate。 */
+export interface ApplyGateWithEvidence extends ApplyGate {
+  readonly evidence: ValidationEvidence;
+}
+
 /**
  * gateを通過したことを型で表す。`createApplyPlan`はこの型を含む
  * `ValidatedApplyInput`だけを受け取るため、通常の`ApplyGate`を渡す経路がない。
@@ -39,6 +45,11 @@ export interface ApplyGate {
 export type ApplyAllowedGate = ApplyGate & {
   readonly allowed: true;
   readonly [APPLY_ALLOWED]: true;
+};
+
+/** gate通過済みで、validation evidenceも失っていないApply gate。 */
+export type ApplyAllowedValidation = ApplyAllowedGate & {
+  readonly evidence: ValidationEvidence;
 };
 
 /** gate が閉じているのに Apply へ進もうとしたときに投げる。 */
@@ -53,9 +64,20 @@ export class ApplyBlockedError extends Error {}
  * @doc docs/specs/validation.md#evaluateapplygate
  */
 export function evaluateApplyGate(
+  evidence: ValidationEvidence,
+  acknowledgedIds?: readonly string[],
+): ApplyGateWithEvidence;
+export function evaluateApplyGate(
   diagnostics: readonly Diagnostic[],
+  acknowledgedIds?: readonly string[],
+): ApplyGate;
+export function evaluateApplyGate(
+  input: ValidationEvidence | readonly Diagnostic[],
   acknowledgedIds: readonly string[] = [],
-): ApplyGate {
+): ApplyGateWithEvidence | ApplyGate {
+  const evidence = isValidationEvidence(input) ? input : undefined;
+  const diagnostics: readonly Diagnostic[] =
+    evidence?.diagnostics ?? (input as readonly Diagnostic[]);
   const acknowledged = new Set(acknowledgedIds);
   const fatal = diagnostics.filter((diagnostic) => diagnostic.severity === "error");
   const acknowledgeable = diagnostics.filter(
@@ -63,20 +85,25 @@ export function evaluateApplyGate(
   );
   const blocking = [...fatal, ...acknowledgeable];
 
-  return { allowed: blocking.length === 0, blocking, acknowledgeable, fatal };
+  const gate = { allowed: blocking.length === 0, blocking, acknowledgeable, fatal };
+  return evidence === undefined ? gate : { ...gate, evidence };
 }
 
 /**
  * gate が開いていることを確かめる。開いていなければ投げる。
  *
- * **Apply の入口はこれ 1 か所にする**。`createApplyPlan` の前に必ず通す。上位のフラグで
- * 分岐させる方式を採らないのは ADR 0008 と同じ理由で、分岐は消し忘れると効かなくなる。
+ * **Apply の入口はこれ 1 か所にする**。`createValidatedApplyInput` が必ず通す。上位の
+ * フラグで分岐させる方式を採らないのは ADR 0008 と同じ理由で、分岐は消し忘れると効かなくなる。
  *
  * @doc docs/specs/validation.md#assertapplyallowed
  */
-export function assertApplyAllowed(gate: ApplyGate): ApplyAllowedGate {
+export function assertApplyAllowed(gate: ApplyGateWithEvidence): ApplyAllowedValidation;
+export function assertApplyAllowed(gate: ApplyGate): ApplyAllowedGate;
+export function assertApplyAllowed(gate: ApplyGate): ApplyAllowedGate | ApplyAllowedValidation {
   if (gate.allowed) {
-    return { ...gate, allowed: true, [APPLY_ALLOWED]: true };
+    return { ...gate, allowed: true, [APPLY_ALLOWED]: true } as
+      | ApplyAllowedGate
+      | ApplyAllowedValidation;
   }
   const codes = gate.blocking.map((diagnostic) => diagnostic.code).join(", ");
   throw new ApplyBlockedError(

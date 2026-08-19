@@ -13,8 +13,16 @@
  */
 
 import type { WriteCommandKind } from "./commands.ts";
-import type { Capacities } from "../keycode/table.ts";
-import { assertApplyAllowed, type ApplyAllowedGate, type ApplyGate } from "../validation/gate.ts";
+import {
+  assertApplyAllowed,
+  type ApplyAllowedValidation,
+  type ApplyGateWithEvidence,
+} from "../validation/gate.ts";
+import {
+  fingerprintApplyValues,
+  isValidationEvidence,
+  type ValidationEvidence,
+} from "../validation/evidence.ts";
 
 /** writeの単位。比較単位はADR 0003 のまま。 */
 export type WriteTarget =
@@ -49,8 +57,8 @@ export interface ApplyPlan {
   readonly operations: readonly WriteOperation[];
   /** validation時点の対象対応。plan fingerprintにも含まれる。 */
   readonly validation: {
-    readonly gate: ApplyAllowedGate;
-    readonly context: ApplyValidationContext;
+    readonly gate: ApplyAllowedValidation;
+    readonly evidence: ValidationEvidence;
   };
   /** 人間確認したplanとwriteするplanを結びつける決定的な識別子。 */
   readonly fingerprint: string;
@@ -97,30 +105,14 @@ export type AbortReason =
 /** Applyの前提条件が満たされていないときに投げる。 */
 export class ApplyPreconditionError extends Error {}
 
-/** Apply対象とvalidation結果の対応づけ。 */
-export interface ApplyValidationContext {
-  /** validationした実機のkeyboard UID。 */
-  readonly keyboardUid: string;
-  /** validationしたkeyboard definitionのworkspace上の対応づけ。 */
-  readonly definition: {
-    readonly path: string;
-    readonly digest: string;
-  };
-  /** validationに使った実機申告の容量。 */
-  readonly capacities: Capacities;
-  /** validationに使った実機申告の対応qsid。 */
-  readonly supportedQsids: readonly number[];
-}
-
 const VALIDATED_APPLY_INPUT = Symbol("ValidatedApplyInput");
 
 /**
  * gateを通過し、full-read coverageと対象対応を検証済みのApply入力。
- * この型を作る公開関数が`ApplyGate`を`ApplyAllowedGate`へ変換する唯一の経路になる。
+ * この型を作る公開関数がevidence付きgateを`ApplyAllowedValidation`へ変換する唯一の経路になる。
  */
 export interface ValidatedApplyInput {
-  readonly gate: ApplyAllowedGate;
-  readonly context: ApplyValidationContext;
+  readonly gate: ApplyAllowedValidation;
   readonly backup: DeviceSnapshot;
   readonly desired: ReadonlyMap<string, readonly number[]>;
   readonly targets: readonly WriteTarget[];
@@ -161,16 +153,19 @@ const COMMAND_FOR: Record<WriteTarget["kind"], WriteCommandKind> = {
  * @doc docs/specs/apply-flow.md#createvalidatedapplyinput
  */
 export function createValidatedApplyInput(
-  gate: ApplyGate,
-  context: ApplyValidationContext,
+  gate: ApplyGateWithEvidence,
   backup: DeviceSnapshot,
   desired: ReadonlyMap<string, readonly number[]>,
   targets: readonly WriteTarget[],
 ): ValidatedApplyInput {
+  if (!isValidationEvidence(gate.evidence)) {
+    throw new ApplyPreconditionError("validation evidenceが不正");
+  }
   const allowedGate = assertApplyAllowed(gate);
   if (backup.values.size === 0) {
     throw new ApplyPreconditionError("backupが空。全readを終えてからApply入力を作る");
   }
+  const context = gate.evidence.context;
   if (context.keyboardUid.length === 0) {
     throw new ApplyPreconditionError("validation対象のkeyboard UIDが空");
   }
@@ -178,6 +173,11 @@ export function createValidatedApplyInput(
     throw new ApplyPreconditionError("validation対象のdefinition bindingが不完全");
   }
   assertSameDevice(backup, context.keyboardUid);
+  if (fingerprintApplyValues(desired) !== gate.evidence.desiredFingerprint) {
+    throw new ApplyPreconditionError(
+      "validationしたdesiredとApply対象のdesiredが一致しない。再validationが必要",
+    );
+  }
 
   const targetKeys = targets.map(targetKey);
   if (new Set(targetKeys).size !== targetKeys.length) {
@@ -197,7 +197,6 @@ export function createValidatedApplyInput(
 
   return {
     gate: allowedGate,
-    context: copyValidationContext(context),
     backup: copySnapshot(backup),
     desired: copyValues(desired),
     targets: Object.freeze(targets.map((target) => ({ ...target }))),
@@ -240,7 +239,7 @@ export function createApplyPlan(input: ValidatedApplyInput): ApplyPlan {
   const plan = {
     backup: input.backup,
     operations: Object.freeze(operations),
-    validation: { gate: input.gate, context: input.context },
+    validation: { gate: input.gate, evidence: input.gate.evidence },
     fingerprint: fingerprint(input),
   } satisfies ApplyPlan;
   return plan;
@@ -313,18 +312,21 @@ export function abortApply(state: ApplyState, reason: AbortReason): ApplyState {
  * backupの値へ戻すApply計画を作る。
  *
  * rollbackはfirmwareの機能ではなく、**backupの値を同じ差分write経路で書き戻す操作**
- * として定義される（ADR 0005）。したがって専用の経路を持たず、`createApplyPlan`を
- * 向きを変えて呼ぶだけになる。
+ * として定義される（ADR 0005）。rollback側のvalidation evidenceを別途受け取り、対象
+ * contextが元のApplyと一致することを確認してから`createApplyPlan`へ渡す。
  */
-export function createRollbackPlan(input: ValidatedApplyInput, current: DeviceSnapshot): ApplyPlan {
+export function createRollbackPlan(
+  input: ValidatedApplyInput,
+  rollbackGate: ApplyGateWithEvidence,
+  current: DeviceSnapshot,
+): ApplyPlan {
+  if (
+    JSON.stringify(input.gate.evidence.context) !== JSON.stringify(rollbackGate.evidence.context)
+  ) {
+    throw new ApplyPreconditionError("rollbackのvalidation対象contextがApplyと一致しない");
+  }
   return createApplyPlan(
-    createValidatedApplyInput(
-      input.gate,
-      input.context,
-      current,
-      input.backup.values,
-      input.targets,
-    ),
+    createValidatedApplyInput(rollbackGate, current, input.backup.values, input.targets),
   );
 }
 
@@ -343,15 +345,6 @@ export function assertSameDevice(backup: DeviceSnapshot, keyboardUid: string): v
 
 function sameValue(a: readonly number[], b: readonly number[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
-}
-
-function copyValidationContext(context: ApplyValidationContext): ApplyValidationContext {
-  return {
-    keyboardUid: context.keyboardUid,
-    definition: { ...context.definition },
-    capacities: { ...context.capacities },
-    supportedQsids: Object.freeze([...context.supportedQsids].sort((a, b) => a - b)),
-  };
 }
 
 function copyValues(
@@ -373,10 +366,7 @@ function copySnapshot(snapshot: DeviceSnapshot): DeviceSnapshot {
 function fingerprint(input: ValidatedApplyInput): string {
   const source = JSON.stringify([
     "apply-plan-v1",
-    input.context.keyboardUid,
-    input.context.definition,
-    input.context.capacities,
-    input.context.supportedQsids,
+    input.gate.evidence.inputFingerprint,
     input.targets.map(serializeTarget),
     serializeSnapshot(input.backup),
     serializeValues(input.desired),

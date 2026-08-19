@@ -41,9 +41,10 @@ ADR 0004・0005 が明示的にD-005へ送った未確定値の確定である�
 - **backupは`ValidatedApplyInput`の必須フィールド**にする。backupが無ければ計画そのものを
   作れない。空のbackupは`ApplyPreconditionError`で弾く。「backupが取れなければwriteへ進まない」
   を上位のフラグではなく型と引数で守る
-- **validation gate・definition binding・実機申告の容量 / supported qsid・full-read backup・
-  desired・write targetを`ValidatedApplyInput`へ束ねる。** `createApplyPlan`はこの branded
-  typeだけを受け取り、gateを通さない経路とdesiredのcoverage不足を型とpreconditionで塞ぐ
+- **validation evidence・full-read backup・desired・write targetを`ValidatedApplyInput`へ
+  束ねる。** evidenceにはdefinition binding・実機UID・容量・supported qsid・diagnostics・
+  desired fingerprintを含め、`createApplyPlan`はこの branded typeだけを受け取る。gateや
+  contextを独立引数にして差し替える経路とdesiredのcoverage不足を型とpreconditionで塞ぐ
 - **planはvalidation対象と全入力からfingerprintを持ち、`confirmApply`は確認値を必須にする。**
   人間が確認したdiffと実際にwriteするplanの同一性を、規約ではなくApply開始の引数で確認する
 - **状態を進める関数が受け取るのは再readの値だけ**にし、ackを引数に取らない。

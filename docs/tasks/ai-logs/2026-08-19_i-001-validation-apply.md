@@ -11,7 +11,7 @@
 
 ## Decision
 
-- `assertApplyAllowed`は通過済みを表すbranded `ApplyAllowedGate`を返す。
+- `assertApplyAllowed`は通過済みを表すbranded `ApplyAllowedValidation`を返す。
 - `createValidatedApplyInput`でgate、keyboard UID、definition binding、実機申告容量、
   supported qsid、full-read backup、desired、write targetを束ねる。
 - `createApplyPlan`は`ValidatedApplyInput`だけを受け取り、coverage不足をprecondition errorに
@@ -20,10 +20,21 @@
   同一性を検証する。
 - acknowledge IDのworkspace保存・復元はIssue #11の範囲外として変更しない。
 
+## Review follow-up
+
+- Reviewで、allowed gateだけではvalidation対象とdesiredの同一性を証明できず、古いgateと
+  新しいcontext / desiredを組み合わせられる指摘を受けた。
+- `ValidationEvidence`を`validateKeymap`から返せる形にし、gateはevidence付きでだけApplyへ
+  渡せるようにした。
+- `createValidatedApplyInput`はevidenceのdesired fingerprintとApply対象を再照合する。
+  definitionやdevice contextは独立引数を廃止し、別evidenceによるrollbackもcontext一致を
+  必須にした。
+- desired変更、acknowledged warningの流用、definition digest変更の回帰テストを追加した。
+
 ## Verification
 
 - `nix develop -c just typecheck`
-- `nix develop -c just test`（84 tests passed）
+- `nix develop -c just test`（89 tests passed）
 - `nix develop -c just docbridge-check`
 
 ## Open Question

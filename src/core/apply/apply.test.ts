@@ -1,9 +1,19 @@
 import { deepStrictEqual, ok, strictEqual, throws } from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import { NOT_IMPLEMENTED_COMMANDS, ROUND_TRIP_TIMEOUT_MS, WRITE_COMMANDS } from "./commands.ts";
 import { ApplyBlockedError, assertApplyAllowed, evaluateApplyGate } from "../validation/gate.ts";
-import { createDiagnostic } from "../validation/types.ts";
+import {
+  fingerprintApplyValues,
+  type ApplyValidationContext,
+  type ValidationEvidence,
+} from "../validation/evidence.ts";
+import { parseDefinition } from "../definition/parse.ts";
+import { parseVil } from "../vil/parse.ts";
+import { validateKeymap } from "../validation/validate.ts";
+import type { DeviceProfile } from "../validation/compatibility.ts";
 import {
   abortApply,
   ApplyPreconditionError,
@@ -15,7 +25,6 @@ import {
   recordVerifyResult,
   targetKey,
   type ApplyState,
-  type ApplyValidationContext,
   type DeviceSnapshot,
   type ValidatedApplyInput,
   type WriteTarget,
@@ -50,22 +59,42 @@ const DESIRED = new Map<string, readonly number[]>([
 const VALIDATION_CONTEXT: ApplyValidationContext = {
   keyboardUid: BACKUP.keyboardUid,
   definition: { path: "cornix/definitions/test.json", digest: "definition-digest" },
-  capacities: { layerCount: 4, macroCount: 16, tapDanceCount: 4, comboCount: 4 },
-  supportedQsids: [1, 2, 3],
+  capacities: { layerCount: 10, macroCount: 32, tapDanceCount: 32, comboCount: 32 },
+  supportedQsids: [2, 6, 7, 18, 19, 22, 23, 26, 27],
 };
+
+const FIXTURES = join(import.meta.dirname, "../../../fixtures/cornix-lp");
+const VALIDATION_DEFINITION = parseDefinition(
+  readFileSync(join(FIXTURES, "vial-definition-v1.12.json"), "utf8"),
+);
+
+function validationEvidenceFor(
+  desired: ReadonlyMap<string, readonly number[]>,
+  context: ApplyValidationContext = VALIDATION_CONTEXT,
+  fixture = "baseline.vil",
+  keyboardUid = context.keyboardUid,
+): ValidationEvidence {
+  const document = parseVil(readFileSync(join(FIXTURES, fixture), "utf8"));
+  const device: DeviceProfile = {
+    keyboardUid,
+    capacities: context.capacities,
+    supportedQsids: context.supportedQsids,
+  };
+  const result = validateKeymap(document, VALIDATION_DEFINITION, device, {
+    definition: context.definition,
+    desiredFingerprint: fingerprintApplyValues(desired),
+  });
+  if (result.evidence === undefined) throw new Error("test evidenceが生成されなかった");
+  return result.evidence;
+}
 
 function validated(
   backup: DeviceSnapshot = BACKUP,
   desired: ReadonlyMap<string, readonly number[]> = DESIRED,
   targets: readonly WriteTarget[] = TARGETS,
 ): ValidatedApplyInput {
-  return createValidatedApplyInput(
-    evaluateApplyGate([]),
-    VALIDATION_CONTEXT,
-    backup,
-    desired,
-    targets,
-  );
+  const evidence = validationEvidenceFor(desired);
+  return createValidatedApplyInput(evaluateApplyGate(evidence), backup, desired, targets);
 }
 
 test("backupが空ならApply計画を作れない", () => {
@@ -73,8 +102,7 @@ test("backupが空ならApply計画を作れない", () => {
   throws(
     () =>
       createValidatedApplyInput(
-        evaluateApplyGate([]),
-        VALIDATION_CONTEXT,
+        evaluateApplyGate(validationEvidenceFor(DESIRED)),
         snapshot({}),
         DESIRED,
         TARGETS,
@@ -113,13 +141,11 @@ test("desiredにあるbackup未収載targetはsilent skipせず拒否する", ()
 });
 
 test("gateを通過しない入力はApply入力にならない", () => {
-  const error = createDiagnostic("compatibility/uid-mismatch", "error", { kind: "document" }, "x");
-  const gate = evaluateApplyGate([error]);
-
-  throws(
-    () => createValidatedApplyInput(gate, VALIDATION_CONTEXT, BACKUP, DESIRED, TARGETS),
-    ApplyBlockedError,
+  const gate = evaluateApplyGate(
+    validationEvidenceFor(DESIRED, VALIDATION_CONTEXT, "baseline.vil", "1"),
   );
+
+  throws(() => createValidatedApplyInput(gate, BACKUP, DESIRED, TARGETS), ApplyBlockedError);
 });
 
 test("validation済み入力なしではplanを生成できない", () => {
@@ -184,7 +210,8 @@ test("rollbackはbackupの値を同じ差分write経路で書き戻す", () => {
     "key:0:0:1": [0x0006],
     "encoder:0:0:0": [0x0081],
   });
-  const plan = createRollbackPlan(validated(), current);
+  const rollbackGate = evaluateApplyGate(validationEvidenceFor(BACKUP.values));
+  const plan = createRollbackPlan(validated(), rollbackGate, current);
 
   deepStrictEqual(
     plan.operations.map((op) => [targetKey(op.target), op.after]),
@@ -206,13 +233,58 @@ test("plan fingerprintはvalidation対象のbindingと容量を含む", () => {
   const changedContext = {
     ...VALIDATION_CONTEXT,
     definition: { ...VALIDATION_CONTEXT.definition, digest: "changed-definition-digest" },
-    capacities: { ...VALIDATION_CONTEXT.capacities, layerCount: 8 },
+    capacities: { ...VALIDATION_CONTEXT.capacities, layerCount: 11 },
   } satisfies ApplyValidationContext;
   const changed = createApplyPlan(
-    createValidatedApplyInput(evaluateApplyGate([]), changedContext, BACKUP, DESIRED, TARGETS),
+    createValidatedApplyInput(
+      evaluateApplyGate(validationEvidenceFor(DESIRED, changedContext)),
+      BACKUP,
+      DESIRED,
+      TARGETS,
+    ),
   );
 
   ok(plan.fingerprint !== changed.fingerprint);
+});
+
+test("validation済みdesiredと異なるdesiredへ古いgateを流用できない", () => {
+  const evidence = validationEvidenceFor(DESIRED);
+  const gate = evaluateApplyGate(evidence);
+  const changedDesired = new Map(DESIRED);
+  changedDesired.set("key:0:0:1", [0x0007]);
+
+  throws(
+    () => createValidatedApplyInput(gate, BACKUP, changedDesired, TARGETS),
+    ApplyPreconditionError,
+  );
+});
+
+test("acknowledged warningを含む古いgateを内容変更後へ流用できない", () => {
+  const warningContext = {
+    ...VALIDATION_CONTEXT,
+    supportedQsids: VALIDATION_CONTEXT.supportedQsids.filter((qsid) => qsid !== 27),
+  } satisfies ApplyValidationContext;
+  const evidence = validationEvidenceFor(DESIRED, warningContext);
+  const warning = evidence.diagnostics.find((diagnostic) => diagnostic.severity === "warning");
+  if (warning === undefined) throw new Error("test warningが生成されなかった");
+  const gate = evaluateApplyGate(evidence, [warning.id]);
+  const changedDesired = new Map(DESIRED);
+  changedDesired.set("key:0:0:1", [0x0007]);
+
+  throws(
+    () => createValidatedApplyInput(gate, BACKUP, changedDesired, TARGETS),
+    ApplyPreconditionError,
+  );
+});
+
+test("別definitionのvalidation evidenceを既存Applyへ差し込めない", () => {
+  const changedContext = {
+    ...VALIDATION_CONTEXT,
+    definition: { ...VALIDATION_CONTEXT.definition, digest: "changed-definition-digest" },
+  } satisfies ApplyValidationContext;
+  const rollbackGate = evaluateApplyGate(validationEvidenceFor(BACKUP.values, changedContext));
+
+  throws(() => createRollbackPlan(validated(), rollbackGate, BACKUP), ApplyPreconditionError);
 });
 
 test("別のキーボードのbackupは拒否する", () => {

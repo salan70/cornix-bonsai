@@ -31,15 +31,17 @@ commandが存在しなければ呼びようがありません。
 
 ## createValidatedApplyInput
 
-`ApplyGate`、validation対象の definition binding / keyboard UID / 実機申告容量 / supported
-qsid、full-read backup、desired、write targetをひとつの `ValidatedApplyInput` に束ねます。
+validation evidence、full-read backup、desired、write targetをひとつの `ValidatedApplyInput`
+に束ねます。evidenceには definition binding / keyboard UID / 実機申告容量 / supported qsid /
+diagnostics / desired fingerprint が含まれます。
 
 gateが閉じている場合は `ApplyBlockedError`、backupが空の場合は precondition error です。
 desiredに存在するtargetがbackupに無い場合も precondition error とし、partial stateを
 silent skipしてApply計画へ進めません。desiredのすべてのtargetが明示的なwrite targetに
 対応していることもここで確認します。
 
-この関数が返す branded type が、validation済み入力の唯一の公開入口です。
+この関数が返す branded type が、validation済み入力の唯一の公開入口です。通常の gate や
+独立した context を別引数として渡す API はありません。
 
 <!-- @code src/core/apply/plan.ts#createApplyPlan -->
 
@@ -63,6 +65,10 @@ desiredにあってbackupに無いtargetは差分に含めません。実機が�
 人間確認で表示した `fingerprint` を必須引数として受け取り、planと一致したときだけwriteを
 開始します。古い確認値や別のplanのfingerprintでは `ApplyPreconditionError` になり、
 `writing` へ遷移しません。
+
+rollbackも専用のvalidation bypassを持ちません。rollback対象のdesired（元のbackup）に対する
+別のvalidation evidenceを受け取り、元のApplyとdefinition / device contextが一致する場合
+だけ同じplan生成経路へ進みます。
 
 <!-- @code src/core/apply/plan.ts#recordVerifyResult -->
 

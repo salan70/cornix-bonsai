@@ -162,12 +162,25 @@ layer遷移を見ていません。したがって結果をerrorにはできま�
 （ADR 0003）。この分岐をここ1か所に閉じることで、call siteが誤って`.vil`由来の容量を
 実機の容量として渡す経路を消しています。
 
+Applyへ進む呼び出しでは definition binding と desired fingerprint を `applyIdentity` として
+渡します。device、definition、desired、diagnosticsが同じ validation evidence に束ねられ、
+後段が別のcontextやdesiredへ差し替えることを防ぎます。
+
+validation evidenceは、Apply対象の keyboard UID、definition binding、実機申告 capacities、
+supported qsid、diagnostics、desired fingerprint を branded に束ねます。evidence の
+`inputFingerprint` は validation対象の同一性を表し、Apply gate と plan から失われません。
+
+desired の fingerprint は `fingerprintApplyValues` で作り、Apply入力生成時に再計算した値と
+一致することを確認します。内容変更後に古い gate や acknowledge を流用する経路は
+precondition error になります。
+
 <!-- @code src/core/validation/gate.ts#evaluateApplyGate -->
 
 ## evaluateApplyGate
 
-**severityとApply blockingを接続する唯一の場所**です。`createValidatedApplyInput`が
-validation結果をApply専用入力へ束ね、その入力だけをApply planへ渡します。
+**severityとApply blockingを接続する唯一の場所**です。evidenceを受け取った
+`evaluateApplyGate`がvalidation対象identityを保持したgateを返し、
+`createValidatedApplyInput`はそのgateだけをApply専用入力へ変換します。
 
 acknowledgeは診断の`id`単位です。idには根拠の値の指紋が入っているため、
 **同じ位置でも中身が変わればacknowledgeは自動的に外れます**。
@@ -176,17 +189,17 @@ warningを非blockingにしないのは、warningの中身が「Vialが無言で
 「実機が操作不能になる」といった**静かに壊れる**事実だからです。逆にerrorにすると、
 正当な編集でApplyが永久に不可能になります。
 
-`assertApplyAllowed`は、開いたgateを branded `ApplyAllowedGate` として返します。
-`src/core/apply/plan.ts` の `createValidatedApplyInput` はこの型を含む入力だけを作り、
-`createApplyPlan` は通常の `ApplyGate` を直接受け取りません。これにより gateを通さない
-Apply plan生成を型の境界で封じます。
+`assertApplyAllowed`は、開いたgateを branded `ApplyAllowedValidation` として返します。
+`src/core/apply/plan.ts` の `createValidatedApplyInput` は evidence付きgateを必須にし、
+desired fingerprintを照合します。これにより古いvalidation結果と新しいApply対象を組み
+合わせる経路を型とpreconditionで封じます。
 
 <!-- @code src/core/validation/gate.ts#assertApplyAllowed -->
 
 ## assertApplyAllowed
 
-gateが開いていることを確かめ、開いていなければ`ApplyBlockedError`を投げ、開いていれば
-branded `ApplyAllowedGate`を返します。
+gateが開いていることを確かめ、開いていなければ`ApplyBlockedError`を投げ、evidence付き
+gateが開いていれば branded `ApplyAllowedValidation`を返します。
 
 **Applyの入口はこれ1か所です。** `createValidatedApplyInput`が必ず通します。上位のフラグで
 分岐させる方式を採らないのはADR 0008と同じ理由で、分岐は消し忘れると効かなくなります。

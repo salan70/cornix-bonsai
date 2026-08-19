@@ -8,6 +8,7 @@ import type { Capacities } from "../keycode/table.ts";
 import { parseVil } from "../vil/parse.ts";
 import type { VilDocument } from "../vil/types.ts";
 import { validateDeviceMatch, type DeviceProfile } from "./compatibility.ts";
+import { fingerprintApplyValues } from "./evidence.ts";
 import { ApplyBlockedError, assertApplyAllowed, evaluateApplyGate } from "./gate.ts";
 import { classifyKeycode } from "./keycode-vocabulary.ts";
 import { analyzeReachability } from "./reachability.ts";
@@ -171,6 +172,27 @@ test("実機との不一致は uid と容量が error、未対応 qsid が warni
   strictEqual(find(diagnostics, "compatibility/uid-mismatch")[0]?.severity, "error");
   strictEqual(find(diagnostics, "compatibility/capacity-overflow")[0]?.severity, "error");
   strictEqual(find(diagnostics, "compatibility/unsupported-setting")[0]?.severity, "warning");
+});
+
+test("Apply用validateKeymapは対象identityを持つevidenceを返す", () => {
+  const device: DeviceProfile = {
+    keyboardUid: baseline.uid,
+    capacities: { layerCount: 10, macroCount: 32, tapDanceCount: 32, comboCount: 32 },
+    supportedQsids: Object.keys(baseline.settings).map(Number),
+  };
+  const desired = new Map<string, readonly number[]>([["key:0:0:0", [0x0004]]]);
+  const result = validateKeymap(baseline, definition, device, {
+    definition: { path: "cornix/definitions/baseline.json", digest: "definition-a" },
+    desiredFingerprint: fingerprintApplyValues(desired),
+  });
+
+  ok(result.evidence !== undefined);
+  if (result.evidence === undefined) return;
+  strictEqual(result.evidence.context.keyboardUid, device.keyboardUid);
+  strictEqual(result.evidence.context.definition.digest, "definition-a");
+  strictEqual(result.evidence.desiredFingerprint, fingerprintApplyValues(desired));
+  const gate = evaluateApplyGate(result.evidence);
+  strictEqual(gate.evidence, result.evidence);
 });
 
 test("Apply gate: error は acknowledge できない", () => {

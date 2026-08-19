@@ -38,15 +38,16 @@ Applyの状態機械はvalidationの結果を引数に取っていない。ま�
 - **severityの判定規則を3つに固定する。** `error`は座標の意味が変わるか`.vil`の構造が
   壊れているもの。`warning`は割り当てが1件単位で静かに失われるか、実機が意図しない状態に
   なるもの。`information`は情報が保持されていて判断をユーザーへ委ねられるもの
-- **Apply blockingの境界はgate 1か所で与える。** `evaluateApplyGate(diagnostics,
-acknowledgedIds)`がerrorを常にblockし、未acknowledgeのwarningをblockし、informationを
-  通す。`assertApplyAllowed`が返す branded gate と `ValidatedApplyInput` を
-  `createApplyPlan` が必須にする
+- **Apply blockingの境界はgate 1か所で与える。** validation evidenceを受け取る
+  `evaluateApplyGate(evidence, acknowledgedIds)`がerrorを常にblockし、未acknowledgeのwarningを
+  blockし、informationを通す。`assertApplyAllowed`が返す evidence付き branded gate と
+  `ValidatedApplyInput` を`createApplyPlan`が必須にする
 - **acknowledgeは診断id単位**とし、idに`code`・対象・**根拠の値の指紋**を含める。
   中身が変われば同じ位置でもacknowledgeが自動的に外れる
 - **Apply planはUID・definition binding・実機容量・supported qsid・backup・desired・target
-  の対応を保持し、plan fingerprintをconfirmationに要求する。** validation対象と確認済み
-  diffをwrite開始時まで結びつける
+  の対応を保持し、plan fingerprintをconfirmationに要求する。** validation evidenceの
+  desired fingerprintをApply入力で再照合し、validation対象と確認済みdiffをwrite開始時まで
+  結びつける
 - **責務は入力の増え方で分ける。** structure（`VilDocument`のみ）→ compatibility
   （+ definition）→ reference（+ 容量）→ reachability（layerグラフ）→ device match
   （+ 実機の申告値）。`keymap.yaml`のschema検証はこの層に入れない
@@ -103,9 +104,9 @@ acknowledgedIds)`がerrorを常にblockし、未acknowledgeのwarningをblockし
 
 ## 影響
 
-- **`createValidatedApplyInput`を経由しないApply plan生成はできない。** validation gate、
-  definition binding、実機容量、supported qsid、full-read coverage、desired / target対応を
-  `src/core/apply/plan.ts`の入力型へ集約する
+- **`createValidatedApplyInput`を経由しないApply plan生成はできない。** validation evidence、
+  full-read coverage、desired / target対応を`src/core/apply/plan.ts`の入力型へ集約し、
+  evidenceのcontextとdesired fingerprintを独立引数で差し替えられないようにする
 - acknowledgeした診断のidをworkspaceが持ち回る必要がある。置き場所はD-004
 - 語彙表は閉じていない。載っていない表記はwarningになるため、**実運用で語彙を足していく
   前提**になる。足し忘れは「Applyが1回止まる」で済み、静かな取り違えにはならない
