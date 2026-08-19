@@ -2,6 +2,8 @@ import { deepStrictEqual, ok, strictEqual, throws } from "node:assert/strict";
 import { test } from "node:test";
 
 import { NOT_IMPLEMENTED_COMMANDS, ROUND_TRIP_TIMEOUT_MS, WRITE_COMMANDS } from "./commands.ts";
+import { ApplyBlockedError, assertApplyAllowed, evaluateApplyGate } from "../validation/gate.ts";
+import { createDiagnostic } from "../validation/types.ts";
 import {
   abortApply,
   ApplyPreconditionError,
@@ -9,10 +11,13 @@ import {
   confirmApply,
   createApplyPlan,
   createRollbackPlan,
+  createValidatedApplyInput,
   recordVerifyResult,
   targetKey,
   type ApplyState,
+  type ApplyValidationContext,
   type DeviceSnapshot,
+  type ValidatedApplyInput,
   type WriteTarget,
 } from "./plan.ts";
 
@@ -42,13 +47,44 @@ const DESIRED = new Map<string, readonly number[]>([
   ["encoder:0:0:0", [0x0081]],
 ]);
 
+const VALIDATION_CONTEXT: ApplyValidationContext = {
+  keyboardUid: BACKUP.keyboardUid,
+  definition: { path: "cornix/definitions/test.json", digest: "definition-digest" },
+  capacities: { layerCount: 4, macroCount: 16, tapDanceCount: 4, comboCount: 4 },
+  supportedQsids: [1, 2, 3],
+};
+
+function validated(
+  backup: DeviceSnapshot = BACKUP,
+  desired: ReadonlyMap<string, readonly number[]> = DESIRED,
+  targets: readonly WriteTarget[] = TARGETS,
+): ValidatedApplyInput {
+  return createValidatedApplyInput(
+    evaluateApplyGate([]),
+    VALIDATION_CONTEXT,
+    backup,
+    desired,
+    targets,
+  );
+}
+
 test("backupが空ならApply計画を作れない", () => {
   // ADR 0005: backupが取れなければwriteへ進まない。
-  throws(() => createApplyPlan(snapshot({}), DESIRED, TARGETS), ApplyPreconditionError);
+  throws(
+    () =>
+      createValidatedApplyInput(
+        evaluateApplyGate([]),
+        VALIDATION_CONTEXT,
+        snapshot({}),
+        DESIRED,
+        TARGETS,
+      ),
+    ApplyPreconditionError,
+  );
 });
 
 test("差分は変化したentryだけになる", () => {
-  const plan = createApplyPlan(BACKUP, DESIRED, TARGETS);
+  const plan = createApplyPlan(validated());
 
   strictEqual(plan.operations.length, 2);
   deepStrictEqual(
@@ -59,14 +95,40 @@ test("差分は変化したentryだけになる", () => {
 
 test("backupにも目標にも無いtargetは差分に含めない", () => {
   // 容量は実機が申告する（ADR 0003）。host側が実機の持たないentryを推測して書かない。
-  const plan = createApplyPlan(BACKUP, DESIRED, [...TARGETS, { kind: "tapDance", index: 99 }]);
+  const plan = createApplyPlan(
+    validated(BACKUP, DESIRED, [...TARGETS, { kind: "tapDance", index: 99 }]),
+  );
 
   strictEqual(plan.operations.length, 2);
 });
 
+test("desiredにあるbackup未収載targetはsilent skipせず拒否する", () => {
+  const desired = new Map(DESIRED);
+  desired.set("tapDance:99", [0x0001]);
+
+  throws(
+    () => validated(BACKUP, desired, [...TARGETS, { kind: "tapDance", index: 99 }]),
+    ApplyPreconditionError,
+  );
+});
+
+test("gateを通過しない入力はApply入力にならない", () => {
+  const error = createDiagnostic("compatibility/uid-mismatch", "error", { kind: "document" }, "x");
+  const gate = evaluateApplyGate([error]);
+
+  throws(
+    () => createValidatedApplyInput(gate, VALIDATION_CONTEXT, BACKUP, DESIRED, TARGETS),
+    ApplyBlockedError,
+  );
+});
+
+test("validation済み入力なしではplanを生成できない", () => {
+  throws(() => createApplyPlan({} as ValidatedApplyInput), ApplyPreconditionError);
+});
+
 test("再readが一致すればひとつ進み、全件でcompletedになる", () => {
-  const plan = createApplyPlan(BACKUP, DESIRED, TARGETS);
-  let state: ApplyState = confirmApply(plan);
+  const plan = createApplyPlan(validated());
+  let state: ApplyState = confirmApply(plan, plan.fingerprint);
 
   strictEqual(state.phase, "writing");
   state = recordVerifyResult(state, [0x0006]);
@@ -80,8 +142,8 @@ test("再readが一致すればひとつ進み、全件でcompletedになる", (
 
 test("再readが一致しなければそこで中断する", () => {
   // ackは成功を意味しない。判定材料は再readの値だけ（ADR 0005）。
-  const plan = createApplyPlan(BACKUP, DESIRED, TARGETS);
-  const state = recordVerifyResult(confirmApply(plan), [0x0000]);
+  const plan = createApplyPlan(validated());
+  const state = recordVerifyResult(confirmApply(plan, plan.fingerprint), [0x0000]);
 
   strictEqual(state.phase, "aborted");
   if (state.phase !== "aborted") return;
@@ -92,8 +154,8 @@ test("再readが一致しなければそこで中断する", () => {
 test("中断したstateは未完了の差分を持ち回らない", () => {
   // ADR 0005: 中断したら再接続後に全readからやり直す。
   // 残りのoperationもplanも持たないので、そもそも再開しようがない形にする。
-  const plan = createApplyPlan(BACKUP, DESIRED, TARGETS);
-  const aborted = abortApply(confirmApply(plan), "disconnected");
+  const plan = createApplyPlan(validated());
+  const aborted = abortApply(confirmApply(plan, plan.fingerprint), "disconnected");
 
   strictEqual(aborted.phase, "aborted");
   ok(!("plan" in aborted));
@@ -101,15 +163,15 @@ test("中断したstateは未完了の差分を持ち回らない", () => {
 });
 
 test("中断したstateへは再read結果を渡せない", () => {
-  const plan = createApplyPlan(BACKUP, DESIRED, TARGETS);
-  const aborted = abortApply(confirmApply(plan), "timeout");
+  const plan = createApplyPlan(validated());
+  const aborted = abortApply(confirmApply(plan, plan.fingerprint), "timeout");
 
   throws(() => recordVerifyResult(aborted, [0x0006]), ApplyPreconditionError);
 });
 
 test("差分が無ければwriteを始めずに完了する", () => {
-  const plan = createApplyPlan(BACKUP, BACKUP.values, TARGETS);
-  const state = confirmApply(plan);
+  const plan = createApplyPlan(validated(BACKUP, BACKUP.values));
+  const state = confirmApply(plan, plan.fingerprint);
 
   strictEqual(plan.operations.length, 0);
   strictEqual(state.phase, "completed");
@@ -122,7 +184,7 @@ test("rollbackはbackupの値を同じ差分write経路で書き戻す", () => {
     "key:0:0:1": [0x0006],
     "encoder:0:0:0": [0x0081],
   });
-  const plan = createRollbackPlan(BACKUP, current, TARGETS);
+  const plan = createRollbackPlan(validated(), current);
 
   deepStrictEqual(
     plan.operations.map((op) => [targetKey(op.target), op.after]),
@@ -131,6 +193,26 @@ test("rollbackはbackupの値を同じ差分write経路で書き戻す", () => {
       ["encoder:0:0:0", [0x0080]],
     ],
   );
+});
+
+test("確認fingerprintが違えばwriteを開始しない", () => {
+  const plan = createApplyPlan(validated());
+
+  throws(() => confirmApply(plan, "v1-stale"), ApplyPreconditionError);
+});
+
+test("plan fingerprintはvalidation対象のbindingと容量を含む", () => {
+  const plan = createApplyPlan(validated());
+  const changedContext = {
+    ...VALIDATION_CONTEXT,
+    definition: { ...VALIDATION_CONTEXT.definition, digest: "changed-definition-digest" },
+    capacities: { ...VALIDATION_CONTEXT.capacities, layerCount: 8 },
+  } satisfies ApplyValidationContext;
+  const changed = createApplyPlan(
+    createValidatedApplyInput(evaluateApplyGate([]), changedContext, BACKUP, DESIRED, TARGETS),
+  );
+
+  ok(plan.fingerprint !== changed.fingerprint);
 });
 
 test("別のキーボードのbackupは拒否する", () => {

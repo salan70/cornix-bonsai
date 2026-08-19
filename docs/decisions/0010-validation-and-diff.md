@@ -40,9 +40,13 @@ Applyの状態機械はvalidationの結果を引数に取っていない。ま�
   なるもの。`information`は情報が保持されていて判断をユーザーへ委ねられるもの
 - **Apply blockingの境界はgate 1か所で与える。** `evaluateApplyGate(diagnostics,
 acknowledgedIds)`がerrorを常にblockし、未acknowledgeのwarningをblockし、informationを
-  通す。`assertApplyAllowed`を`createApplyPlan`の前に必ず通す
+  通す。`assertApplyAllowed`が返す branded gate と `ValidatedApplyInput` を
+  `createApplyPlan` が必須にする
 - **acknowledgeは診断id単位**とし、idに`code`・対象・**根拠の値の指紋**を含める。
   中身が変われば同じ位置でもacknowledgeが自動的に外れる
+- **Apply planはUID・definition binding・実機容量・supported qsid・backup・desired・target
+  の対応を保持し、plan fingerprintをconfirmationに要求する。** validation対象と確認済み
+  diffをwrite開始時まで結びつける
 - **責務は入力の増え方で分ける。** structure（`VilDocument`のみ）→ compatibility
   （+ definition）→ reference（+ 容量）→ reachability（layerグラフ）→ device match
   （+ 実機の申告値）。`keymap.yaml`のschema検証はこの層に入れない
@@ -99,10 +103,9 @@ acknowledgedIds)`がerrorを常にblockし、未acknowledgeのwarningをblockし
 
 ## 影響
 
-- **`createApplyPlan`の前に`assertApplyAllowed`を通す規約が増える。** 現状の状態機械は
-  validationの結果を引数に取っていないため、規約でしか守られていない。ADR 0008 と同じく
-  型で強制する形へ寄せるなら、`ApplyPlan`の生成にgateを引数として足す変更が要る
-  （`src/core/apply/`の変更になるため別作業）
+- **`createValidatedApplyInput`を経由しないApply plan生成はできない。** validation gate、
+  definition binding、実機容量、supported qsid、full-read coverage、desired / target対応を
+  `src/core/apply/plan.ts`の入力型へ集約する
 - acknowledgeした診断のidをworkspaceが持ち回る必要がある。置き場所はD-004
 - 語彙表は閉じていない。載っていない表記はwarningになるため、**実運用で語彙を足していく
   前提**になる。足し忘れは「Applyが1回止まる」で済み、静かな取り違えにはならない

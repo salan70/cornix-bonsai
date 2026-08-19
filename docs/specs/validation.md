@@ -166,8 +166,8 @@ layer遷移を見ていません。したがって結果をerrorにはできま�
 
 ## evaluateApplyGate
 
-**severityとApply blockingを接続する唯一の場所**です。ADR 0008の状態機械はvalidationの結果を
-引数に取っていません。その接続点がここです。
+**severityとApply blockingを接続する唯一の場所**です。`createValidatedApplyInput`が
+validation結果をApply専用入力へ束ね、その入力だけをApply planへ渡します。
 
 acknowledgeは診断の`id`単位です。idには根拠の値の指紋が入っているため、
 **同じ位置でも中身が変わればacknowledgeは自動的に外れます**。
@@ -176,13 +176,19 @@ warningを非blockingにしないのは、warningの中身が「Vialが無言で
 「実機が操作不能になる」といった**静かに壊れる**事実だからです。逆にerrorにすると、
 正当な編集でApplyが永久に不可能になります。
 
+`assertApplyAllowed`は、開いたgateを branded `ApplyAllowedGate` として返します。
+`src/core/apply/plan.ts` の `createValidatedApplyInput` はこの型を含む入力だけを作り、
+`createApplyPlan` は通常の `ApplyGate` を直接受け取りません。これにより gateを通さない
+Apply plan生成を型の境界で封じます。
+
 <!-- @code src/core/validation/gate.ts#assertApplyAllowed -->
 
 ## assertApplyAllowed
 
-gateが開いていることを確かめ、開いていなければ`ApplyBlockedError`を投げます。
+gateが開いていることを確かめ、開いていなければ`ApplyBlockedError`を投げ、開いていれば
+branded `ApplyAllowedGate`を返します。
 
-**Applyの入口はこれ1か所です。** `createApplyPlan`の前に必ず通します。上位のフラグで
+**Applyの入口はこれ1か所です。** `createValidatedApplyInput`が必ず通します。上位のフラグで
 分岐させる方式を採らないのはADR 0008と同じ理由で、分岐は消し忘れると効かなくなります。
 
 ## Fixture

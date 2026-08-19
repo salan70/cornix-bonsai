@@ -19,6 +19,8 @@
 
 import type { Diagnostic } from "./types.ts";
 
+const APPLY_ALLOWED = Symbol("ApplyAllowed");
+
 /** Apply gate の判定結果。 */
 export interface ApplyGate {
   readonly allowed: boolean;
@@ -29,6 +31,15 @@ export interface ApplyGate {
   /** acknowledge できない診断（error）。 */
   readonly fatal: readonly Diagnostic[];
 }
+
+/**
+ * gateを通過したことを型で表す。`createApplyPlan`はこの型を含む
+ * `ValidatedApplyInput`だけを受け取るため、通常の`ApplyGate`を渡す経路がない。
+ */
+export type ApplyAllowedGate = ApplyGate & {
+  readonly allowed: true;
+  readonly [APPLY_ALLOWED]: true;
+};
 
 /** gate が閉じているのに Apply へ進もうとしたときに投げる。 */
 export class ApplyBlockedError extends Error {}
@@ -63,8 +74,10 @@ export function evaluateApplyGate(
  *
  * @doc docs/specs/validation.md#assertapplyallowed
  */
-export function assertApplyAllowed(gate: ApplyGate): void {
-  if (gate.allowed) return;
+export function assertApplyAllowed(gate: ApplyGate): ApplyAllowedGate {
+  if (gate.allowed) {
+    return { ...gate, allowed: true, [APPLY_ALLOWED]: true };
+  }
   const codes = gate.blocking.map((diagnostic) => diagnostic.code).join(", ");
   throw new ApplyBlockedError(
     `validation が Apply を止めている（error ${gate.fatal.length} 件 / 未確認の warning ${gate.acknowledgeable.length} 件）: ${codes}`,

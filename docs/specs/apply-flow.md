@@ -27,18 +27,42 @@ commandが存在しなければ呼びようがありません。
 `0x0B` BootloaderJump、`0x06`、`0x15`は載せません。理由は`NOT_IMPLEMENTED_COMMANDS`の
 コメントにあります。
 
+<!-- @code src/core/apply/plan.ts#createValidatedApplyInput -->
+
+## createValidatedApplyInput
+
+`ApplyGate`、validation対象の definition binding / keyboard UID / 実機申告容量 / supported
+qsid、full-read backup、desired、write targetをひとつの `ValidatedApplyInput` に束ねます。
+
+gateが閉じている場合は `ApplyBlockedError`、backupが空の場合は precondition error です。
+desiredに存在するtargetがbackupに無い場合も precondition error とし、partial stateを
+silent skipしてApply計画へ進めません。desiredのすべてのtargetが明示的なwrite targetに
+対応していることもここで確認します。
+
+この関数が返す branded type が、validation済み入力の唯一の公開入口です。
+
 <!-- @code src/core/apply/plan.ts#createApplyPlan -->
 
 ## createApplyPlan
 
-backupと目標状態から差分を計算します。
+`ValidatedApplyInput`から差分を計算します。planにはvalidation対象の UID、definition binding、
+capacities、supported qsidと、全入力から導いた決定的な `fingerprint` を保持します。
 
-**backupは引数です。無ければ計画そのものを作れません。** 空のbackupは
-`ApplyPreconditionError`で弾きます。firmwareにrollback機能は無く、復元元は
-host側のbackupしか存在しないため、backupはwriteの前提条件です。
+validation gateを含まない通常の入力からは型上 planを生成できません。空のbackupは
+`createValidatedApplyInput`で `ApplyPreconditionError` になります。firmwareにrollback機能は
+無く、復元元はhost側のbackupしか存在しないため、backupはwriteの前提条件です。
 
-目標にあってbackupに無いtargetは差分に含めません。実機がそのentryを持たない可能性があり、
-容量は実機が申告するものだからです（ADR 0003）。
+desiredにあってbackupに無いtargetは差分に含めません。実機がそのentryを持たない可能性が
+あるため、計画生成前に precondition error として止めます。容量は実機が申告するものです
+（ADR 0003）。
+
+<!-- @code src/core/apply/plan.ts#confirmApply -->
+
+## confirmApply
+
+人間確認で表示した `fingerprint` を必須引数として受け取り、planと一致したときだけwriteを
+開始します。古い確認値や別のplanのfingerprintでは `ApplyPreconditionError` になり、
+`writing` へ遷移しません。
 
 <!-- @code src/core/apply/plan.ts#recordVerifyResult -->
 

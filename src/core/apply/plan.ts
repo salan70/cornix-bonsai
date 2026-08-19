@@ -13,6 +13,8 @@
  */
 
 import type { WriteCommandKind } from "./commands.ts";
+import type { Capacities } from "../keycode/table.ts";
+import { assertApplyAllowed, type ApplyAllowedGate, type ApplyGate } from "../validation/gate.ts";
 
 /** writeの単位。比較単位はADR 0003 のまま。 */
 export type WriteTarget =
@@ -45,6 +47,13 @@ export interface ApplyPlan {
   /** backupを取った時点の実機の状態。rollbackの復元元。 */
   readonly backup: DeviceSnapshot;
   readonly operations: readonly WriteOperation[];
+  /** validation時点の対象対応。plan fingerprintにも含まれる。 */
+  readonly validation: {
+    readonly gate: ApplyAllowedGate;
+    readonly context: ApplyValidationContext;
+  };
+  /** 人間確認したplanとwriteするplanを結びつける決定的な識別子。 */
+  readonly fingerprint: string;
 }
 
 /**
@@ -88,6 +97,36 @@ export type AbortReason =
 /** Applyの前提条件が満たされていないときに投げる。 */
 export class ApplyPreconditionError extends Error {}
 
+/** Apply対象とvalidation結果の対応づけ。 */
+export interface ApplyValidationContext {
+  /** validationした実機のkeyboard UID。 */
+  readonly keyboardUid: string;
+  /** validationしたkeyboard definitionのworkspace上の対応づけ。 */
+  readonly definition: {
+    readonly path: string;
+    readonly digest: string;
+  };
+  /** validationに使った実機申告の容量。 */
+  readonly capacities: Capacities;
+  /** validationに使った実機申告の対応qsid。 */
+  readonly supportedQsids: readonly number[];
+}
+
+const VALIDATED_APPLY_INPUT = Symbol("ValidatedApplyInput");
+
+/**
+ * gateを通過し、full-read coverageと対象対応を検証済みのApply入力。
+ * この型を作る公開関数が`ApplyGate`を`ApplyAllowedGate`へ変換する唯一の経路になる。
+ */
+export interface ValidatedApplyInput {
+  readonly gate: ApplyAllowedGate;
+  readonly context: ApplyValidationContext;
+  readonly backup: DeviceSnapshot;
+  readonly desired: ReadonlyMap<string, readonly number[]>;
+  readonly targets: readonly WriteTarget[];
+  readonly [VALIDATED_APPLY_INPUT]: true;
+}
+
 /** `WriteTarget`を`DeviceSnapshot`のkeyへ直列化する。 */
 export function targetKey(target: WriteTarget): string {
   switch (target.kind) {
@@ -113,40 +152,106 @@ const COMMAND_FOR: Record<WriteTarget["kind"], WriteCommandKind> = {
 };
 
 /**
- * backupと目標状態からApply計画を作る。
+ * validation gateと全read結果をApply専用の入力へ変換する。
  *
- * **backupが無ければ計画を作れない**。これがADR 0005 の「backupが取れなければwriteへ
- * 進まない」の実体で、上位のフラグではなく型と引数で強制する。
+ * gateが閉じている場合、またはdesiredのentryをfull-read backupでcoverageできない場合は
+ * `ValidatedApplyInput`を返さない。`createApplyPlan`はこの型だけを受け取るため、validationを
+ * 通さずにplanへ進む公開API経路がない。
  *
- * `desired`にあって`backup`に無いtargetは、実機がそのentryを持たない（容量外の）可能性が
- * あるため差分に含めない。容量は実機が申告するものであり、host側が推測してはいけない（ADR 0003）。
- *
- * @doc docs/specs/apply-flow.md#createapplyplan
+ * @doc docs/specs/apply-flow.md#createvalidatedapplyinput
  */
-export function createApplyPlan(
+export function createValidatedApplyInput(
+  gate: ApplyGate,
+  context: ApplyValidationContext,
   backup: DeviceSnapshot,
   desired: ReadonlyMap<string, readonly number[]>,
   targets: readonly WriteTarget[],
-): ApplyPlan {
+): ValidatedApplyInput {
+  const allowedGate = assertApplyAllowed(gate);
   if (backup.values.size === 0) {
-    throw new ApplyPreconditionError("backupが空。全readを終えてからApply計画を作る");
+    throw new ApplyPreconditionError("backupが空。全readを終えてからApply入力を作る");
+  }
+  if (context.keyboardUid.length === 0) {
+    throw new ApplyPreconditionError("validation対象のkeyboard UIDが空");
+  }
+  if (context.definition.path.length === 0 || context.definition.digest.length === 0) {
+    throw new ApplyPreconditionError("validation対象のdefinition bindingが不完全");
+  }
+  assertSameDevice(backup, context.keyboardUid);
+
+  const targetKeys = targets.map(targetKey);
+  if (new Set(targetKeys).size !== targetKeys.length) {
+    throw new ApplyPreconditionError("Apply対象に重複したtargetがある");
+  }
+  const targetKeySet = new Set(targetKeys);
+  for (const key of desired.keys()) {
+    if (!targetKeySet.has(key)) {
+      throw new ApplyPreconditionError(`desiredのtarget ${key} がApply対象に含まれていない`);
+    }
+    if (!backup.values.has(key)) {
+      throw new ApplyPreconditionError(
+        `desiredのtarget ${key} がfull-read backupに無い。partial stateをApplyできない`,
+      );
+    }
+  }
+
+  return {
+    gate: allowedGate,
+    context: copyValidationContext(context),
+    backup: copySnapshot(backup),
+    desired: copyValues(desired),
+    targets: Object.freeze(targets.map((target) => ({ ...target }))),
+    [VALIDATED_APPLY_INPUT]: true,
+  };
+}
+
+/**
+ * backupと目標状態からApply計画を作る。
+ *
+ * **backupが無ければ計画を作れない**。これがADR 0005 の「backupが取れなければwriteへ
+ * 進まない」の実体で、`ValidatedApplyInput`の型と引数で強制する。
+ *
+ * `desired`にあって`backup`に無いtargetは、実機がそのentryを持たない（容量外の）可能性が
+ * あるため、`createValidatedApplyInput`でprecondition errorにする。容量は実機が申告する
+ * ものであり、host側が推測してはいけない（ADR 0003）。
+ *
+ * @doc docs/specs/apply-flow.md#createapplyplan
+ */
+export function createApplyPlan(input: ValidatedApplyInput): ApplyPlan {
+  if (!input[VALIDATED_APPLY_INPUT]) {
+    throw new ApplyPreconditionError("validation済みのApply入力が必要");
   }
 
   const operations: WriteOperation[] = [];
-  for (const target of targets) {
+  for (const target of input.targets) {
     const key = targetKey(target);
-    const before = backup.values.get(key);
-    const after = desired.get(key);
-    if (before === undefined || after === undefined) continue;
+    const before = input.backup.values.get(key);
+    const after = input.desired.get(key);
+    if (after === undefined) continue;
+    if (before === undefined) {
+      throw new ApplyPreconditionError(
+        `desiredのtarget ${key} がfull-read backupに無い。partial stateをApplyできない`,
+      );
+    }
     if (sameValue(before, after)) continue;
     operations.push({ target, command: COMMAND_FOR[target.kind], before, after });
   }
 
-  return { backup, operations };
+  const plan = {
+    backup: input.backup,
+    operations: Object.freeze(operations),
+    validation: { gate: input.gate, context: input.context },
+    fingerprint: fingerprint(input),
+  } satisfies ApplyPlan;
+  return plan;
 }
 
-/** 人間の確認を受けてwriteを開始する。 */
-export function confirmApply(plan: ApplyPlan): ApplyState {
+/** 人間が確認したfingerprintとplanが一致するときだけwriteを開始する。 */
+/** @doc docs/specs/apply-flow.md#confirmapply */
+export function confirmApply(plan: ApplyPlan, confirmedFingerprint: string): ApplyState {
+  if (confirmedFingerprint !== plan.fingerprint) {
+    throw new ApplyPreconditionError("確認したdiffとApply planが一致しない");
+  }
   if (plan.operations.length === 0) {
     return { phase: "completed", verified: [] };
   }
@@ -211,12 +316,16 @@ export function abortApply(state: ApplyState, reason: AbortReason): ApplyState {
  * として定義される（ADR 0005）。したがって専用の経路を持たず、`createApplyPlan`を
  * 向きを変えて呼ぶだけになる。
  */
-export function createRollbackPlan(
-  backup: DeviceSnapshot,
-  current: DeviceSnapshot,
-  targets: readonly WriteTarget[],
-): ApplyPlan {
-  return createApplyPlan(current, backup.values, targets);
+export function createRollbackPlan(input: ValidatedApplyInput, current: DeviceSnapshot): ApplyPlan {
+  return createApplyPlan(
+    createValidatedApplyInput(
+      input.gate,
+      input.context,
+      current,
+      input.backup.values,
+      input.targets,
+    ),
+  );
 }
 
 /**
@@ -234,4 +343,67 @@ export function assertSameDevice(backup: DeviceSnapshot, keyboardUid: string): v
 
 function sameValue(a: readonly number[], b: readonly number[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
+function copyValidationContext(context: ApplyValidationContext): ApplyValidationContext {
+  return {
+    keyboardUid: context.keyboardUid,
+    definition: { ...context.definition },
+    capacities: { ...context.capacities },
+    supportedQsids: Object.freeze([...context.supportedQsids].sort((a, b) => a - b)),
+  };
+}
+
+function copyValues(
+  values: ReadonlyMap<string, readonly number[]>,
+): ReadonlyMap<string, readonly number[]> {
+  return new Map(
+    [...values.entries()].map(([key, value]) => [
+      key,
+      Object.freeze([...value]) as readonly number[],
+    ]),
+  );
+}
+
+function copySnapshot(snapshot: DeviceSnapshot): DeviceSnapshot {
+  return { ...snapshot, values: copyValues(snapshot.values) };
+}
+
+/** planの全入力を順序を固定して表現する。表示用ではなく同一性確認用。 */
+function fingerprint(input: ValidatedApplyInput): string {
+  const source = JSON.stringify([
+    "apply-plan-v1",
+    input.context.keyboardUid,
+    input.context.definition,
+    input.context.capacities,
+    input.context.supportedQsids,
+    input.targets.map(serializeTarget),
+    serializeSnapshot(input.backup),
+    serializeValues(input.desired),
+    input.gate.fatal.map((diagnostic) => diagnostic.id),
+    input.gate.acknowledgeable.map((diagnostic) => diagnostic.id),
+  ]);
+
+  let first = 0x811c9dc5;
+  let second = 5381;
+  for (let index = 0; index < source.length; index++) {
+    const code = source.charCodeAt(index);
+    first = Math.imul(first ^ code, 0x01000193) >>> 0;
+    second = (Math.imul(second, 33) ^ code) >>> 0;
+  }
+  return `v1-${first.toString(16).padStart(8, "0")}-${second.toString(16).padStart(8, "0")}`;
+}
+
+function serializeSnapshot(snapshot: DeviceSnapshot): unknown {
+  return [snapshot.keyboardUid, snapshot.readAt, serializeValues(snapshot.values)];
+}
+
+function serializeValues(values: ReadonlyMap<string, readonly number[]>): readonly unknown[] {
+  return [...values.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => [key, [...value]]);
+}
+
+function serializeTarget(target: WriteTarget): string {
+  return `${targetKey(target)}:${target.kind}`;
 }
