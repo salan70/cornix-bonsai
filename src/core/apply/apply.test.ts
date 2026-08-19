@@ -6,13 +6,12 @@ import { test } from "node:test";
 import { NOT_IMPLEMENTED_COMMANDS, ROUND_TRIP_TIMEOUT_MS, WRITE_COMMANDS } from "./commands.ts";
 import { ApplyBlockedError, assertApplyAllowed, evaluateApplyGate } from "../validation/gate.ts";
 import {
-  fingerprintApplyValues,
   type ApplyValidationContext,
   type ValidationEvidence,
-} from "../validation/evidence.ts";
+  validateApplyKeymap,
+} from "../validation/validate.ts";
 import { parseDefinition } from "../definition/parse.ts";
 import { parseVil } from "../vil/parse.ts";
-import { validateKeymap } from "../validation/validate.ts";
 import type { DeviceProfile } from "../validation/compatibility.ts";
 import {
   abortApply,
@@ -73,18 +72,35 @@ function validationEvidenceFor(
   context: ApplyValidationContext = VALIDATION_CONTEXT,
   fixture = "baseline.vil",
   keyboardUid = context.keyboardUid,
+  targets: readonly WriteTarget[] = TARGETS,
 ): ValidationEvidence {
-  const document = parseVil(readFileSync(join(FIXTURES, fixture), "utf8"));
+  const source = parseVil(readFileSync(join(FIXTURES, fixture), "utf8"));
+  const firstRow = [...(source.layout[0]?.[0] ?? [])];
+  firstRow[0] = `0x${(desired.get("key:0:0:0")?.[0] ?? 0).toString(16)}`;
+  firstRow[1] = `0x${(desired.get("key:0:0:1")?.[0] ?? 0).toString(16)}`;
+  const firstLayer = [...(source.layout[0] ?? [])];
+  firstLayer[0] = firstRow;
+  const layout = [...source.layout];
+  layout[0] = firstLayer;
+  const firstEncoder = [...(source.encoderLayout[0]?.[0] ?? [])];
+  firstEncoder[0] = `0x${(desired.get("encoder:0:0:0")?.[0] ?? 0).toString(16)}`;
+  const firstEncoderLayer = [...(source.encoderLayout[0] ?? [])];
+  firstEncoderLayer[0] = firstEncoder;
+  const encoderLayout = [...source.encoderLayout];
+  encoderLayout[0] = firstEncoderLayer;
+  const document = { ...source, layout, encoderLayout };
   const device: DeviceProfile = {
     keyboardUid,
     capacities: context.capacities,
     supportedQsids: context.supportedQsids,
   };
-  const result = validateKeymap(document, VALIDATION_DEFINITION, device, {
-    definition: context.definition,
-    desiredFingerprint: fingerprintApplyValues(desired),
-  });
-  if (result.evidence === undefined) throw new Error("test evidenceが生成されなかった");
+  const result = validateApplyKeymap(
+    document,
+    VALIDATION_DEFINITION,
+    device,
+    context.definition,
+    targets,
+  );
   return result.evidence;
 }
 
@@ -93,20 +109,21 @@ function validated(
   desired: ReadonlyMap<string, readonly number[]> = DESIRED,
   targets: readonly WriteTarget[] = TARGETS,
 ): ValidatedApplyInput {
-  const evidence = validationEvidenceFor(desired);
-  return createValidatedApplyInput(evaluateApplyGate(evidence), backup, desired, targets);
+  const evidence = validationEvidenceFor(
+    desired,
+    VALIDATION_CONTEXT,
+    "baseline.vil",
+    VALIDATION_CONTEXT.keyboardUid,
+    targets,
+  );
+  return createValidatedApplyInput(evaluateApplyGate(evidence), backup);
 }
 
 test("backupが空ならApply計画を作れない", () => {
   // ADR 0005: backupが取れなければwriteへ進まない。
   throws(
     () =>
-      createValidatedApplyInput(
-        evaluateApplyGate(validationEvidenceFor(DESIRED)),
-        snapshot({}),
-        DESIRED,
-        TARGETS,
-      ),
+      createValidatedApplyInput(evaluateApplyGate(validationEvidenceFor(DESIRED)), snapshot({})),
     ApplyPreconditionError,
   );
 });
@@ -121,21 +138,15 @@ test("差分は変化したentryだけになる", () => {
   );
 });
 
-test("backupにも目標にも無いtargetは差分に含めない", () => {
-  // 容量は実機が申告する（ADR 0003）。host側が実機の持たないentryを推測して書かない。
-  const plan = createApplyPlan(
-    validated(BACKUP, DESIRED, [...TARGETS, { kind: "tapDance", index: 99 }]),
-  );
-
-  strictEqual(plan.operations.length, 2);
+test("callerはvalidation後にwrite targetを追加できない", () => {
+  const evidence = validationEvidenceFor(DESIRED);
+  deepStrictEqual(evidence.targets, TARGETS);
+  strictEqual(createValidatedApplyInput.length, 2);
 });
 
 test("desiredにあるbackup未収載targetはsilent skipせず拒否する", () => {
-  const desired = new Map(DESIRED);
-  desired.set("tapDance:99", [0x0001]);
-
   throws(
-    () => validated(BACKUP, desired, [...TARGETS, { kind: "tapDance", index: 99 }]),
+    () => validated(BACKUP, DESIRED, [...TARGETS, { kind: "setting", qsid: 2 }]),
     ApplyPreconditionError,
   );
 });
@@ -145,7 +156,7 @@ test("gateを通過しない入力はApply入力にならない", () => {
     validationEvidenceFor(DESIRED, VALIDATION_CONTEXT, "baseline.vil", "1"),
   );
 
-  throws(() => createValidatedApplyInput(gate, BACKUP, DESIRED, TARGETS), ApplyBlockedError);
+  throws(() => createValidatedApplyInput(gate, BACKUP), ApplyBlockedError);
 });
 
 test("validation済み入力なしではplanを生成できない", () => {
@@ -222,6 +233,27 @@ test("rollbackはbackupの値を同じ差分write経路で書き戻す", () => {
   );
 });
 
+test("rollback evidenceへ元のApplyに無いtargetを追加できない", () => {
+  const rollbackTargets = [...TARGETS, { kind: "setting", qsid: 2 }] as const;
+  const rollbackGate = evaluateApplyGate(
+    validationEvidenceFor(
+      BACKUP.values,
+      VALIDATION_CONTEXT,
+      "baseline.vil",
+      VALIDATION_CONTEXT.keyboardUid,
+      rollbackTargets,
+    ),
+  );
+  const current = snapshot({
+    "key:0:0:0": [0x0004],
+    "key:0:0:1": [0x0006],
+    "encoder:0:0:0": [0x0081],
+    "setting:2": [50],
+  });
+
+  throws(() => createRollbackPlan(validated(), rollbackGate, current), ApplyPreconditionError);
+});
+
 test("確認fingerprintが違えばwriteを開始しない", () => {
   const plan = createApplyPlan(validated());
 
@@ -239,24 +271,22 @@ test("plan fingerprintはvalidation対象のbindingと容量を含む", () => {
     createValidatedApplyInput(
       evaluateApplyGate(validationEvidenceFor(DESIRED, changedContext)),
       BACKUP,
-      DESIRED,
-      TARGETS,
     ),
   );
 
   ok(plan.fingerprint !== changed.fingerprint);
 });
 
-test("validation済みdesiredと異なるdesiredへ古いgateを流用できない", () => {
-  const evidence = validationEvidenceFor(DESIRED);
-  const gate = evaluateApplyGate(evidence);
+test("document Aのevidenceへcaller supplied desired Bを差し込む引数が無い", () => {
+  const evidenceA = validationEvidenceFor(DESIRED);
   const changedDesired = new Map(DESIRED);
   changedDesired.set("key:0:0:1", [0x0007]);
+  const evidenceB = validationEvidenceFor(changedDesired);
 
-  throws(
-    () => createValidatedApplyInput(gate, BACKUP, changedDesired, TARGETS),
-    ApplyPreconditionError,
-  );
+  deepStrictEqual(evidenceA.desired.get("key:0:0:1"), [0x0006]);
+  deepStrictEqual(evidenceB.desired.get("key:0:0:1"), [0x0007]);
+  ok(evidenceA.inputFingerprint !== evidenceB.inputFingerprint);
+  strictEqual(createValidatedApplyInput.length, 2);
 });
 
 test("acknowledged warningを含む古いgateを内容変更後へ流用できない", () => {
@@ -267,14 +297,14 @@ test("acknowledged warningを含む古いgateを内容変更後へ流用でき�
   const evidence = validationEvidenceFor(DESIRED, warningContext);
   const warning = evidence.diagnostics.find((diagnostic) => diagnostic.severity === "warning");
   if (warning === undefined) throw new Error("test warningが生成されなかった");
-  const gate = evaluateApplyGate(evidence, [warning.id]);
+  const gateForA = evaluateApplyGate(evidence, [warning.id]);
   const changedDesired = new Map(DESIRED);
   changedDesired.set("key:0:0:1", [0x0007]);
 
-  throws(
-    () => createValidatedApplyInput(gate, BACKUP, changedDesired, TARGETS),
-    ApplyPreconditionError,
-  );
+  const inputA = createValidatedApplyInput(gateForA, BACKUP);
+  deepStrictEqual(inputA.desired.get("key:0:0:1"), [0x0006]);
+  const evidenceB = validationEvidenceFor(changedDesired, warningContext);
+  ok(evidenceB.inputFingerprint !== evidence.inputFingerprint);
 });
 
 test("別definitionのvalidation evidenceを既存Applyへ差し込めない", () => {

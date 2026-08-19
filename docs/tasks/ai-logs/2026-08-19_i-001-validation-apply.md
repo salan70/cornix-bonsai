@@ -30,11 +30,21 @@
   definitionやdevice contextは独立引数を廃止し、別evidenceによるrollbackもcontext一致を
   必須にした。
 - desired変更、acknowledged warningの流用、definition digest変更の回帰テストを追加した。
+- 再レビューで、`validateKeymap`へcaller supplied desired fingerprintを渡せることと、
+  `createValidationEvidence`がexportされているためdocument A / desired Bや手製evidenceを
+  作れる指摘を受けた。
+- Apply専用入口を`validateApplyKeymap`へ分離し、検証した`VilDocument`からprotocol 6のdesired
+  wire valuesとwrite targetを同じ関数内で導出する。evidence constructorは非公開にした。
+- `createValidatedApplyInput`はgateとbackupだけを受け取り、desired / target / contextの
+  caller supplied引数を廃止した。baselineの全write targetを変換する回帰testを追加した。
+- DocBridge related gateで、同じspec内の`WRITE_COMMANDS`、diagnostic生成、構造・互換性・参照・
+  到達性validation、keycode分類のcounterpartも確認した。今回変えたのはApply evidence生成と
+  入力結合だけで、各counterpartの既存contractはspec記述と一致しているため更新しない。
 
 ## Verification
 
 - `nix develop -c just typecheck`
-- `nix develop -c just test`（89 tests passed）
+- `nix develop -c just test`（94 tests passed）
 - `nix develop -c just docbridge-check`
 
 ## Open Question

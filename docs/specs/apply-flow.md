@@ -31,17 +31,20 @@ commandが存在しなければ呼びようがありません。
 
 ## createValidatedApplyInput
 
-validation evidence、full-read backup、desired、write targetをひとつの `ValidatedApplyInput`
-に束ねます。evidenceには definition binding / keyboard UID / 実機申告容量 / supported qsid /
-diagnostics / desired fingerprint が含まれます。
+validation evidenceとfull-read backupをひとつの `ValidatedApplyInput`に束ねます。desiredと
+write targetは、`validateApplyKeymap`が実際に検証した`VilDocument`から内部導出してevidence
+へ保持した値だけを使います。callerがこの関数へ別のdesiredやtargetを渡す引数はありません。
+
+evidenceには definition binding / keyboard UID / 実機申告容量 / supported qsid /
+diagnostics / validated desired / write target が含まれます。
 
 gateが閉じている場合は `ApplyBlockedError`、backupが空の場合は precondition error です。
 desiredに存在するtargetがbackupに無い場合も precondition error とし、partial stateを
 silent skipしてApply計画へ進めません。desiredのすべてのtargetが明示的なwrite targetに
 対応していることもここで確認します。
 
-この関数が返す branded type が、validation済み入力の唯一の公開入口です。通常の gate や
-独立した context を別引数として渡す API はありません。
+この関数が返す branded type が、validation済み入力の唯一の公開入口です。通常の gate、
+独立した context、caller supplied desiredを別引数として渡すAPIはありません。
 
 <!-- @code src/core/apply/plan.ts#createApplyPlan -->
 

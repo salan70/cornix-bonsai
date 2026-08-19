@@ -18,7 +18,7 @@
  */
 
 import type { Diagnostic } from "./types.ts";
-import { isValidationEvidence, type ValidationEvidence } from "./evidence.ts";
+import { isValidationEvidence, type ValidationEvidence } from "./validate.ts";
 
 const APPLY_ALLOWED = Symbol("ApplyAllowed");
 

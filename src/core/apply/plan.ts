@@ -13,29 +13,15 @@
  */
 
 import type { WriteCommandKind } from "./commands.ts";
+import { targetKey, type WriteTarget } from "./targets.ts";
 import {
   assertApplyAllowed,
   type ApplyAllowedValidation,
   type ApplyGateWithEvidence,
 } from "../validation/gate.ts";
-import {
-  fingerprintApplyValues,
-  isValidationEvidence,
-  type ValidationEvidence,
-} from "../validation/evidence.ts";
+import { isValidationEvidence, type ValidationEvidence } from "../validation/validate.ts";
 
-/** writeの単位。比較単位はADR 0003 のまま。 */
-export type WriteTarget =
-  | { readonly kind: "key"; readonly layer: number; readonly row: number; readonly col: number }
-  | {
-      readonly kind: "encoder";
-      readonly layer: number;
-      readonly index: number;
-      readonly direction: number;
-    }
-  | { readonly kind: "tapDance"; readonly index: number }
-  | { readonly kind: "combo"; readonly index: number }
-  | { readonly kind: "setting"; readonly qsid: number };
+export { targetKey, type WriteTarget } from "./targets.ts";
 
 /**
  * 差分1件。
@@ -119,22 +105,6 @@ export interface ValidatedApplyInput {
   readonly [VALIDATED_APPLY_INPUT]: true;
 }
 
-/** `WriteTarget`を`DeviceSnapshot`のkeyへ直列化する。 */
-export function targetKey(target: WriteTarget): string {
-  switch (target.kind) {
-    case "key":
-      return `key:${target.layer}:${target.row}:${target.col}`;
-    case "encoder":
-      return `encoder:${target.layer}:${target.index}:${target.direction}`;
-    case "tapDance":
-      return `tapDance:${target.index}`;
-    case "combo":
-      return `combo:${target.index}`;
-    case "setting":
-      return `setting:${target.qsid}`;
-  }
-}
-
 const COMMAND_FOR: Record<WriteTarget["kind"], WriteCommandKind> = {
   key: "key",
   encoder: "encoder",
@@ -155,8 +125,6 @@ const COMMAND_FOR: Record<WriteTarget["kind"], WriteCommandKind> = {
 export function createValidatedApplyInput(
   gate: ApplyGateWithEvidence,
   backup: DeviceSnapshot,
-  desired: ReadonlyMap<string, readonly number[]>,
-  targets: readonly WriteTarget[],
 ): ValidatedApplyInput {
   if (!isValidationEvidence(gate.evidence)) {
     throw new ApplyPreconditionError("validation evidenceが不正");
@@ -173,11 +141,7 @@ export function createValidatedApplyInput(
     throw new ApplyPreconditionError("validation対象のdefinition bindingが不完全");
   }
   assertSameDevice(backup, context.keyboardUid);
-  if (fingerprintApplyValues(desired) !== gate.evidence.desiredFingerprint) {
-    throw new ApplyPreconditionError(
-      "validationしたdesiredとApply対象のdesiredが一致しない。再validationが必要",
-    );
-  }
+  const { desired, targets } = gate.evidence;
 
   const targetKeys = targets.map(targetKey);
   if (new Set(targetKeys).size !== targetKeys.length) {
@@ -199,7 +163,7 @@ export function createValidatedApplyInput(
     gate: allowedGate,
     backup: copySnapshot(backup),
     desired: copyValues(desired),
-    targets: Object.freeze(targets.map((target) => ({ ...target }))),
+    targets: Object.freeze(targets.map((target) => Object.freeze({ ...target }))),
     [VALIDATED_APPLY_INPUT]: true,
   };
 }
@@ -325,9 +289,25 @@ export function createRollbackPlan(
   ) {
     throw new ApplyPreconditionError("rollbackのvalidation対象contextがApplyと一致しない");
   }
-  return createApplyPlan(
-    createValidatedApplyInput(rollbackGate, current, input.backup.values, input.targets),
-  );
+  if (
+    JSON.stringify(input.targets.map(targetKey)) !==
+    JSON.stringify(rollbackGate.evidence.targets.map(targetKey))
+  ) {
+    throw new ApplyPreconditionError("rollbackのvalidation対象targetが元のApplyと一致しない");
+  }
+  for (const target of input.targets) {
+    const key = targetKey(target);
+    const backupValue = input.backup.values.get(key);
+    const rollbackValue = rollbackGate.evidence.desired.get(key);
+    if (
+      backupValue === undefined ||
+      rollbackValue === undefined ||
+      !sameValue(backupValue, rollbackValue)
+    ) {
+      throw new ApplyPreconditionError("rollbackのvalidation済みdesiredが元のbackupと一致しない");
+    }
+  }
+  return createApplyPlan(createValidatedApplyInput(rollbackGate, current));
 }
 
 /**

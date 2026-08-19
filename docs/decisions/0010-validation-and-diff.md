@@ -45,9 +45,9 @@ Applyの状態機械はvalidationの結果を引数に取っていない。ま�
 - **acknowledgeは診断id単位**とし、idに`code`・対象・**根拠の値の指紋**を含める。
   中身が変われば同じ位置でもacknowledgeが自動的に外れる
 - **Apply planはUID・definition binding・実機容量・supported qsid・backup・desired・target
-  の対応を保持し、plan fingerprintをconfirmationに要求する。** validation evidenceの
-  desired fingerprintをApply入力で再照合し、validation対象と確認済みdiffをwrite開始時まで
-  結びつける
+  の対応を保持し、plan fingerprintをconfirmationに要求する。** `validateApplyKeymap`が
+  validationした`VilDocument`からdesired wire valuesを内部導出し、非公開constructorで
+  evidenceへ束ねる。caller supplied desiredを受けず、確認済みdiffまで同一の値として運ぶ
 - **責務は入力の増え方で分ける。** structure（`VilDocument`のみ）→ compatibility
   （+ definition）→ reference（+ 容量）→ reachability（layerグラフ）→ device match
   （+ 実機の申告値）。`keymap.yaml`のschema検証はこの層に入れない
@@ -106,7 +106,8 @@ Applyの状態機械はvalidationの結果を引数に取っていない。ま�
 
 - **`createValidatedApplyInput`を経由しないApply plan生成はできない。** validation evidence、
   full-read coverage、desired / target対応を`src/core/apply/plan.ts`の入力型へ集約し、
-  evidenceのcontextとdesired fingerprintを独立引数で差し替えられないようにする
+  evidenceのcontext・desired・targetを独立引数で差し替えられないようにする。evidenceは
+  `validateApplyKeymap`だけが生成し、empty diagnosticsから作るpublic constructorは持たない
 - acknowledgeした診断のidをworkspaceが持ち回る必要がある。置き場所はD-004
 - 語彙表は閉じていない。載っていない表記はwarningになるため、**実運用で語彙を足していく
   前提**になる。足し忘れは「Applyが1回止まる」で済み、静かな取り違えにはならない

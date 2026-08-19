@@ -162,17 +162,25 @@ layer遷移を見ていません。したがって結果をerrorにはできま�
 （ADR 0003）。この分岐をここ1か所に閉じることで、call siteが誤って`.vil`由来の容量を
 実機の容量として渡す経路を消しています。
 
-Applyへ進む呼び出しでは definition binding と desired fingerprint を `applyIdentity` として
-渡します。device、definition、desired、diagnosticsが同じ validation evidence に束ねられ、
-後段が別のcontextやdesiredへ差し替えることを防ぎます。
+この通常入口はdiagnosticsだけを返し、Apply用evidenceを生成しません。Applyへ進む場合は
+`validateApplyKeymap`を使います。
 
-validation evidenceは、Apply対象の keyboard UID、definition binding、実機申告 capacities、
-supported qsid、diagnostics、desired fingerprint を branded に束ねます。evidence の
-`inputFingerprint` は validation対象の同一性を表し、Apply gate と plan から失われません。
+<!-- @code src/core/validation/validate.ts#validateApplyKeymap -->
 
-desired の fingerprint は `fingerprintApplyValues` で作り、Apply入力生成時に再計算した値と
-一致することを確認します。内容変更後に古い gate や acknowledge を流用する経路は
-precondition error になります。
+## validateApplyKeymap
+
+`VilDocument`のvalidationと、write対象のdesired wire values生成を同じ入口で行います。
+callerがdesiredやdesired fingerprintを渡す引数はありません。key / encoder / tap dance /
+combo / settingの値は、実際にvalidationしたdocumentからVial protocol 6のu16・field列へ
+fail-closedで変換します。変換できない表記は`KC_NO`へ落とさず拒否します。
+
+validation evidenceは、keyboard UID、definition binding、実機申告 capacities、supported
+qsid、diagnostics、内部導出したdesired、write targetを branded に束ねます。constructorは
+exportせず、`validateApplyKeymap`だけがevidenceを生成します。したがって、benignなdocument A
+をvalidationしながら別のdesired Bをevidenceへ載せる公開API経路はありません。
+
+evidenceの`inputFingerprint`はcontext、diagnostics、desired、targetから決定的に作り、Apply
+gateとplanから失われません。documentを変更した場合は新しいevidenceとgateが必要です。
 
 <!-- @code src/core/validation/gate.ts#evaluateApplyGate -->
 
@@ -190,9 +198,9 @@ warningを非blockingにしないのは、warningの中身が「Vialが無言で
 正当な編集でApplyが永久に不可能になります。
 
 `assertApplyAllowed`は、開いたgateを branded `ApplyAllowedValidation` として返します。
-`src/core/apply/plan.ts` の `createValidatedApplyInput` は evidence付きgateを必須にし、
-desired fingerprintを照合します。これにより古いvalidation結果と新しいApply対象を組み
-合わせる経路を型とpreconditionで封じます。
+`src/core/apply/plan.ts` の `createValidatedApplyInput` は evidence付きgateとbackupだけを
+受け取ります。desiredとwrite targetはevidenceからしか取得できないため、古いvalidation
+結果と新しいApply対象を組み合わせる引数がありません。
 
 <!-- @code src/core/validation/gate.ts#assertApplyAllowed -->
 

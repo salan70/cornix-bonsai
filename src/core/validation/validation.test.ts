@@ -4,17 +4,18 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { parseDefinition } from "../definition/parse.ts";
+import type { WriteTarget } from "../apply/targets.ts";
 import type { Capacities } from "../keycode/table.ts";
 import { parseVil } from "../vil/parse.ts";
-import type { VilDocument } from "../vil/types.ts";
+import { isAbsent, type VilDocument } from "../vil/types.ts";
 import { validateDeviceMatch, type DeviceProfile } from "./compatibility.ts";
-import { fingerprintApplyValues } from "./evidence.ts";
 import { ApplyBlockedError, assertApplyAllowed, evaluateApplyGate } from "./gate.ts";
 import { classifyKeycode } from "./keycode-vocabulary.ts";
 import { analyzeReachability } from "./reachability.ts";
 import { validateStructure } from "./structure.ts";
 import { createDiagnostic, type Diagnostic } from "./types.ts";
-import { validateKeymap } from "./validate.ts";
+import * as validationModule from "./validate.ts";
+import { validateApplyKeymap, validateKeymap } from "./validate.ts";
 
 const FIXTURES = join(import.meta.dirname, "../../../fixtures/cornix-lp");
 const readFixture = (name: string) => readFileSync(join(FIXTURES, name), "utf8");
@@ -174,25 +175,69 @@ test("実機との不一致は uid と容量が error、未対応 qsid が warni
   strictEqual(find(diagnostics, "compatibility/unsupported-setting")[0]?.severity, "warning");
 });
 
-test("Apply用validateKeymapは対象identityを持つevidenceを返す", () => {
+test("validateApplyKeymapは検証したdocumentからdesiredとevidenceを同時生成する", () => {
   const device: DeviceProfile = {
     keyboardUid: baseline.uid,
     capacities: { layerCount: 10, macroCount: 32, tapDanceCount: 32, comboCount: 32 },
     supportedQsids: Object.keys(baseline.settings).map(Number),
   };
-  const desired = new Map<string, readonly number[]>([["key:0:0:0", [0x0004]]]);
-  const result = validateKeymap(baseline, definition, device, {
-    definition: { path: "cornix/definitions/baseline.json", digest: "definition-a" },
-    desiredFingerprint: fingerprintApplyValues(desired),
-  });
+  const result = validateApplyKeymap(
+    baseline,
+    definition,
+    device,
+    { path: "cornix/definitions/baseline.json", digest: "definition-a" },
+    [{ kind: "key", layer: 0, row: 0, col: 0 }],
+  );
 
-  ok(result.evidence !== undefined);
-  if (result.evidence === undefined) return;
   strictEqual(result.evidence.context.keyboardUid, device.keyboardUid);
   strictEqual(result.evidence.context.definition.digest, "definition-a");
-  strictEqual(result.evidence.desiredFingerprint, fingerprintApplyValues(desired));
+  deepStrictEqual(result.evidence.desired.get("key:0:0:0"), [0x7c16]);
   const gate = evaluateApplyGate(result.evidence);
   strictEqual(gate.evidence, result.evidence);
+});
+
+test("baseline.vilの全write targetをVial protocol 6 wire値へ導出できる", () => {
+  const targets: WriteTarget[] = [];
+  baseline.layout.forEach((layer, layerIndex) =>
+    layer.forEach((row, rowIndex) =>
+      row.forEach((entry, colIndex) => {
+        if (!isAbsent(entry)) {
+          targets.push({ kind: "key", layer: layerIndex, row: rowIndex, col: colIndex });
+        }
+      }),
+    ),
+  );
+  baseline.encoderLayout.forEach((layer, layerIndex) =>
+    layer.forEach((encoder, index) =>
+      encoder.forEach((_entry, direction) =>
+        targets.push({ kind: "encoder", layer: layerIndex, index, direction }),
+      ),
+    ),
+  );
+  baseline.tapDance.forEach((_entry, index) => targets.push({ kind: "tapDance", index }));
+  baseline.combo.forEach((_entry, index) => targets.push({ kind: "combo", index }));
+  Object.keys(baseline.settings).forEach((qsid) =>
+    targets.push({ kind: "setting", qsid: Number(qsid) }),
+  );
+  const device: DeviceProfile = {
+    keyboardUid: baseline.uid,
+    capacities: { layerCount: 10, macroCount: 32, tapDanceCount: 32, comboCount: 32 },
+    supportedQsids: Object.keys(baseline.settings).map(Number),
+  };
+
+  const result = validateApplyKeymap(
+    baseline,
+    definition,
+    device,
+    { path: "cornix/definitions/baseline.json", digest: "definition-a" },
+    targets,
+  );
+
+  strictEqual(result.evidence.desired.size, targets.length);
+});
+
+test("empty diagnosticsからValidationEvidenceを作るpublic constructorは無い", () => {
+  ok(!("createValidationEvidence" in validationModule));
 });
 
 test("Apply gate: error は acknowledge できない", () => {
