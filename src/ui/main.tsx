@@ -100,6 +100,16 @@ function App(): React.JSX.Element {
     );
   }, []);
 
+  // read / write をしていない間の物理切断もUIへ反映する。接続済み表示のまま
+  // 古いApply計画が残らないよう、device由来のstateをまとめて捨てる。
+  useEffect(() => {
+    if (device === undefined) return;
+    return device.onDisconnect(() => {
+      invalidateDevice();
+      setStatus("deviceが切断された。再接続してfull readからやり直してください");
+    });
+  }, [device]);
+
   const validation = useMemo(
     () =>
       workspace === undefined
@@ -218,10 +228,7 @@ function App(): React.JSX.Element {
         setStatus("Vial deviceが選択されなかった");
         return;
       }
-      setDeviceRead(undefined);
-      setDeviceDefinitionDigest(undefined);
-      setApplyOpen(false);
-      setApplyState(undefined);
+      invalidateDevice();
       setDevice(next);
       setStatus("接続済み");
     } catch (error) {
@@ -229,14 +236,19 @@ function App(): React.JSX.Element {
     }
   }
 
+  /** device由来のstateを全て捨てる。古いApply計画を残さないための単一の経路。 */
+  function invalidateDevice(): void {
+    setDevice(undefined);
+    setDeviceRead(undefined);
+    setDeviceDefinitionDigest(undefined);
+    setApplyOpen(false);
+    setApplyState(undefined);
+  }
+
   async function disconnect(): Promise<void> {
     try {
       await device?.close();
-      setDevice(undefined);
-      setDeviceRead(undefined);
-      setDeviceDefinitionDigest(undefined);
-      setApplyOpen(false);
-      setApplyState(undefined);
+      invalidateDevice();
       setStatus("切断した");
     } catch (error) {
       setStatus(message(error));

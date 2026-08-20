@@ -1,4 +1,3 @@
-import { XzReadableStream } from "xz-decompress";
 import {
   snapshotFromDocument,
   readVialDevice,
@@ -43,7 +42,13 @@ interface HidNavigator {
     requestDevice(options: {
       filters: readonly { usagePage: number; usage: number }[];
     }): Promise<readonly RawHidDevice[]>;
+    addEventListener(type: "disconnect", listener: (event: unknown) => void): void;
+    removeEventListener(type: "disconnect", listener: (event: unknown) => void): void;
   };
+}
+
+function browserHid(): HidNavigator {
+  return navigator as unknown as HidNavigator;
 }
 
 class BrowserHidTransport implements HidDeviceLike {
@@ -78,9 +83,30 @@ class BrowserHidTransport implements HidDeviceLike {
 export class WebHidConnection {
   private readonly device: RawHidDevice;
   private readonly transport: BrowserHidTransport;
-  constructor(device: RawHidDevice) {
+  private readonly navigator: HidNavigator;
+  constructor(device: RawHidDevice, hidNavigator: HidNavigator = browserHid()) {
     this.device = device;
     this.transport = new BrowserHidTransport(device);
+    this.navigator = hidNavigator;
+  }
+
+  /**
+   * idle 中の物理切断を上位へ通知する。
+   *
+   * `disconnect` は request 中の `VialSession` にしか届かないため、read も write も
+   * していない間に抜かれると UI が接続済みのまま残る。WebHID の切断 event は
+   * `navigator.hid` に来るので、この境界で購読して自分の device 分だけを渡す。
+   *
+   * 戻り値を呼ぶと購読を解除する。
+   */
+  onDisconnect(listener: () => void): () => void {
+    const handler = (event: unknown): void => {
+      const disconnected = (event as { readonly device?: unknown } | null)?.device;
+      if (disconnected !== undefined && disconnected !== this.device) return;
+      listener();
+    };
+    this.navigator.hid.addEventListener("disconnect", handler);
+    return () => this.navigator.hid.removeEventListener("disconnect", handler);
   }
 
   get info(): DeviceInfo {
@@ -122,15 +148,20 @@ export class WebHidConnection {
 
 /** @doc docs/specs/device-adapter.md#browser-adapter */
 export class WebHidAdapter {
+  private readonly navigator: HidNavigator;
+  constructor(hidNavigator: HidNavigator = browserHid()) {
+    this.navigator = hidNavigator;
+  }
+
   async list(): Promise<readonly DeviceInfo[]> {
-    return (await (navigator as unknown as HidNavigator).hid.getDevices())
+    return (await this.navigator.hid.getDevices())
       .filter(isVialDevice)
       .map((device) => describe(device));
   }
 
   /** chooserは常に明示的に出し、getDevices()が空でも再選択を可能にする。 */
   async request(): Promise<WebHidConnection | undefined> {
-    const devices = await (navigator as unknown as HidNavigator).hid.requestDevice({
+    const devices = await this.navigator.hid.requestDevice({
       filters: [{ usagePage: VIAL_USAGE_PAGE, usage: VIAL_USAGE }],
     });
     const device = devices.find(isVialDevice);
@@ -142,7 +173,7 @@ export class WebHidAdapter {
   async reacquire(
     preferred?: Pick<DeviceInfo, "vendorId" | "productId">,
   ): Promise<WebHidConnection | undefined> {
-    const device = (await (navigator as unknown as HidNavigator).hid.getDevices())
+    const device = (await this.navigator.hid.getDevices())
       .filter(isVialDevice)
       .find(
         (candidate) =>
@@ -156,7 +187,7 @@ export class WebHidAdapter {
   private async connectDevice(device: RawHidDevice): Promise<WebHidConnection> {
     if (device.opened) await device.close();
     await device.open();
-    return new WebHidConnection(device);
+    return new WebHidConnection(device, this.navigator);
   }
 }
 
@@ -176,6 +207,8 @@ function describe(device: RawHidDevice): DeviceInfo {
 }
 
 async function decodeXz(compressed: Uint8Array): Promise<string> {
+  // browser専用のbundleなので遅延importする。Node上のtestがこのmoduleを読めるようにする。
+  const { XzReadableStream } = await import("xz-decompress");
   const stream = new XzReadableStream(new Blob([compressed.buffer as ArrayBuffer]).stream());
   return new Response(stream).text();
 }

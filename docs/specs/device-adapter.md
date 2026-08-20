@@ -41,3 +41,7 @@ buffer、reset、bootloaderのcommandは組み立てない。`write → 同一en
 
 `getDevices()`からの再取得と明示的chooserを分ける。permission済みdeviceが空でもchooserを
 常に表示でき、USB/BLEの区別はUIへ出さない。
+
+request中でない切断は`navigator.hid`のdisconnect eventでしか届かないため、connectionが
+これを購読して上位へ通知する。通知を受けた側はdevice由来のstate（current state、
+Apply計画）をまとめて捨て、再接続後はfull readからやり直す。
