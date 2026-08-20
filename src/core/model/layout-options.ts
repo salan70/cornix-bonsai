@@ -71,6 +71,17 @@ export function resolveLayoutOptions(
   return { kind: "decoded", raw, groups, gatesKeys: hasGatedKeys(layout) };
 }
 
+/**
+ * definition が layout 選択肢を宣言しているか。
+ *
+ * vial-gui は**この宣言だけ**を根拠に `layout_options` を実機から read する（R-003）。
+ * 実際に gate されるキーがあるか（`hasGatedKeys`）とは独立に判断する。
+ */
+export function hasLayoutLabels(definition: KeyboardDefinition): boolean {
+  const labels = definition.layouts.labels;
+  return Array.isArray(labels) && labels.length > 0;
+}
+
 /** 物理配列に、layout 選択肢で出し分けられる要素があるか。 */
 function hasGatedKeys(layout: PhysicalLayout): boolean {
   return layout.keys.some((key) => key.layoutOption !== undefined);

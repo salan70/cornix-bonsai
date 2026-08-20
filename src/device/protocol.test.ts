@@ -3,9 +3,12 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { NOT_IMPLEMENTED_COMMANDS, WRITE_COMMANDS } from "../core/apply/commands.ts";
 import { parseDefinition, toPhysicalLayout } from "../core/definition/parse.ts";
+import type { KeyboardDefinition } from "../core/definition/types.ts";
+import { diffDocuments } from "../core/diff/diff.ts";
 import type { WriteTarget } from "../core/apply/targets.ts";
 import { encodeVialKeycode } from "../core/keycode/wire.ts";
 import { parseVil } from "../core/vil/parse.ts";
+import type { VilDocument } from "../core/vil/types.ts";
 import {
   DeviceIoError,
   VIAL_REPORT_SIZE,
@@ -126,10 +129,106 @@ test("full readはdefinition pageからcapacities/keymap/behavior/settingsを復
     ),
     encodeVialKeycode("KC_A", 6),
   );
+  const device = createVialMock({
+    definitionBytes,
+    baseline,
+    layers,
+    values,
+    rows: definition.matrix.rows,
+    cols: definition.matrix.cols,
+    macroCount: 0,
+  });
+  const session = new VialSession(device, { timeoutMs: 100 });
+  const result = await readVialDevice(session, async (compressed) => {
+    deepStrictEqual([...compressed], [...definitionBytes]);
+    return definitionText;
+  });
+  session.close();
+  strictEqual(result.keyboardUid, baseline.uid);
+  strictEqual(result.capacities.layerCount, layers);
+  strictEqual(result.capacities.tapDanceCount, baseline.tapDance.length);
+  strictEqual(result.capacities.comboCount, baseline.combo.length);
+  strictEqual(result.document.layout[0]?.[firstKey.row]?.[firstKey.col], "KC_A");
+  strictEqual(result.document.layout[0]?.[0]?.[definition.matrix.cols - 1], -1);
+  strictEqual(result.document.encoderLayout.length, layers);
+  strictEqual(result.supportedQsids.length, Object.keys(baseline.settings).length);
+});
+
+test("baseline全layerのfull readはbaselineとの差分を1件も出さない", async () => {
+  const { device, baseline, definition } = await createBaselineFixture();
+  const session = new VialSession(device, { timeoutMs: 100 });
+  const result = await readVialDevice(session, async () => definition.text);
+  session.close();
+
+  // `layouts.labels`があるCornix LPでは実機のlayout_optionsをreadする（R-003）。
+  strictEqual(result.document.layoutOptions, baseline.layoutOptions);
+  strictEqual(result.capacities.layerCount, baseline.layout.length);
+  deepStrictEqual(diffDocuments(baseline, result.document, definition.parsed).entries, []);
+});
+
+/** baseline `.vil` をそのまま返す mock device 一式。 */
+async function createBaselineFixture(): Promise<{
+  readonly device: MockHidDevice;
+  readonly baseline: VilDocument;
+  readonly definition: { readonly text: string; readonly parsed: KeyboardDefinition };
+}> {
+  const definitionText = await readFile(
+    new URL("../../fixtures/cornix-lp/vial-definition-v1.12.json", import.meta.url),
+    "utf8",
+  );
+  const baseline = parseVil(
+    await readFile(new URL("../../fixtures/cornix-lp/baseline.vil", import.meta.url), "utf8"),
+  );
+  const parsed = parseDefinition(definitionText);
+  const layers = baseline.layout.length;
+  const rows = parsed.matrix.rows;
+  const cols = parsed.matrix.cols;
+  const values = new Uint8Array(layers * rows * cols * 2);
+  for (let layer = 0; layer < layers; layer++) {
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const keycode = baseline.layout[layer]?.[row]?.[col];
+        if (typeof keycode !== "string") continue;
+        writeBe16(
+          values,
+          keymapOffset(layers, rows, cols, layer, row, col),
+          encodeVialKeycode(keycode, 6),
+        );
+      }
+    }
+  }
+  return {
+    device: createVialMock({
+      definitionBytes: new TextEncoder().encode(definitionText),
+      baseline,
+      layers,
+      values,
+      rows,
+      cols,
+      macroCount: baseline.macro.length,
+    }),
+    baseline,
+    definition: { text: definitionText, parsed },
+  };
+}
+
+interface VialMockOptions {
+  readonly definitionBytes: Uint8Array;
+  readonly baseline: VilDocument;
+  readonly layers: number;
+  readonly values: Uint8Array;
+  readonly rows: number;
+  readonly cols: number;
+  readonly macroCount: number;
+}
+
+/** baseline `.vil` と definition をそのまま配る Vial device の mock。 */
+function createVialMock(options: VialMockOptions): MockHidDevice {
+  const { definitionBytes, baseline, layers, values, rows, cols, macroCount } = options;
   const settings = Object.entries(baseline.settings).map(
     ([qsid, value]) => [Number(qsid), value] as const,
   );
-  const device = new MockHidDevice(async (request) => {
+  return new MockHidDevice(async (request) => {
     const response = new Uint8Array(VIAL_REPORT_SIZE);
     switch (request[0]) {
       case 0x01:
@@ -194,30 +293,28 @@ test("full readはdefinition pageからcapacities/keymap/behavior/settingsを復
       case 0x04:
         response.set(
           values.slice(
-            keymapOffset(
-              layers,
-              definition.matrix.rows,
-              definition.matrix.cols,
-              request[1] ?? 0,
-              request[2] ?? 0,
-              request[3] ?? 0,
-            ),
-            keymapOffset(
-              layers,
-              definition.matrix.rows,
-              definition.matrix.cols,
-              request[1] ?? 0,
-              request[2] ?? 0,
-              request[3] ?? 0,
-            ) + 2,
+            keymapOffset(layers, rows, cols, request[1] ?? 0, request[2] ?? 0, request[3] ?? 0),
+            keymapOffset(layers, rows, cols, request[1] ?? 0, request[2] ?? 0, request[3] ?? 0) + 2,
           ),
           4,
         );
         break;
-      case 0x05:
+      case 0x05: {
+        // 実機と同じく、writeした値を同一entryの再readとfull readの双方へ反映する。
+        const offset = keymapOffset(
+          layers,
+          rows,
+          cols,
+          request[1] ?? 0,
+          request[2] ?? 0,
+          request[3] ?? 0,
+        );
+        values[offset] = request[4] ?? 0;
+        values[offset + 1] = request[5] ?? 0;
         break;
+      }
       case 0x0c:
-        response[1] = 0;
+        response[1] = macroCount;
         break;
       case 0x0d:
         writeBe16(response, 1, 0);
@@ -235,21 +332,7 @@ test("full readはdefinition pageからcapacities/keymap/behavior/settingsを復
     }
     return response;
   });
-  const session = new VialSession(device, { timeoutMs: 100 });
-  const result = await readVialDevice(session, async (compressed) => {
-    deepStrictEqual([...compressed], [...definitionBytes]);
-    return definitionText;
-  });
-  session.close();
-  strictEqual(result.keyboardUid, baseline.uid);
-  strictEqual(result.capacities.layerCount, layers);
-  strictEqual(result.capacities.tapDanceCount, baseline.tapDance.length);
-  strictEqual(result.capacities.comboCount, baseline.combo.length);
-  strictEqual(result.document.layout[0]?.[firstKey.row]?.[firstKey.col], "KC_A");
-  strictEqual(result.document.layout[0]?.[0]?.[definition.matrix.cols - 1], -1);
-  strictEqual(result.document.encoderLayout.length, layers);
-  strictEqual(result.supportedQsids.length, settings.length);
-});
+}
 
 function keymapOffset(
   layers: number,

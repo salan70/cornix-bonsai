@@ -22,6 +22,10 @@ keymap・encoderを`VilDocument`へ再構築する。matrixの物理キー集合
 Cornix LP V1.12のkey override / alt repeat keyは0件である。非ゼロ件数を返すfirmwareは、
 未対応状態を空配列へ落とさずprotocol errorでfull readを中断する。
 
+`layout_options`はdefinitionが`layouts.labels`を宣言している場合だけreadする（R-003）。
+`gatesKeys`（選択肢で出し分けられるキーの有無）を条件にすると、labelsだけを持つ
+Cornix LPで実機値をreadせず`-1`になり、baselineの`0`と偽の差分になる。
+
 <!-- @code src/device/protocol.ts#encodeWriteCommand -->
 <!-- @code src/device/protocol.ts#writeAndVerify -->
 

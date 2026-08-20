@@ -8,6 +8,7 @@
 
 import { parseDefinition, toPhysicalLayout } from "../core/definition/parse.ts";
 import type { KeyboardDefinition } from "../core/definition/types.ts";
+import { hasLayoutLabels } from "../core/model/layout-options.ts";
 import {
   WRITE_COMMANDS,
   ROUND_TRIP_TIMEOUT_MS,
@@ -207,7 +208,9 @@ export async function readVialDevice(
     }
     encoderLayout.push(row);
   }
-  const layoutOptions = physical.keys.some((key) => key.layoutOption !== undefined)
+  // vial-guiは`layouts.labels`があればlayout_optionsをreadする（R-003）。個別keyの
+  // layout option有無で判断すると、labelsだけを持つCornix LPで`-1`になり偽差分になる。
+  const layoutOptions = hasLayoutLabels(definition)
     ? readBe32(await session.request([0x02, 0x02], "layout options"), 2)
     : -1;
   const macro = await readMacroBuffer(session, macroCount, macroSize, onProgress);
