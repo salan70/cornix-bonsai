@@ -16,8 +16,11 @@ import {
 import { targetKey, type WriteTarget } from "../core/apply/targets.ts";
 import type { DeviceSnapshot } from "../core/apply/plan.ts";
 import type { Capacities } from "../core/keycode/table.ts";
-import { BASIC_KEYCODES } from "../core/validation/keycode-vocabulary.ts";
-import { encodeVialKeycode } from "../core/keycode/wire.ts";
+import {
+  decodeVialKeycode,
+  encodeVialKeycode,
+  type WireDecodeCapacities,
+} from "../core/keycode/wire.ts";
 import type { VilDocument } from "../core/vil/types.ts";
 
 export const VIAL_USAGE_PAGE = 0xff60;
@@ -172,6 +175,7 @@ export async function readVialDevice(
       "protocol",
     );
   }
+  const capacities: Capacities = { layerCount, macroCount, tapDanceCount, comboCount };
   const settingsRead = await readSettings(session, vialProtocol);
   const physicalPositions = new Set(physical.keys.map((key) => `${key.row},${key.col}`));
   const keymap = await readKeymap(
@@ -180,6 +184,8 @@ export async function readVialDevice(
     definition.matrix.rows,
     definition.matrix.cols,
     physicalPositions,
+    vialProtocol,
+    capacities,
     onProgress,
   );
   const encoderCount =
@@ -195,8 +201,8 @@ export async function readVialDevice(
         `encoder L${layer} #${index}`,
       );
       row.push([
-        decodeVialKeycode(readBe16(response, 0)),
-        decodeVialKeycode(readBe16(response, 2)),
+        decodeVialKeycode(readBe16(response, 0), vialProtocol, capacities),
+        decodeVialKeycode(readBe16(response, 2), vialProtocol, capacities),
       ]);
     }
     encoderLayout.push(row);
@@ -209,10 +215,10 @@ export async function readVialDevice(
   for (let index = 0; index < tapDanceCount; index++) {
     const response = await session.request([0xfe, 0x0d, 0x01, index], `tap dance ${index}`);
     tapDance.push([
-      decodeVialKeycode(readLe16(response, 1)),
-      decodeVialKeycode(readLe16(response, 3)),
-      decodeVialKeycode(readLe16(response, 5)),
-      decodeVialKeycode(readLe16(response, 7)),
+      decodeVialKeycode(readLe16(response, 1), vialProtocol, capacities),
+      decodeVialKeycode(readLe16(response, 3), vialProtocol, capacities),
+      decodeVialKeycode(readLe16(response, 5), vialProtocol, capacities),
+      decodeVialKeycode(readLe16(response, 7), vialProtocol, capacities),
       readLe16(response, 9),
     ]);
   }
@@ -220,11 +226,11 @@ export async function readVialDevice(
   for (let index = 0; index < comboCount; index++) {
     const response = await session.request([0xfe, 0x0d, 0x03, index], `combo ${index}`);
     combo.push([
-      decodeVialKeycode(readLe16(response, 1)),
-      decodeVialKeycode(readLe16(response, 3)),
-      decodeVialKeycode(readLe16(response, 5)),
-      decodeVialKeycode(readLe16(response, 7)),
-      decodeVialKeycode(readLe16(response, 9)),
+      decodeVialKeycode(readLe16(response, 1), vialProtocol, capacities),
+      decodeVialKeycode(readLe16(response, 3), vialProtocol, capacities),
+      decodeVialKeycode(readLe16(response, 5), vialProtocol, capacities),
+      decodeVialKeycode(readLe16(response, 7), vialProtocol, capacities),
+      decodeVialKeycode(readLe16(response, 9), vialProtocol, capacities),
     ]);
   }
   return {
@@ -263,7 +269,7 @@ export async function readVialDevice(
     },
     definition,
     definitionXz,
-    capacities: { layerCount, macroCount, tapDanceCount, comboCount },
+    capacities,
     supportedQsids: settingsRead.qsids,
     keyboardUid,
     vialProtocol,
@@ -419,34 +425,14 @@ export function snapshotFromDocument(
   return { keyboardUid: document.uid, values, readAt: Date.now() };
 }
 
-export function decodeVialKeycode(value: number): string {
-  if (value === 0) return "KC_NO";
-  if (value === 1) return "KC_TRNS";
-  if ((value & 0xff00) === 0x7e00) return `USER${String(value & 0xff).padStart(2, "0")}`;
-  const candidates = [
-    ...BASIC_KEYCODES,
-    "KC_TRNS",
-    "KC_NO",
-    ...Array.from({ length: 16 }, (_, index) => `MO(${index})`),
-    ...Array.from({ length: 16 }, (_, index) => `TD(${index})`),
-    ...Array.from({ length: 16 }, (_, index) => `M(${index})`),
-  ];
-  for (const candidate of candidates) {
-    try {
-      if (encodeVialKeycode(candidate, 6) === value) return candidate;
-    } catch {
-      /* 語彙表に無い候補は無視 */
-    }
-  }
-  return `0x${value.toString(16).padStart(4, "0")}`;
-}
-
 async function readKeymap(
   session: VialSession,
   layers: number,
   rows: number,
   cols: number,
   physical: ReadonlySet<string>,
+  protocol: number,
+  capacities: WireDecodeCapacities,
   onProgress?: (progress: RoundTripProgress) => void,
 ): Promise<(string | number)[][][]> {
   const result: (string | number)[][][] = [];
@@ -472,6 +458,8 @@ async function readKeymap(
             decodeVialKeycode(
               ((raw[(layer * rows * cols + row * cols + col) * 2] ?? 0) << 8) |
                 (raw[(layer * rows * cols + row * cols + col) * 2 + 1] ?? 0),
+              protocol,
+              capacities,
             ),
           );
       }

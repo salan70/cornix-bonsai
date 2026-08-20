@@ -9,12 +9,12 @@ UI、CLI、analysis、rendering、Git管理設定、Vial adapterが共有する�
 組にして導出する読み取り専用の派生値で、保存も比較の正ともしません。
 編集は意味単位の位置指定を受け取り、rawを返す純関数で行います。
 
-| 層                        | 実体               | round-trip対象 |
-| ------------------------- | ------------------ | -------------- |
-| raw                       | `VilDocument`      | ○              |
-| semantic（派生ビュー）    | `KeymapView`       | ×（都度導出）  |
-| device（u16のwire値）     | 未実装（ADR 0003） | ×              |
-| 物理配列（rendering専用） | `PhysicalLayout`   | ×              |
+| 層                        | 実体                                      | round-trip対象 |
+| ------------------------- | ----------------------------------------- | -------------- |
+| raw                       | `VilDocument`                             | ○              |
+| semantic（派生ビュー）    | `KeymapView`                              | ×（都度導出）  |
+| device（u16のwire値）     | `encodeVialKeycode` / `decodeVialKeycode` | ×              |
+| 物理配列（rendering専用） | `PhysicalLayout`                          | ×              |
 
 依存方向は一方向です。
 
@@ -63,6 +63,25 @@ keycode文字列の解釈テーブルです。ADR 0001・0002・0003がそれぞ
 解釈できない表記は`kind: "basic"`として**表記を保ったまま素通し**します。
 QMKの基本keycode語彙を網羅した表は持ちません。網羅はD-003で扱います。
 容量の範囲外は`kind: "outOfRange"`を返し、黙って`KC_NO`へ落としません。
+
+<!-- @code src/core/keycode/wire.ts#decodeVialKeycode -->
+
+## decodeVialKeycode
+
+実機から読んだu16のwire値をkeycode表記へ戻します。`encodeVialKeycode`の逆写像で、
+同じ表（`BASIC` / `MODIFIERS`）を使うため、対応表が片側だけ増えることがありません。
+
+**戻せない値は`KC_NO`へ落とさず`0x....`の数値表記にします。** 数値表記はencoderが
+そのまま受け付けるので、表記へ戻せなくてもwire値は失われません（ADR 0001）。
+
+表記が一意に決まらない2か所は、実機readの結果が`.vil`の表記と無駄な差分にならない側へ
+固定します。
+
+- `MODIFIERS`の別名（`C_S`と`LCS`は同じ`0x03`）は代表を1つだけ返す
+- `0x0200 | basic`は`KC_EXLM`のようなshifted別名ではなく`LSFT(...)`を返す
+
+`TD(n)` / `M(n)`のindexは実機が申告した容量の範囲内だけ表記へ戻します。範囲外を
+`TD(32)`のように書き戻すと、存在しないentryへの参照をworkspaceへ持ち込むためです。
 
 <!-- @code src/core/model/layout-options.ts#resolveLayoutOptions -->
 

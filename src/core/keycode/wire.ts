@@ -246,3 +246,104 @@ function assertU16(value: number, source: string): number {
   }
   return value;
 }
+
+/**
+ * decode 時に使う modifier の代表表記。
+ *
+ * `MODIFIERS` は別名を含む（`C_S` と `LCS` は同じ 0x03）ため、wire 値からは一意に戻せない。
+ * 実機 read の結果が `.vil` の表記と無駄な差分にならないよう、代表を 1 つに固定する。
+ */
+const MODIFIER_NAMES: Readonly<Record<number, string>> = {
+  0x01: "LCTL",
+  0x02: "LSFT",
+  0x03: "C_S",
+  0x04: "LALT",
+  0x05: "LCA",
+  0x06: "LSA",
+  0x07: "MEH",
+  0x08: "LGUI",
+  0x09: "LCG",
+  0x0a: "SGUI",
+  0x0c: "LAG",
+  0x0d: "LCAG",
+  0x0f: "HYPR",
+  0x11: "RCTL",
+  0x12: "RSFT",
+  0x14: "RALT",
+  0x18: "RGUI",
+  0x19: "RCG",
+  0x1d: "RCAG",
+};
+
+const LAYER_PREFIXES: readonly (readonly [number, string])[] = [
+  [0x5200, "TO"],
+  [0x5220, "MO"],
+  [0x5240, "DF"],
+  [0x5260, "TG"],
+  [0x5280, "OSL"],
+  [0x52c0, "TT"],
+];
+
+const BASIC_NAMES: Readonly<Record<number, string>> = Object.fromEntries(
+  Object.entries(BASIC)
+    .reverse()
+    .map(([name, value]) => [value, name]),
+);
+
+/** wire 値を表記へ戻すときの、実機が申告した容量。範囲外の index は表記へ戻さない。 */
+export interface WireDecodeCapacities {
+  readonly tapDanceCount?: number;
+  readonly macroCount?: number;
+}
+
+/**
+ * u16 の wire 値を Vial protocol 6 の keycode 表記へ戻す。
+ *
+ * `encodeVialKeycode` の逆写像であり、表記へ戻せない値は `KC_NO` へ落とさず
+ * `0x....` の数値表記にする。数値表記も encoder が受け付けるため wire 値は失われない。
+ *
+ * @doc docs/specs/semantic-model.md#decodevialkeycode
+ */
+export function decodeVialKeycode(
+  value: number,
+  protocol: number,
+  capacities: WireDecodeCapacities = {},
+): string {
+  if (protocol !== 6) {
+    throw new KeycodeEncodingError(`Vial protocol ${protocol} のkeycode変換は未対応`);
+  }
+  assertU16(value, `0x${value.toString(16)}`);
+
+  const basic = BASIC_NAMES[value];
+  if (basic !== undefined) return basic;
+
+  for (const [base, name] of LAYER_PREFIXES) {
+    if ((value & 0xffe0) === base) return `${name}(${value & 0x1f})`;
+  }
+  if ((value & 0xf000) === 0x4000) {
+    const inner = BASIC_NAMES[value & 0xff];
+    if (inner !== undefined) return `LT${(value >> 8) & 0x0f}(${inner})`;
+  }
+  if ((value & 0xe000) === 0x2000) {
+    const modifier = MODIFIER_NAMES[(value >> 8) & 0x1f];
+    const inner = BASIC_NAMES[value & 0xff];
+    if (modifier !== undefined && inner !== undefined) return `${modifier}_T(${inner})`;
+  }
+  if ((value & 0xff00) === 0x5700) {
+    const index = value & 0xff;
+    if (index < (capacities.tapDanceCount ?? 0)) return `TD(${index})`;
+  }
+  if ((value & 0xff80) === 0x7700) {
+    const index = value & 0x7f;
+    if (index < (capacities.macroCount ?? 0)) return `M(${index})`;
+  }
+  if ((value & 0xff00) === 0x7e00) {
+    return `USER${String(value & 0xff).padStart(2, "0")}`;
+  }
+  if (value > 0x00ff && value < 0x2000) {
+    const modifier = MODIFIER_NAMES[(value >> 8) & 0x1f];
+    const inner = BASIC_NAMES[value & 0xff];
+    if (modifier !== undefined && inner !== undefined) return `${modifier}(${inner})`;
+  }
+  return `0x${value.toString(16).padStart(4, "0")}`;
+}
