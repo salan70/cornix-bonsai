@@ -91,6 +91,8 @@ function App(): React.JSX.Element {
   const [deviceDefinitionDigest, setDeviceDefinitionDigest] = useState<string | undefined>();
   const [status, setStatus] = useState("workspaceを選択してください");
   const [progress, setProgress] = useState<string | undefined>();
+  const [lastReadRoundTrips, setLastReadRoundTrips] = useState(0);
+  const [applyRoundTrips, setApplyRoundTrips] = useState(0);
   const [acknowledged, setAcknowledged] = useState<readonly string[]>([]);
   const [applyOpen, setApplyOpen] = useState(false);
   const [applyState, setApplyState] = useState<ApplyState | undefined>();
@@ -232,9 +234,10 @@ function App(): React.JSX.Element {
     try {
       const connection = device ?? (await acquireDevice());
       if (connection === undefined) return;
-      const result = await connection.read((event) =>
-        setProgress(`${event.label} (${event.count})`),
-      );
+      const result = await connection.read((event) => {
+        setLastReadRoundTrips(event.count);
+        setProgress(`${event.label} (${event.count})`);
+      });
       const plan = await planWorkspaceInit(
         result.document,
         result.definitionText,
@@ -296,6 +299,8 @@ function App(): React.JSX.Element {
     setDevice(undefined);
     setDeviceRead(undefined);
     setDeviceDefinitionDigest(undefined);
+    setLastReadRoundTrips(0);
+    setApplyRoundTrips(0);
     setApplyOpen(false);
     setApplyState(undefined);
   }
@@ -311,7 +316,10 @@ function App(): React.JSX.Element {
   }
 
   async function readDeviceInto(connection: WebHidConnection): Promise<boolean> {
-    const result = await connection.read((event) => setProgress(`${event.label} (${event.count})`));
+    const result = await connection.read((event) => {
+      setLastReadRoundTrips(event.count);
+      setProgress(`${event.label} (${event.count})`);
+    });
     const definitionText = canonicalDefinitionText(result.definitionText);
     const digest = await definitionDigest(definitionText, globalThis.crypto);
     let mismatch = false;
@@ -389,18 +397,28 @@ function App(): React.JSX.Element {
       return;
     try {
       applyCancellation.current = false;
+      setApplyRoundTrips(0);
       const gate = applyGate;
       if (gate === undefined) return;
       const plan = createApplyPlan(createValidatedApplyInput(gate, deviceRead.snapshot));
       let current = confirmApply(plan, applyState.plan.fingerprint);
       setApplyState(current);
+      let completedRoundTrips = 0;
       for (const operation of plan.operations) {
         if (current.phase !== "writing") break;
         try {
-          const observed = await device.writeAndVerify(operation.target, operation.after, (event) =>
-            setProgress(`${event.label} (${event.count})`),
+          let operationRoundTrips = 0;
+          const observed = await device.writeAndVerify(
+            operation.target,
+            operation.after,
+            (event) => {
+              operationRoundTrips = event.count;
+              setApplyRoundTrips(completedRoundTrips + event.count);
+              setProgress(`${event.label} (${event.count})`);
+            },
           );
           current = recordVerifyResult(current, observed);
+          completedRoundTrips += operationRoundTrips;
         } catch (error) {
           if (!(error instanceof DeviceIoError)) throw error;
           current = abortApply(
@@ -699,6 +717,15 @@ function App(): React.JSX.Element {
           changed={changed}
           gate={applyGate}
           acknowledged={acknowledged}
+          backupRoundTrips={lastReadRoundTrips}
+          roundTrips={applyRoundTrips}
+          roundTripTotal={
+            applyState?.phase === "writing"
+              ? applyState.plan.operations.length * 2
+              : applyState?.phase === "completed"
+                ? applyState.verified.length * 2
+                : 0
+          }
           onAcknowledge={(ids) => void acknowledgeForApply(ids)}
           onCancel={cancelApply}
           onApply={() => void apply()}

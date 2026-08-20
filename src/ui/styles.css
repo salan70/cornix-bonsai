@@ -180,6 +180,11 @@ dialog.modal-backdrop::backdrop { background: color-mix(in srgb, var(--bg) 65%, 
 .ack-body { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; }
 .error-banner { border-color: var(--error); background: var(--error-soft); }
 .raw-editor { display: grid; gap: 4px; color: var(--muted); font-size: 11px; }
+.write-summary { display: flex; flex-direction: column; gap: 8px; }
+.write-row.active { border-color: var(--accent); }
+.write-row.pending { color: var(--faint); }
+.write-icon { width: 21px; flex-shrink: 0; color: var(--accent); }
+.result-banner { margin-top: auto; border-color: var(--border); background: var(--surface-2); }
 
 /* ---- legacy/content surfaces kept while components are split ---- */
 .main-content { flex: 1; min-height: 0; display: flex; flex-direction: column; }

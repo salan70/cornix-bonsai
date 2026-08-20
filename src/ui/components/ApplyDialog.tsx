@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { DiffEntry } from "../../core/diff/diff.ts";
-import type { ApplyState } from "../../core/apply/plan.ts";
+import type { ApplyState, WriteOperation } from "../../core/apply/plan.ts";
 import type { evaluateApplyGate } from "../../core/validation/gate.ts";
 
 export function ApplyDialog({
@@ -8,6 +8,9 @@ export function ApplyDialog({
   changed,
   gate,
   acknowledged,
+  backupRoundTrips,
+  roundTrips,
+  roundTripTotal,
   onAcknowledge,
   onCancel,
   onApply,
@@ -16,6 +19,9 @@ export function ApplyDialog({
   readonly changed: readonly DiffEntry[];
   readonly gate: ReturnType<typeof evaluateApplyGate> | undefined;
   readonly acknowledged: readonly string[];
+  readonly backupRoundTrips: number;
+  readonly roundTrips: number;
+  readonly roundTripTotal: number;
   readonly onAcknowledge: (ids: readonly string[]) => void;
   readonly onCancel: () => void;
   readonly onApply: () => void;
@@ -23,6 +29,9 @@ export function ApplyDialog({
   const semanticChanges = changed.filter((entry) => entry.change !== "notationOnly");
   const notationOnlyChanges = changed.filter((entry) => entry.change === "notationOnly");
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const isWriting = state?.phase === "writing";
+  const isFinished = state?.phase === "completed" || state?.phase === "aborted";
+  const verified = state?.phase === "writing" || state?.phase === "completed" ? state.verified : [];
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -58,22 +67,35 @@ export function ApplyDialog({
               Apply 前の全 read を <span className="mono">cornix/backups/</span> に保存した
             </span>
             <div className="grow" />
-            <span className="disc">backup 完了</span>
+            <span className="disc">往復 {backupRoundTrips} 回</span>
           </div>
-          <div className="row-heading">
-            <h3>書き込む差分</h3>
-            <span className="disc">{changed.length} 件</span>
-          </div>
-          <div className="diff-list">
-            {semanticChanges.map((entry, index) => (
-              <DiffRow entry={entry} key={`${entry.subject.kind}-${index}`} />
-            ))}
-          </div>
-          {notationOnlyChanges.length > 0 ? (
-            <div className="collapsed">
-              › 挙動が変わらない表記の差が {notationOnlyChanges.length} 件。書き込み対象には含める
-            </div>
-          ) : null}
+          {isWriting || state?.phase === "completed" ? (
+            <WriteProgress
+              operations={state?.phase === "writing" ? state.plan.operations : verified}
+              verifiedCount={verified.length}
+              changed={changed}
+              roundTrips={roundTrips}
+              roundTripTotal={roundTripTotal}
+            />
+          ) : (
+            <>
+              <div className="row-heading">
+                <h3>書き込む差分</h3>
+                <span className="disc">{changed.length} 件</span>
+              </div>
+              <div className="diff-list">
+                {semanticChanges.map((entry, index) => (
+                  <DiffRow entry={entry} key={`${entry.subject.kind}-${index}`} />
+                ))}
+              </div>
+              {notationOnlyChanges.length > 0 ? (
+                <div className="collapsed">
+                  › 挙動が変わらない表記の差が {notationOnlyChanges.length}{" "}
+                  件。書き込み対象には含める
+                </div>
+              ) : null}
+            </>
+          )}
           {gate !== undefined && gate.acknowledgeable.length > 0 ? (
             <section className="banner">
               <span aria-hidden="true">⚠</span>
@@ -119,28 +141,146 @@ export function ApplyDialog({
           {state?.phase === "aborted" ? (
             <p className="error">{state.reason}。再接続後にfull readからやり直してください。</p>
           ) : null}
+          {state?.phase === "completed" ? (
+            <div className="banner result-banner">
+              <span aria-hidden="true">ⓘ</span>
+              <span>
+                ここで確認しているのは<b>実機に反映されたこと</b>
+                で、電源を切っても残ることまでは確認していない。残ることを確かめたい場合は、Apply
+                後に電源を入れ直して読み直す。
+              </span>
+            </div>
+          ) : null}
         </div>
         <div className="mfoot">
           <span className="disc">
-            {state?.phase === "writing"
+            {isWriting
               ? "中断すると、途中までの状態は持ち越さずに全 read からやり直す。"
               : "書き込むのは差分だけ。1 件ごとに書いて同じ entry を読み直して確認する。"}
           </span>
           <div className="grow" />
           <button className="btn" onClick={onCancel}>
-            {state?.phase === "writing" ? "中断" : "キャンセル"}
+            {isWriting ? "中断" : isFinished ? "閉じる" : "キャンセル"}
           </button>
           <button
             className="btn primary"
-            disabled={gate?.allowed !== true || state?.phase !== "awaitingConfirmation"}
-            onClick={onApply}
+            disabled={
+              isWriting ||
+              (!isFinished && (gate?.allowed !== true || state?.phase !== "awaitingConfirmation"))
+            }
+            onClick={isFinished ? onCancel : onApply}
           >
-            {changed.length} 件を実機へ書き込む
+            {isWriting ? "完了" : isFinished ? "完了" : `${changed.length} 件を実機へ書き込む`}
           </button>
         </div>
       </section>
     </dialog>
   );
+}
+
+function WriteProgress({
+  operations,
+  verifiedCount,
+  changed,
+  roundTrips,
+  roundTripTotal,
+}: {
+  readonly operations: readonly WriteOperation[];
+  readonly verifiedCount: number;
+  readonly changed: readonly DiffEntry[];
+  readonly roundTrips: number;
+  readonly roundTripTotal: number;
+}): React.JSX.Element {
+  const percentage = roundTripTotal === 0 ? 0 : Math.min(100, (roundTrips / roundTripTotal) * 100);
+  return (
+    <>
+      <div className="write-summary">
+        <div className="row-heading">
+          <b>
+            {verifiedCount} / {operations.length} 件を書き込んで確認した
+          </b>
+          <div className="grow" />
+          <span className="mono muted">
+            往復 {roundTrips} / {roundTripTotal} 回
+          </span>
+        </div>
+        <div className="track">
+          <div style={{ width: `${percentage}%` }} />
+        </div>
+        <span className="disc">残り時間は表示しない。進み具合は実測の往復回数で示す。</span>
+      </div>
+      <div className="diff-list">
+        {operations.map((operation, index) => {
+          const done = index < verifiedCount;
+          const active = index === verifiedCount && verifiedCount < operations.length;
+          const description = operationDescription(operation, changed);
+          return (
+            <div
+              className={`row write-row ${active ? "active" : ""} ${!done && !active ? "pending" : ""}`}
+              key={`${operation.target.kind}-${index}`}
+            >
+              <span className="write-icon" aria-hidden="true">
+                {done ? "✓" : active ? "⟳" : ""}
+              </span>
+              <span className="diff-subject">{targetLabel(operation)}</span>
+              <span>{description}</span>
+              <div className="grow" />
+              <span className="disc">
+                {done
+                  ? "書き込み → 再読み込みが一致"
+                  : active
+                    ? "書き込んだ値を読み直している"
+                    : "待機中"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function operationDescription(operation: WriteOperation, changed: readonly DiffEntry[]): string {
+  const entry = changed.find((candidate) => subjectMatchesTarget(candidate.subject, operation));
+  return entry?.afterBehavior ?? operation.after.join(", ");
+}
+
+function subjectMatchesTarget(subject: DiffEntry["subject"], operation: WriteOperation): boolean {
+  const target = operation.target;
+  if (target.kind === "key")
+    return (
+      subject.kind === "key" &&
+      subject.layer === target.layer &&
+      subject.row === target.row &&
+      subject.col === target.col
+    );
+  if (target.kind === "encoder")
+    return (
+      subject.kind === "encoder" &&
+      subject.layer === target.layer &&
+      subject.index === target.index &&
+      (target.direction === 0 ? subject.direction === "ccw" : subject.direction === "cw")
+    );
+  if (target.kind === "tapDance")
+    return subject.kind === "tapDance" && subject.index === target.index;
+  if (target.kind === "combo") return subject.kind === "combo" && subject.index === target.index;
+  return subject.kind === "setting" && subject.qsid === target.qsid;
+}
+
+function targetLabel(operation: WriteOperation): string {
+  const target = operation.target;
+  switch (target.kind) {
+    case "key":
+      return `layer ${target.layer} / row ${target.row} col ${target.col}`;
+    case "encoder":
+      return `layer ${target.layer} / encoder ${target.index} / ${target.direction === 0 ? "左回し" : "右回し"}`;
+    case "tapDance":
+      return `Tap Dance ${target.index}`;
+    case "combo":
+      return `Combo ${target.index}`;
+    case "setting":
+      return `settings / qsid ${target.qsid}`;
+  }
 }
 
 function ApplySteps({
@@ -150,12 +290,14 @@ function ApplySteps({
 }): React.JSX.Element {
   const current =
     phase === "awaitingConfirmation"
-      ? 2
+      ? 1
       : phase === "writing"
         ? 3
-        : phase === "completed" || phase === "aborted"
-          ? 4
-          : 1;
+        : phase === "completed"
+          ? 5
+          : phase === "aborted"
+            ? 3
+            : 1;
   const steps = ["backup", "差分確認", "確認", "書き込み", "結果"];
   return (
     <div className="steps" aria-label="Apply steps">
