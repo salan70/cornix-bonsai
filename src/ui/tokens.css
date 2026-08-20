@@ -1,0 +1,44 @@
+:root {
+  --bg: oklch(0.982 0.004 145);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.963 0.005 145);
+  --surface-3: oklch(0.938 0.006 145);
+  --border: oklch(0.893 0.007 145);
+  --border-strong: oklch(0.795 0.010 145);
+  --text: oklch(0.275 0.013 145);
+  --muted: oklch(0.525 0.011 145);
+  --faint: oklch(0.665 0.009 145);
+  --accent: oklch(0.505 0.084 149);
+  --accent-soft: oklch(0.945 0.030 149);
+  --error: oklch(0.520 0.155 27);
+  --error-soft: oklch(0.955 0.028 27);
+  --warning: oklch(0.560 0.105 72);
+  --warning-soft: oklch(0.955 0.038 82);
+  --info: oklch(0.520 0.070 245);
+  --info-soft: oklch(0.955 0.022 245);
+  --r: 4px;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  --sans: -apple-system, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: oklch(0.196 0.008 145);
+    --surface: oklch(0.238 0.009 145);
+    --surface-2: oklch(0.276 0.010 145);
+    --surface-3: oklch(0.318 0.011 145);
+    --border: oklch(0.352 0.012 145);
+    --border-strong: oklch(0.455 0.014 145);
+    --text: oklch(0.925 0.007 145);
+    --muted: oklch(0.700 0.010 145);
+    --faint: oklch(0.575 0.010 145);
+    --accent: oklch(0.735 0.095 149);
+    --accent-soft: oklch(0.318 0.045 149);
+    --error: oklch(0.715 0.135 27);
+    --error-soft: oklch(0.315 0.060 27);
+    --warning: oklch(0.780 0.100 78);
+    --warning-soft: oklch(0.320 0.048 78);
+    --info: oklch(0.735 0.070 245);
+    --info-soft: oklch(0.305 0.040 245);
+  }
+}

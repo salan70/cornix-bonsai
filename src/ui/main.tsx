@@ -644,34 +644,40 @@ function App(): React.JSX.Element {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <div>
+      <header className="hdr">
+        <div className="brand">
           <span className="brand-mark">🌱</span>
           <strong>Cornix Bonsai</strong>
-          <span className="path">{workspace?.store.directory.name ?? "workspace未選択"}</span>
+        </div>
+        <div className="ws">
+          <span>workspace</span>
+          <b className="mono">{workspace?.store.directory.name ?? "未選択"}</b>
         </div>
         <div className="header-actions">
-          <span className="device-summary" aria-live="polite">
+          <span className={`chip ${device === undefined ? "" : "on"}`} aria-live="polite">
+            <span className="dot" />
             {device === undefined ? "device未接続" : `device: ${device.info.productName}`}
-            {deviceRead === undefined || workspace === undefined ? null : (
-              <>
-                {` / current UID ${deviceRead.keyboardUid} / desired UID ${workspace.document.uid}`}
-                {` / definition ${deviceDefinitionDigest === workspace.binding.definitionDigest ? "一致" : "不一致"}`}
-              </>
-            )}
           </span>
-          <button onClick={() => void openWorkspace()}>Workspace</button>
-          <button onClick={() => void reload()} disabled={workspace === undefined}>
+          <button className="btn" onClick={() => void openWorkspace()}>
+            Workspace
+          </button>
+          <button className="btn" onClick={() => void reload()} disabled={workspace === undefined}>
             再読込
           </button>
-          <button onClick={() => void restoreBackup()} disabled={workspace === undefined}>
+          <button
+            className="btn"
+            onClick={() => void restoreBackup()}
+            disabled={workspace === undefined}
+          >
             backup復元
           </button>
-          <button onClick={() => void connect()}>接続</button>
-          <button onClick={() => void disconnect()} disabled={device === undefined}>
+          <button className="btn" onClick={() => void connect()}>
+            接続
+          </button>
+          <button className="btn" onClick={() => void disconnect()} disabled={device === undefined}>
             切断
           </button>
-          <button onClick={() => void readDevice()} disabled={device === undefined}>
+          <button className="btn" onClick={() => void readDevice()} disabled={device === undefined}>
             実機read
           </button>
         </div>
@@ -736,12 +742,22 @@ function App(): React.JSX.Element {
           )}
         </main>
       )}
-      <footer className="status-bar">
-        <span>⛔ {validation?.summary.error ?? 0}</span>
-        <span>⚠ {validation?.summary.warning ?? 0}</span>
-        <span>ⓘ {validation?.summary.information ?? 0}</span>
+      <footer className="status">
+        <span className={`sev err ${(validation?.summary.error ?? 0) === 0 ? "zero" : ""}`}>
+          ⛔ エラー {validation?.summary.error ?? 0}
+        </span>
+        <span className={`sev warn ${(validation?.summary.warning ?? 0) === 0 ? "zero" : ""}`}>
+          ⚠ 警告 {validation?.summary.warning ?? 0}
+        </span>
+        <span className={`sev info ${(validation?.summary.information ?? 0) === 0 ? "zero" : ""}`}>
+          ⓘ 情報 {validation?.summary.information ?? 0}
+        </span>
+        <span className="status-disc">
+          | 実機との差分 <b>{changed.length}</b> 件
+        </span>
         <span className="status-message">{progress ?? status}</span>
         <button
+          className="btn primary"
           onClick={() => void openApply()}
           disabled={changed.length === 0 || deviceRead === undefined}
         >
