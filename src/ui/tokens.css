@@ -85,66 +85,64 @@
   --sans: -apple-system, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
+:root[data-theme="dark"] {
+  color-scheme: dark;
 
-    /* Derived dark-theme colors. These are not sampled from either image. */
-    --derived-dark-surface-3: color-mix(
-      in srgb,
-      var(--palette-dark-medium-charcoal) 72%,
-      var(--palette-dark-gray-key)
-    );
-    --derived-dark-secondary-hover: color-mix(
-      in srgb,
-      var(--palette-dark-orange) 84%,
-      var(--palette-light-white-key)
-    );
-    --derived-dark-error: #ffb4a9;
-    --derived-dark-warning: #f2c35b;
+  /* Derived dark-theme colors. These are not sampled from either image. */
+  --derived-dark-surface-3: color-mix(
+    in srgb,
+    var(--palette-dark-medium-charcoal) 72%,
+    var(--palette-dark-gray-key)
+  );
+  --derived-dark-secondary-hover: color-mix(
+    in srgb,
+    var(--palette-dark-orange) 84%,
+    var(--palette-light-white-key)
+  );
+  --derived-dark-error: #ffb4a9;
+  --derived-dark-warning: #f2c35b;
 
-    /* Dark semantic tokens. */
-    --bg: var(--palette-dark-darkest-charcoal);
-    --surface: var(--palette-dark-charcoal);
-    --surface-2: var(--palette-dark-medium-charcoal);
-    --surface-3: var(--derived-dark-surface-3);
-    --border: var(--palette-dark-gray-key);
-    --border-strong: var(--derived-dark-border-strong);
-    --text: var(--palette-light-white-key);
-    --muted: var(--palette-light-light-gray);
-    --faint: var(--palette-dark-light-gray-key);
-    --accent: var(--palette-dark-yellow);
-    --accent-hover: var(--palette-dark-yellow-highlight);
-    --accent-soft: color-mix(in srgb, var(--palette-dark-yellow) 20%, var(--surface));
-    --accent-emphasis: var(--palette-dark-yellow-highlight);
-    --accent-contrast: var(--palette-dark-darkest-charcoal);
-    --secondary: var(--palette-dark-orange);
-    --secondary-hover: var(--derived-dark-secondary-hover);
-    --secondary-soft: color-mix(in srgb, var(--palette-dark-orange) 16%, var(--surface));
-    --secondary-contrast: var(--derived-deep-ink);
-    --success: var(--palette-dark-mint);
-    --success-soft: color-mix(in srgb, var(--palette-dark-mint) 16%, var(--surface));
-    --success-text: var(--palette-dark-mint);
-    --success-contrast: var(--derived-deep-ink);
-    --error: var(--derived-dark-error);
-    --error-soft: color-mix(in srgb, var(--derived-dark-error) 14%, var(--surface));
-    --warning: var(--derived-dark-warning);
-    --warning-border: var(--palette-dark-yellow-highlight);
-    --warning-soft: color-mix(in srgb, var(--palette-dark-yellow) 16%, var(--surface));
-    --info: var(--palette-light-light-gray);
-    --info-soft: var(--surface-2);
-    --focus: var(--palette-dark-orange);
-    --focus-outer: var(--palette-light-white-key);
-    --key-bg: var(--palette-dark-medium-charcoal);
-    --key-hover-bg: color-mix(
-      in srgb,
-      var(--palette-dark-medium-charcoal) 78%,
-      var(--palette-dark-gray-key)
-    );
-    --key-special-bg: var(--derived-dark-surface-3);
-    --key-text: var(--palette-light-white-key);
-    --key-muted: var(--palette-light-white-key);
-    --disabled-bg: var(--palette-dark-charcoal);
-    --disabled-text: var(--palette-dark-light-gray-key);
-  }
+  /* Dark semantic tokens. */
+  --bg: var(--palette-dark-darkest-charcoal);
+  --surface: var(--palette-dark-charcoal);
+  --surface-2: var(--palette-dark-medium-charcoal);
+  --surface-3: var(--derived-dark-surface-3);
+  --border: var(--palette-dark-gray-key);
+  --border-strong: var(--derived-dark-border-strong);
+  --text: var(--palette-light-white-key);
+  --muted: var(--palette-light-light-gray);
+  --faint: var(--palette-dark-light-gray-key);
+  --accent: var(--palette-dark-yellow);
+  --accent-hover: var(--palette-dark-yellow-highlight);
+  --accent-soft: color-mix(in srgb, var(--palette-dark-yellow) 20%, var(--surface));
+  --accent-emphasis: var(--palette-dark-yellow-highlight);
+  --accent-contrast: var(--palette-dark-darkest-charcoal);
+  --secondary: var(--palette-dark-orange);
+  --secondary-hover: var(--derived-dark-secondary-hover);
+  --secondary-soft: color-mix(in srgb, var(--palette-dark-orange) 16%, var(--surface));
+  --secondary-contrast: var(--derived-deep-ink);
+  --success: var(--palette-dark-mint);
+  --success-soft: color-mix(in srgb, var(--palette-dark-mint) 16%, var(--surface));
+  --success-text: var(--palette-dark-mint);
+  --success-contrast: var(--derived-deep-ink);
+  --error: var(--derived-dark-error);
+  --error-soft: color-mix(in srgb, var(--derived-dark-error) 14%, var(--surface));
+  --warning: var(--derived-dark-warning);
+  --warning-border: var(--palette-dark-yellow-highlight);
+  --warning-soft: color-mix(in srgb, var(--palette-dark-yellow) 16%, var(--surface));
+  --info: var(--palette-light-light-gray);
+  --info-soft: var(--surface-2);
+  --focus: var(--palette-dark-orange);
+  --focus-outer: var(--palette-light-white-key);
+  --key-bg: var(--palette-dark-medium-charcoal);
+  --key-hover-bg: color-mix(
+    in srgb,
+    var(--palette-dark-medium-charcoal) 78%,
+    var(--palette-dark-gray-key)
+  );
+  --key-special-bg: var(--derived-dark-surface-3);
+  --key-text: var(--palette-light-white-key);
+  --key-muted: var(--palette-light-white-key);
+  --disabled-bg: var(--palette-dark-charcoal);
+  --disabled-text: var(--palette-dark-light-gray-key);
 }

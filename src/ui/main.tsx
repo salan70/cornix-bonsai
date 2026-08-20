@@ -50,6 +50,15 @@ import { BrowserWorkspaceStore, pickWorkspace, restoreWorkspace } from "./browse
 import type { Selection, Tab } from "./types.ts";
 import type { PickTarget } from "./keycode-compose.ts";
 import { AppHeader } from "./components/AppHeader.tsx";
+import {
+  applyTheme,
+  browserSystemDark,
+  browserThemeStorage,
+  loadThemePreference,
+  saveThemePreference,
+  subscribeToSystemTheme,
+  type ThemePreference,
+} from "./theme.ts";
 import { ApplyDialog } from "./components/ApplyDialog.tsx";
 import { Behaviors } from "./components/Behaviors.tsx";
 import { diagnosticSelection, DiagnosticsPanel } from "./components/DiagnosticsPanel.tsx";
@@ -60,6 +69,10 @@ import { References } from "./components/References.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { WorkspaceRecovery } from "./components/WorkspaceRecovery.tsx";
 import "./styles.css";
+
+const themeStorage = browserThemeStorage();
+const initialThemePreference = loadThemePreference(themeStorage);
+applyTheme(document.documentElement, initialThemePreference, browserSystemDark());
 
 interface WorkspaceModel {
   readonly store: BrowserWorkspaceStore;
@@ -106,10 +119,24 @@ function App(): React.JSX.Element {
   const [applyState, setApplyState] = useState<ApplyState | undefined>();
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [diagnosticFilter, setDiagnosticFilter] = useState<Severity | undefined>();
+  const [themePreference, setThemePreference] = useState<ThemePreference>(initialThemePreference);
   const editorRef = useRef<HTMLInputElement>(null);
   const applyCancellation = useRef(false);
   const saveQueue = useRef<SaveQueue | undefined>(undefined);
   const labelsSaveQueue = useRef<SaveQueue | undefined>(undefined);
+
+  useEffect(() => {
+    const applyCurrentTheme = (systemDark: boolean): void => {
+      applyTheme(document.documentElement, themePreference, systemDark);
+    };
+    applyCurrentTheme(browserSystemDark());
+    return subscribeToSystemTheme(themePreference, (systemDark) => applyCurrentTheme(systemDark));
+  }, [themePreference]);
+
+  function changeThemePreference(preference: ThemePreference): void {
+    setThemePreference(preference);
+    saveThemePreference(themeStorage, preference);
+  }
 
   function adoptWorkspace(model: WorkspaceModel): void {
     saveQueue.current = createSaveQueue({
@@ -647,6 +674,8 @@ function App(): React.JSX.Element {
         onConnect={() => void connect()}
         onDisconnect={() => void disconnect()}
         onRead={() => void readDevice()}
+        themePreference={themePreference}
+        onThemePreferenceChange={changeThemePreference}
         canReload={workspace !== undefined}
       />
       <nav className="tabs" aria-label="main tabs">

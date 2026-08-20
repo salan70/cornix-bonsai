@@ -150,8 +150,9 @@ backup（全read） → 差分確認 → 人間確認（warning acknowledge込�
 - 基調はneutral gray、accentはbonsaiの緑1色。severity色とdiff色は装飾ではなく意味を
   持つため別枠とし、accentの数には数えない
 - 影とグラデーションを使わず、borderと淡い塗りで面を分ける。radiusは小さく取る
-- light / darkはCSS custom propertiesと`prefers-color-scheme`で両対応する。
-  MVPではsystem追従のみとし、トグルを持たない
+- light / darkはCSS custom propertiesと実効`data-theme`属性で両対応する。
+  headerの`system` / `light` / `dark`選択をブラウザへ保存し、system選択時だけ
+  `prefers-color-scheme`へ追従する
 - UIはsystem sans。raw keycodeとファイルパスだけmonospace
 - キー配置・behavior・差分の可読性を装飾より優先する
 

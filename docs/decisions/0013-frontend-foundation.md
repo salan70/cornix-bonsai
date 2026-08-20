@@ -48,7 +48,7 @@ state管理について。
 | tsconfig          | core（DOM lib無し）とui（DOM + JSX）へ分割する               |
 
 - CSS tokenはADR 0011のvisual directionをそのまま`:root`のcustom propertyへ落とし、
-  darkは`prefers-color-scheme`のmedia queryでtokenだけ差し替える
+  `data-theme="dark"`でDark tokenへ差し替える。system選択のOS追従はReact側で実効属性へ解決する
 - `src/ui/`から`src/core/`への依存は許し、逆向きは禁止する。tsconfigの分割でこれを型で保つ
 - Lucideを入れるのはicon 1つ目を実際に使う時点とし、それまで依存を足さない
 

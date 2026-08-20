@@ -3,6 +3,14 @@ import { readFileSync, readdirSync } from "node:fs";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import {
+  THEME_STORAGE_KEY,
+  applyTheme,
+  loadThemePreference,
+  parseThemePreference,
+  resolveTheme,
+  saveThemePreference,
+} from "./theme.ts";
 
 const TOKEN_PATH = fileURLToPath(new URL("tokens.css", import.meta.url));
 const TEST_PATH = fileURLToPath(import.meta.url);
@@ -38,12 +46,11 @@ test("Issue #16の画像由来paletteを補正せずtoken化する", () => {
   match(css, /Derived implementation colors/);
 });
 
-test("system themeに追従してLightとDarkのsemantic tokenを切り替える", () => {
+test("実効theme属性でLightとDarkのsemantic tokenを切り替える", () => {
   const { light, dark } = themeTokens();
-  match(css, /@media \(prefers-color-scheme: dark\)/);
+  match(css, /:root\[data-theme="dark"\]/);
   strictEqual(light.get("color-scheme"), "light");
   strictEqual(dark.get("color-scheme"), "dark");
-
   strictEqual(resolveHex(light, "--bg"), "#efefef");
   strictEqual(resolveHex(light, "--accent"), "#fac400");
   strictEqual(resolveHex(light, "--secondary"), "#4078e0");
@@ -56,7 +63,6 @@ test("system themeに追従してLightとDarkのsemantic tokenを切り替える
 
 test("文字・主要操作・keycap・focusのコントラストを確保する", () => {
   const { light, dark } = themeTokens();
-
   for (const [name, tokens] of [
     ["Light", light],
     ["Dark", dark],
@@ -69,7 +75,6 @@ test("文字・主要操作・keycap・focusのコントラストを確保する
     assertContrast(tokens, "--key-muted", "--key-bg", 4.5, `${name} keycap detail`);
     assertContrast(tokens, "--border-strong", "--surface", 3, `${name} control border`);
   }
-
   assertContrast(light, "--focus", "--key-bg", 3, "Light focus");
   assertContrast(dark, "--focus-outer", "--key-bg", 3, "Dark focus outer ring");
 });
@@ -84,14 +89,65 @@ test("raw hexはpaletteとderived tokenの定義元以外へ置かない", () =>
   deepStrictEqual(offenders, []);
 });
 
+test("テーマ設定は未保存・不正値をsystemへフォールバックする", () => {
+  strictEqual(parseThemePreference(undefined), "system");
+  strictEqual(parseThemePreference(null), "system");
+  strictEqual(parseThemePreference("unexpected"), "system");
+  strictEqual(loadThemePreference(undefined), "system");
+  strictEqual(
+    loadThemePreference({ getItem: () => "unexpected", setItem: () => undefined }),
+    "system",
+  );
+});
+
+test("保存済みのLight / Dark / systemを読み戻せる", () => {
+  const values = new Map<string, string>([[THEME_STORAGE_KEY, "dark"]]);
+  const storage = {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => values.set(key, value),
+  };
+
+  strictEqual(loadThemePreference(storage), "dark");
+  saveThemePreference(storage, "light");
+  strictEqual(loadThemePreference(storage), "light");
+  saveThemePreference(storage, "system");
+  strictEqual(loadThemePreference(storage), "system");
+});
+
+test("systemはOS設定に従い、明示テーマはOS設定を上書きする", () => {
+  strictEqual(resolveTheme("system", false), "light");
+  strictEqual(resolveTheme("system", true), "dark");
+  strictEqual(resolveTheme("light", true), "light");
+  strictEqual(resolveTheme("dark", false), "dark");
+});
+
+test("実効テーマをdocument rootへ反映する", () => {
+  const root = { dataset: {} as DOMStringMap };
+  strictEqual(applyTheme(root, "system", true), "dark");
+  deepStrictEqual(root.dataset, { theme: "dark" });
+  strictEqual(applyTheme(root, "light", true), "light");
+  deepStrictEqual(root.dataset, { theme: "light" });
+});
+
+test("Storage例外が発生しても現在のテーマ選択を妨げない", () => {
+  const failingStorage = {
+    getItem: () => {
+      throw new Error("blocked");
+    },
+    setItem: () => {
+      throw new Error("blocked");
+    },
+  };
+  strictEqual(loadThemePreference(failingStorage), "system");
+  saveThemePreference(failingStorage, "dark");
+});
+
 function themeTokens(): {
   readonly light: Map<string, string>;
   readonly dark: Map<string, string>;
 } {
   const lightBlock = css.match(/^:root\s*\{([\s\S]*?)\n\}/m)?.[1];
-  const darkBlock = css.match(
-    /@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{([\s\S]*?)\n  \}\n\}/,
-  )?.[1];
+  const darkBlock = css.match(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1];
   ok(lightBlock !== undefined, "Light token blockが必要");
   ok(darkBlock !== undefined, "Dark token blockが必要");
   const light = declarations(lightBlock);

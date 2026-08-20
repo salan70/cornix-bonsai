@@ -1,4 +1,5 @@
 import type { WebHidConnection } from "../../device/webhid.ts";
+import type { ThemePreference } from "../theme.ts";
 
 /** @doc docs/specs/ui.md#header-and-status */
 export function AppHeader({
@@ -10,6 +11,8 @@ export function AppHeader({
   onConnect,
   onDisconnect,
   onRead,
+  themePreference,
+  onThemePreferenceChange,
   canReload,
 }: {
   readonly workspaceName: string | undefined;
@@ -20,6 +23,8 @@ export function AppHeader({
   readonly onConnect: () => void;
   readonly onDisconnect: () => void;
   readonly onRead: () => void;
+  readonly themePreference: ThemePreference;
+  readonly onThemePreferenceChange: (preference: ThemePreference) => void;
   readonly canReload: boolean;
 }): React.JSX.Element {
   return (
@@ -45,6 +50,18 @@ export function AppHeader({
         <button className="btn" onClick={onRead} disabled={device === undefined}>
           実機から再読み込み
         </button>
+        <label className="theme-control">
+          <span>テーマ</span>
+          <select
+            aria-label="テーマ"
+            value={themePreference}
+            onChange={(event) => onThemePreferenceChange(event.target.value as ThemePreference)}
+          >
+            <option value="system">システム</option>
+            <option value="light">ライト</option>
+            <option value="dark">ダーク</option>
+          </select>
+        </label>
         <button className="btn secondary" onClick={onRestoreBackup} disabled={!canReload}>
           backup から復元
         </button>

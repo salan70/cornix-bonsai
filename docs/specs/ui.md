@@ -3,11 +3,22 @@
 UIはVite + React + TypeScriptで、外部router/storeを持たない。mutableなkeymap stateは
 `VilDocument`を1つだけ持ち、編集はCoreの純関数へ委譲する。
 
+<!-- @code src/ui/theme.ts#ThemePreference -->
+<!-- @code src/ui/theme.ts#parseThemePreference -->
+<!-- @code src/ui/theme.ts#loadThemePreference -->
+<!-- @code src/ui/theme.ts#saveThemePreference -->
+<!-- @code src/ui/theme.ts#resolveTheme -->
+<!-- @code src/ui/theme.ts#applyTheme -->
+
 ## Light / Dark theme
 
-Light / Darkは`prefers-color-scheme`へ追従し、アプリ内の独自切替状態は持たない。画像から採取した
-paletteと、それをUI状態へ使うための派生色は`src/ui/tokens.css`で別の名前空間に定義する。
-画像由来色は補正せず、派生色はsampled値と誤認できない名前とコメントを付ける。
+テーマは`system` / `light` / `dark`の3択で、選択をブラウザのlocalStorageへ保存する。初回と
+不正値・保存アクセス失敗時は`system`へ戻る。`system`は`prefers-color-scheme`へ追従し、明示した
+`light` / `dark`はOS設定の変更に影響されない。実効テーマは`document.documentElement`の
+`data-theme="light"` / `data-theme="dark"`へ反映し、CSS tokenを切り替える。
+
+画像から採取したpaletteと、それをUI状態へ使うための派生色は`src/ui/tokens.css`で別の名前空間に
+定義する。画像由来色は補正せず、派生色はsampled値と誤認できない名前とコメントを付ける。
 
 通常画面はneutral surfaceを主体とし、黄をprimary / selected、Lightの青とDarkのオレンジを
 secondary action / focus、Lightの緑とDarkのミントをconnected / successへ使う。keycapは通常、
