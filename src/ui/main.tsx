@@ -688,7 +688,7 @@ function App(): React.JSX.Element {
             />
           ) : null}
           {tab === "Overview" ? (
-            <Overview document={workspace.document} labels={workspace.labels} />
+            <Overview document={workspace.document} labels={workspace.labels} view={view!} />
           ) : null}
           {tab === "Behaviors" ? (
             <Behaviors

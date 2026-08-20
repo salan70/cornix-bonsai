@@ -188,6 +188,16 @@ dialog.modal-backdrop::backdrop { background: color-mix(in srgb, var(--bg) 65%, 
 
 /* ---- legacy/content surfaces kept while components are split ---- */
 .main-content { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.overview-page { flex: 1; min-width: 0; overflow: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+.overview-toolbar { display: flex; align-items: center; gap: 10px; }
+.overview-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px 22px; }
+.overview-card { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.overview-card.dim { opacity: .45; }
+.overview-heading { display: flex; align-items: baseline; gap: 7px; }
+.mini-board { width: 218px; height: 107px; }
+.mini-board .key { pointer-events: none; }
+.mini-board .key .m { font-size: 0; }
+.overview-note { margin-top: auto; }
 .empty-state { flex: 1; padding: 3rem 1rem; text-align: center; }
 .empty-state > p { color: var(--muted); }
 .recovery { max-width: 44rem; margin: 1.5rem auto 0; padding: 1rem 1.2rem; text-align: left; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); display: grid; gap: .7rem; }
