@@ -14,7 +14,7 @@ import {
 import type { WriteTarget } from "../core/apply/targets.ts";
 import { evaluateApplyGate } from "../core/validation/gate.ts";
 import { validateApplyKeymap, validateKeymap } from "../core/validation/validate.ts";
-import { createDiagnostic } from "../core/validation/types.ts";
+import { createDiagnostic, type Severity } from "../core/validation/types.ts";
 import { parseDefinition } from "../core/definition/parse.ts";
 import { canonicalDefinitionText } from "../core/definition/identity.ts";
 import { parseKeymapYaml } from "../core/keymap-yaml/parse.ts";
@@ -46,6 +46,7 @@ import type { Selection, Tab } from "./types.ts";
 import { AppHeader } from "./components/AppHeader.tsx";
 import { ApplyDialog } from "./components/ApplyDialog.tsx";
 import { Behaviors } from "./components/Behaviors.tsx";
+import { diagnosticSelection, DiagnosticsPanel } from "./components/DiagnosticsPanel.tsx";
 import { KeymapTab } from "./components/KeymapTab.tsx";
 import { KeyPanel } from "./components/KeyPanel.tsx";
 import { Overview } from "./components/Overview.tsx";
@@ -93,6 +94,8 @@ function App(): React.JSX.Element {
   const [acknowledged, setAcknowledged] = useState<readonly string[]>([]);
   const [applyOpen, setApplyOpen] = useState(false);
   const [applyState, setApplyState] = useState<ApplyState | undefined>();
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [diagnosticFilter, setDiagnosticFilter] = useState<Severity | undefined>();
   const editorRef = useRef<HTMLInputElement>(null);
   const applyCancellation = useRef(false);
   const saveQueue = useRef<SaveQueue | undefined>(undefined);
@@ -494,6 +497,18 @@ function App(): React.JSX.Element {
     }
   }
 
+  function openDiagnostics(filter: Severity): void {
+    setDiagnosticFilter(filter);
+    setDiagnosticsOpen(true);
+  }
+
+  function selectDiagnostic(subject: Parameters<typeof diagnosticSelection>[0]): void {
+    const next = diagnosticSelection(subject);
+    if (next.layer !== undefined) setLayer(next.layer);
+    setSelection(next.selection);
+    setDiagnosticsOpen(false);
+  }
+
   function editKey(keycode: string): void {
     if (workspace === undefined || selection?.kind !== "key") return;
     try {
@@ -622,21 +637,35 @@ function App(): React.JSX.Element {
               selection={selection}
               setSelection={setSelection}
               labels={workspace.labels}
+              diagnosticSubjects={
+                validation === undefined
+                  ? []
+                  : validation.diagnostics.map((diagnostic) => diagnostic.subject)
+              }
               onFocusEditor={() => {
                 editorRef.current?.focus();
                 editorRef.current?.select();
               }}
               panel={
-                <KeyPanel
-                  view={view}
-                  definition={workspace.definition}
-                  layer={layer}
-                  selection={selection}
-                  labels={workspace.labels}
-                  editorRef={editorRef}
-                  onEditKey={editKey}
-                  onEditEncoder={editEncoder}
-                />
+                diagnosticsOpen ? (
+                  <DiagnosticsPanel
+                    diagnostics={validation?.diagnostics ?? []}
+                    filter={diagnosticFilter}
+                    onClose={() => setDiagnosticsOpen(false)}
+                    onSelect={selectDiagnostic}
+                  />
+                ) : (
+                  <KeyPanel
+                    view={view}
+                    definition={workspace.definition}
+                    layer={layer}
+                    selection={selection}
+                    labels={workspace.labels}
+                    editorRef={editorRef}
+                    onEditKey={editKey}
+                    onEditEncoder={editEncoder}
+                  />
+                )
               }
             />
           ) : null}
@@ -662,6 +691,7 @@ function App(): React.JSX.Element {
         status={progress ?? status}
         canApply={changed.length > 0 && deviceRead !== undefined}
         onApply={() => void openApply()}
+        onSeverity={openDiagnostics}
       />
       {applyOpen ? (
         <ApplyDialog

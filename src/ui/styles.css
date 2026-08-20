@@ -105,7 +105,9 @@ button { cursor: pointer; }
 .encslot .s, .encoder-key .s { font-size: 9px; color: var(--muted); }
 .encoder-slot { margin: 0; padding: 0; border: 0; }
 .encoder-slot legend { color: var(--muted); font-size: 11px; }
+.encoder-pair { display: flex; gap: 5px; }
 .note { color: var(--muted); font-size: 11.5px; line-height: 1.55; }
+.keyboard-note { margin-top: auto; }
 
 /* ---- panel ---- */
 .panel, .side-panel {
@@ -114,6 +116,8 @@ button { cursor: pointer; }
 }
 .panel h1, .panel h2, .side-panel h2 { margin: 0; font-size: 14px; }
 .panel h3 { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); }
+.panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.diagnostics-panel { width: 400px; }
 .psec { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field label { font-size: 11px; color: var(--muted); }
@@ -140,6 +144,7 @@ button { cursor: pointer; }
 .diag .msg { font-size: 12.5px; }
 .diag .where { font-size: 11px; color: var(--muted); }
 .diagnostic-list { display: flex; flex-direction: column; gap: 8px; }
+.diagnostic-collapse { width: 100%; margin-top: 6px; justify-content: flex-start; }
 .collapsed { display: flex; align-items: center; gap: 7px; padding: 8px 11px; border: 1px dashed var(--border-strong); border-radius: var(--r); color: var(--muted); font-size: 12px; }
 
 /* ---- modal ---- */
@@ -168,6 +173,13 @@ dialog.modal-backdrop::backdrop { background: color-mix(in srgb, var(--bg) 65%, 
 .track { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
 .track > div { height: 100%; background: var(--accent); }
 .disc { font-size: 11.5px; color: var(--muted); }
+.diff-list { display: flex; flex-direction: column; gap: 6px; }
+.row-heading { display: flex; align-items: baseline; gap: 10px; }
+.row-heading h3 { margin: 0; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .02em; }
+.diff-subject { width: 150px; flex-shrink: 0; color: var(--muted); font-size: 12px; }
+.ack-body { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; }
+.error-banner { border-color: var(--error); background: var(--error-soft); }
+.raw-editor { display: grid; gap: 4px; color: var(--muted); font-size: 11px; }
 
 /* ---- legacy/content surfaces kept while components are split ---- */
 .main-content { flex: 1; min-height: 0; display: flex; flex-direction: column; }

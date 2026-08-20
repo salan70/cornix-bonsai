@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { createKeycodeTable } from "../../core/keycode/table.ts";
 import { buildKeymapView } from "../../core/model/keymap-view.ts";
 import { classifyKeycode } from "../../core/validation/keycode-vocabulary.ts";
+import type { DiagnosticSubject } from "../../core/validation/types.ts";
 import { layerLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 import type { Selection } from "../types.ts";
 import { keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
@@ -28,7 +29,7 @@ export function KeymapTab({
   readonly labels: WorkspaceLabels;
   readonly panel: React.JSX.Element;
   readonly onFocusEditor: () => void;
-  readonly diagnosticSubjects?: readonly DiagnosticSubjectLike[];
+  readonly diagnosticSubjects?: readonly DiagnosticSubject[];
 }): React.JSX.Element {
   const table = createKeycodeTable(definition, view.capacities);
   const selectedButtonRef = useRef<HTMLButtonElement>(null);
@@ -205,15 +206,6 @@ export function KeymapTab({
     </section>
   );
 }
-
-type DiagnosticSubjectLike =
-  | { readonly kind: "key"; readonly layer: number; readonly row: number; readonly col: number }
-  | {
-      readonly kind: "encoder";
-      readonly layer: number;
-      readonly index: number;
-      readonly direction: "ccw" | "cw";
-    };
 
 function keyClass(keycode: string): string {
   const lexeme = classifyKeycode(keycode);
