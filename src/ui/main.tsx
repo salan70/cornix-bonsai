@@ -21,6 +21,7 @@ import { evaluateApplyGate } from "../core/validation/gate.ts";
 import { validateApplyKeymap, validateKeymap } from "../core/validation/validate.ts";
 import { createDiagnostic } from "../core/validation/types.ts";
 import { keyCenter, parseDefinition } from "../core/definition/parse.ts";
+import { canonicalDefinitionText } from "../core/definition/identity.ts";
 import { parseKeymapYaml } from "../core/keymap-yaml/parse.ts";
 import { serializeKeymapYaml } from "../core/keymap-yaml/serialize.ts";
 import { parseVil } from "../core/vil/parse.ts";
@@ -29,9 +30,9 @@ import { DeviceIoError } from "../device/protocol.ts";
 import { WebHidAdapter, type ReadDeviceResult, type WebHidConnection } from "../device/webhid.ts";
 import {
   backupPath,
+  definitionDigest,
   definitionPath,
   readDefinitionBinding,
-  sha256Hex,
   WORKSPACE_LAYOUT,
 } from "../workspace/layout.ts";
 import {
@@ -240,8 +241,10 @@ function App(): React.JSX.Element {
     setApplyState(undefined);
     try {
       const result = await device.read((event) => setProgress(`${event.label} (${event.count})`));
-      const definitionText = JSON.stringify(result.definition, null, 2) + "\n";
-      const digest = await sha256Hex(new TextEncoder().encode(definitionText), globalThis.crypto);
+      // CLI importと同じcanonical規則でdigestを取る。整形の違いだけで
+      // workspace bindingとmismatchにならないようにするため。
+      const definitionText = canonicalDefinitionText(result.definitionText);
+      const digest = await definitionDigest(definitionText, globalThis.crypto);
       let mismatch = false;
       if (workspace !== undefined) {
         const path = definitionPath(digest);

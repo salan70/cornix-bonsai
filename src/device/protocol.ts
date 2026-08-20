@@ -131,6 +131,8 @@ export class VialSession {
 export interface DeviceReadResult {
   readonly document: VilDocument;
   readonly definition: KeyboardDefinition;
+  /** xz decode 直後の definition テキスト。content-addressing の入力にする。 */
+  readonly definitionText: string;
   readonly definitionXz: Uint8Array;
   readonly capacities: Capacities;
   readonly supportedQsids: readonly number[];
@@ -162,7 +164,8 @@ export async function readVialDevice(
     );
   }
   const definitionXz = concat(definitionChunks);
-  const definition = parseDefinition(await decodeDefinition(definitionXz));
+  const definitionText = await decodeDefinition(definitionXz);
+  const definition = parseDefinition(definitionText);
   const physical = toPhysicalLayout(definition);
   const layerCount = (await session.request([0x11], "layer count"))[1] ?? 0;
   const macroCount = (await session.request([0x0c], "macro count"))[1] ?? 0;
@@ -271,6 +274,7 @@ export async function readVialDevice(
       },
     },
     definition,
+    definitionText,
     definitionXz,
     capacities,
     supportedQsids: settingsRead.qsids,

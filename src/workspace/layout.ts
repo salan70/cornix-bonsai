@@ -5,6 +5,7 @@
  * `src/core/` の意味モデルからは参照しない。
  */
 
+import { canonicalDefinitionText } from "../core/definition/identity.ts";
 import type { WorkspaceFileStore } from "./types.ts";
 
 /** @doc docs/specs/workspace-cli.md#配置 */
@@ -25,6 +26,15 @@ export function definitionPath(digest: string): string {
   return `${WORKSPACE_LAYOUT.definitions}/${digest.slice(0, 16)}.json`;
 }
 
+/**
+ * definition の digest。CLI import・実機 read・binding 検証はすべてこれを通す。
+ *
+ * @doc docs/specs/workspace-cli.md#definitiondigest
+ */
+export async function definitionDigest(text: string, provider: Sha256Provider): Promise<string> {
+  return sha256Hex(new TextEncoder().encode(canonicalDefinitionText(text)), provider);
+}
+
 /** @doc docs/specs/workspace-cli.md#readdefinitionbinding */
 export async function readDefinitionBinding(
   store: Pick<WorkspaceFileStore, "readBytes">,
@@ -38,11 +48,12 @@ export async function readDefinitionBinding(
   }
   const bytes = await store.readBytes(path);
   if (bytes === undefined) throw new Error(`${path} が見つからない`);
-  const actualDigest = await sha256Hex(bytes, provider);
+  const text = new TextDecoder().decode(bytes);
+  const actualDigest = await definitionDigest(text, provider);
   if (actualDigest !== digest) {
     throw new Error(`definition digestが一致しない: expected=${digest} actual=${actualDigest}`);
   }
-  return new TextDecoder().decode(bytes);
+  return text;
 }
 
 export function backupPath(date = new Date()): string {

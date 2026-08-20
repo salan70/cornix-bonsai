@@ -13,12 +13,12 @@ import { KeymapYamlParseError, type DefinitionBinding } from "./types.ts";
 const FIXTURES = join(import.meta.dirname, "../../../fixtures/cornix-lp");
 const readFixture = (name: string) => readFileSync(join(FIXTURES, name), "utf8").trimEnd();
 
-/** ADR 0007 が決めた対応づけ。digest は D-004 Spike が出した fixture の値。 */
+/** ADR 0007 が決めた対応づけ。digest は fixture definition の canonical 表現の SHA-256。 */
 const BINDING: DefinitionBinding = {
   keyboardUid: "16882930253541522617",
   keyboardName: "Cornix LP",
-  definitionPath: "cornix/definitions/49610cdbc2ca7307.json",
-  definitionDigest: "49610cdbc2ca7307b9495eae003fe6b478882eade97402318fb66206acf869f2",
+  definitionPath: "cornix/definitions/2e27d796fea0183f.json",
+  definitionDigest: "2e27d796fea0183fb5aa7d7ada154089cf1b7aaf17c72d0a3e4c781161af0d78",
 };
 
 const bindingFor = (document: VilDocument): DefinitionBinding => ({

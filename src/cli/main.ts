@@ -3,6 +3,7 @@ import { webcrypto } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { parseDefinition } from "../core/definition/parse.ts";
+import { canonicalDefinitionText } from "../core/definition/identity.ts";
 import { diffDocuments } from "../core/diff/diff.ts";
 import { analyzeReachability } from "../core/validation/reachability.ts";
 import { validateKeymap } from "../core/validation/validate.ts";
@@ -12,10 +13,10 @@ import { parseKeymapYaml } from "../core/keymap-yaml/parse.ts";
 import { serializeKeymapYaml } from "../core/keymap-yaml/serialize.ts";
 import { renderPdf, renderSvg } from "../render/keyboard.ts";
 import {
+  definitionDigest,
   definitionPath,
   readDefinitionBinding,
   WORKSPACE_LAYOUT,
-  sha256Hex,
 } from "../workspace/layout.ts";
 import { parseLabelsYaml, EMPTY_LABELS } from "../workspace/labels.ts";
 import { CORNIX_LP_V112_SETTINGS } from "../workspace/settings.ts";
@@ -142,16 +143,20 @@ async function importVil(root: string, input: string, args: ParsedArgs): Promise
   if (definitionFile === "")
     throw new Error(".vil importには --definition <definition.json> が必要");
   const document = parseVil(await readFile(resolve(root, input), "utf8"));
-  const definitionBytes = await readFile(resolve(root, definitionFile));
-  const digest = await sha256Hex(definitionBytes, webcrypto);
+  // workspaceへはcanonical表現で置く。実機readが保存するbytesと同じ規則にして、
+  // 同じdefinitionが整形の違いだけで別digestにならないようにする。
+  const definitionText = canonicalDefinitionText(
+    await readFile(resolve(root, definitionFile), "utf8"),
+  );
+  const digest = await definitionDigest(definitionText, webcrypto);
   const definitionRel = definitionPath(digest);
   const store = new NodeWorkspaceStore(root);
-  await store.writeBytes(definitionRel, new Uint8Array(definitionBytes));
+  await store.writeText(definitionRel, definitionText);
   await store.writeText(
     WORKSPACE_LAYOUT.keymap,
     serializeKeymapYaml(document, {
       keyboardUid: document.uid,
-      keyboardName: parseDefinition(definitionBytes.toString("utf8")).name,
+      keyboardName: parseDefinition(definitionText).name,
       definitionPath: definitionRel,
       definitionDigest: digest,
     }),

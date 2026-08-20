@@ -50,6 +50,8 @@ Spikeで確認できた事実。
 
 - **definitionはcontent-addressingで置く**。内容のSHA-256をファイル名にする。
   `keymap.yaml`は先頭でそのdigestを指し、「どのdefinitionで解釈したか」をdigest 1個で表す
+- **digestの対象はcanonical表現とする**。JSONとして読んでキーを辞書順へ揃え、2 space整形
+  - 末尾改行へ直したbytesをSHA-256する。workspaceへもこの表現で書く
 - backupはApplyごとに1 file。名前は時刻から決め、辞書順と時刻順を一致させる。
   `:`はWindowsのファイル名に使えないため落とす
 - **local serviceに持たせない責務**: filesystem、file watching、実機I/O、workspace API。
@@ -70,6 +72,10 @@ Spikeで確認できた事実。
 - content-addressingを採るのは、実機由来とfirmware由来で同じ内容のdefinitionを
   二重に持たないため。加えて、digestが変わればkeymapとdefinitionの組の食い違いを
   そのまま検出できる。versionや取得元を名前に使うと、同じ名前で中身が違う事故が起きる
+- digestをcanonical表現に対して取るのは、definitionが「Git管理されたworkspaceのファイル」と
+  「実機がxzで配るpayload」の2経路から来るため。raw bytesを対象にすると、同じ内容でも
+  整形が1 byte違うだけで別digestになり、実機を繋いだ瞬間にdefinition mismatchでApplyが
+  止まる。整形の違いを同一視しても「中身が違えば別digest」という性質は失われない
 
 ## 影響
 

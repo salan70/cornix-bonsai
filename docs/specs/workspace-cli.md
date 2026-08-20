@@ -21,12 +21,23 @@ cornix/
   generated/<name>
 ```
 
+<!-- @code src/workspace/layout.ts#definitionDigest -->
+
+## definitionDigest
+
+definitionのcontent-addressingに使う唯一のdigestである。JSONとして読んでキーを辞書順へ
+揃え、2 space整形 + 末尾改行にした表現のSHA-256を取る（ADR 0007）。
+
+`.vil` importと実機full readはどちらもこの関数を通し、workspaceへもcanonical表現で書く。
+raw bytesを対象にすると、firmwareが配るpayloadとGit管理下のdefinitionが同じ内容でも
+整形の違いだけで別digestになり、実機接続時にdefinition mismatchでApplyが止まる。
+
 <!-- @code src/workspace/layout.ts#readDefinitionBinding -->
 
 ## readDefinitionBinding
 
 `keymap.yaml`のdefinition pathがdigestから導出したcontent-addressed pathと一致すること、
-実ファイルのSHA-256がbinding digestと一致することをBrowser / CLIの両方で検証する。
+実ファイルのdigestがbinding digestと一致することをBrowser / CLIの両方で検証する。
 不一致や欠落はdefinitionを解釈せずエラーにする。
 
 <!-- @code src/workspace/types.ts#writeTextIfUnchanged -->
