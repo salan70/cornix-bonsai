@@ -102,10 +102,11 @@ Keymapはdefinition由来の物理座標をHTML/CSSの絶対配置へ投影す�
 相対値で渡す。盤面の外接矩形は回転後の四隅から求め、回転したキーがはみ出さない大きさにする。
 
 表示倍率は固定せず、盤面containerの幅から1uを30〜52pxのclampで決め、keycapのfont sizeも
-同じ倍率へ連動させる。keycapは2段までで、各段は1行に切り詰めて`…`で畳み、全文はtitleと
-side panelで出す。keycodeの語彙に応じたbasic / mod / mod-tap / layer / layer-tap / tapdance /
-custom / noneの意味別classを付ける。encoderは物理キーと混ぜず、実機が申告した本数から専用帯を
-組み立てる。方向キー、Enter、Escの操作は盤面の選択を保ったまま編集panelへ移動できる。
+同じ倍率へ連動させる。keycapは各段を1行に切り詰めて`…`で畳み、全文はtitleとside panelで出す。
+keycodeの語彙に応じたbasic / mod / mod-tap / layer / layer-tap / tapdance / custom / noneの
+意味別classを付ける。encoderは物理キーと混ぜず、実機が申告した本数から専用帯を組み立て、各slotの
+幅と高さをkeycode表示名に依存させない。方向キー、Enter、Escの操作は盤面の選択を保ったまま編集panelへ
+移動できる。
 
 <!-- @code src/ui/components/index.ts#KeyPanel -->
 
@@ -123,9 +124,10 @@ panelへ表示する。動作selectは既存keycodeの分類を使い、キー�
 
 ## Keycode picker
 
-盤面の下にVialのISO/JIS面に合わせた6行の物理配列でkeycodeを常設表示する。mainは各行16uに
-揃え、navigationは3uの逆T字、numpadは4uのclusterとして同じ行位置へ置く。ISO Enterの行跨ぎは
-再現せず、3段目末尾へ2.25uで置き、4段目末尾はspacerにする。
+盤面の下にVialのISO/JIS面に合わせた6行の物理配列でkeycodeを常設表示する。全体を26uの固定座標とし、
+mainは0〜16u、navigationは18〜21u、numpadは22〜26uへ置く。navigationは3uの逆T字、numpadは4uの
+clusterとし、numpad右端を下部26uストリップの右端へ揃える。ISO Enterの行跨ぎは再現せず、3段目末尾へ
+2.25uで置き、4段目末尾はspacerにする。
 
 pickerのキー幅はコンテナ幅と下部ストリップの26uから自動計算し、狭い画面でも横スクロールを
 発生させない。main / navigation / numpadのgridとは独立して、下部に`KC_NO`、`KC_TRNS`、shift済み
@@ -133,9 +135,10 @@ pickerのキー幅はコンテナ幅と下部ストリップの26uから自動�
 描き、表示名があればそれを主表示にする。raw式はtitleで確認できる。表示名が無い場合は、`KC_1`のような
 base keycodeはshift済み記号を上段へ併記し、`KC_KP_7`のようなnumpadは`7`の刻印へ変換する。
 
-適用先はキー全体・Tap・Holdで切り替え、現在値を各ボタンへ併記する。Holdではmodifier keycode
-だけを有効にし、選択した値はVial形式の`X_T(kc)`へ組み立てる。キーまたはencoderが未選択なら
-gridとストリップを含むpicker全体を無効化する。
+適用先はキー全体・Tap・Holdで切り替え、現在値を各ボタンへ併記する。各ボタンは表示名やraw式の長さで
+寸法を変えず、収まらない値はellipsisとtitleで確認できる。Holdではmodifier keycodeだけを有効にし、
+選択した値はVial形式の`X_T(kc)`へ組み立てる。キーまたはencoderが未選択ならgridとストリップを含む
+picker全体を無効化する。
 
 <!-- @code src/ui/keycode-labels.ts#keycodeDisplay -->
 <!-- @code src/core/keycode/shifted.ts#shiftedOf -->
@@ -144,9 +147,11 @@ gridとストリップを含むpicker全体を無効化する。
 
 keycodeの表示はwire encode用の表記とは分離し、`SHORT_LABELS`でVialの刻印へ寄せる。numpad、shift
 済み記号、JIS固有キー（`JYEN`、`KANA`、`HENK`、`MHEN`、`LANG1`、`LANG2`）は刻印を優先する。
-modifier、layer、Tap Danceのrole表記は既存の記号表記を維持する。shift keycodeのbase / shifted
-対応はcoreの単一定義元からpickerと盤面keycapの両方へ提供し、ラベル表を複製しない。workspaceの表示名は
-この既定表示より優先するが、詳細・Apply・SVG/PDFでは表示名とraw式を併記する。
+純粋な`LSFT` / `RSFT` wrapperは入力結果の記号だけを表示し、`SGUI`など複合modifierは既存のmodifier
+表示を維持する。mod-tap / layer-tapのHold値は下段とaccent色で示し、`hold`という文字自体は表示しない。
+momentary layerの単独Hold値はlayer用の背景と枠色で示す。shift keycodeのbase / shifted対応はcoreの
+単一定義元からpickerと盤面keycapの両方へ提供し、ラベル表を複製しない。workspaceの表示名はこの既定
+表示より優先するが、詳細・Apply・SVG/PDFでは表示名とraw式を併記する。
 
 <!-- @code src/ui/components/index.ts#DiagnosticsPanel -->
 

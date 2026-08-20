@@ -43,3 +43,24 @@ test("keycode表示名はraw式の完全一致だけを置き換える", () => {
   assert.equal(keycodeDisplay("KC_Q", labels, table).primary, "Q");
   assert.equal(keycodeDisplay("LCG(KC_Q)", labels, table, { compact: true }).primary, "VeryLon…");
 });
+
+test("純粋なShift wrapperは入力結果だけを表示する", () => {
+  const labels = { layers: new Map<number, string>(), keycodes: new Map<string, string>() };
+  assert.deepEqual(keycodeDisplay("LSFT(KC_SLASH)", labels, table), { primary: "?" });
+  assert.deepEqual(keycodeDisplay("RSFT(KC_1)", labels, table), { primary: "!" });
+  assert.deepEqual(keycodeDisplay("LSFT(KC_A)", labels, table), { primary: "A" });
+});
+
+test("複合Shiftはmodifierを残し、hold文言だけを表示しない", () => {
+  const labels = { layers: new Map<number, string>(), keycodes: new Map<string, string>() };
+  assert.deepEqual(keycodeDisplay("SGUI(KC_2)", labels, table), {
+    primary: "@\n2",
+    role: "⌘",
+  });
+  assert.deepEqual(keycodeDisplay("LSFT_T(KC_SPACE)", labels, table), {
+    primary: "Space",
+    role: "⇧",
+  });
+  assert.equal(keycodeDisplay("LT1(KC_A)", labels, table).role?.startsWith("hold"), false);
+  assert.equal(keycodeDisplay("MO(2)", labels, table).role, undefined);
+});

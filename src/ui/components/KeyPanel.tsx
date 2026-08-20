@@ -12,6 +12,7 @@ import {
   structuredValues,
   type PickTarget,
 } from "../keycode-compose.ts";
+import { PickTargetButtons } from "./PickTargetButtons.tsx";
 
 /** @doc docs/specs/ui.md#side-panel-editing-controls */
 export function KeyPanel({
@@ -100,25 +101,19 @@ export function KeyPanel({
             />
             <div className="field">
               <span>適用先</span>
-              <div className="picker-target side-picker-target" role="group" aria-label="適用先">
-                {(
-                  [
-                    ["whole", "キー全体", input.keycode],
-                    ["tap", "Tap", structured?.tap ?? input.keycode],
-                    ["hold", "Hold", structured?.hold ?? "—"],
-                  ] as const
-                ).map(([target, label, value]) => (
-                  <button
-                    className={pickTarget === target ? "on" : ""}
-                    aria-pressed={pickTarget === target}
-                    onClick={() => onPickTarget(target)}
-                    key={target}
-                  >
-                    <span>{label}</span>
-                    <code>{formatKeycodeValue(labels, value)}</code>
-                  </button>
-                ))}
-              </div>
+              <PickTargetButtons
+                className="side-picker-target"
+                pickTarget={pickTarget}
+                onPickTarget={onPickTarget}
+                value={(target) =>
+                  target === "whole"
+                    ? input.keycode
+                    : target === "tap"
+                      ? (structured?.tap ?? input.keycode)
+                      : (structured?.hold ?? "—")
+                }
+                labels={labels}
+              />
             </div>
           </div>
           <div className="psec">
@@ -189,11 +184,6 @@ export function KeyPanel({
       )}
     </aside>
   );
-}
-
-function formatKeycodeValue(labels: WorkspaceLabels, value: string): string {
-  const name = keycodeLabel(labels, value);
-  return name === undefined ? value : `${name} (${value})`;
 }
 
 function KeySelect({

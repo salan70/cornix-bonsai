@@ -19,6 +19,15 @@ export interface PickerRow {
   readonly numpad?: readonly PickerEntry[];
 }
 
+/** pickerを26uの固定座標へ配置する各groupの開始位置。 */
+export const PICKER_GROUP_OFFSETS = {
+  main: 0,
+  nav: 18,
+  numpad: 22,
+} as const;
+
+export const PICKER_TOTAL_UNITS = 26;
+
 function key(keycode: string, u = 1): PickerKey {
   return u === 1 ? { keycode } : { keycode, u };
 }

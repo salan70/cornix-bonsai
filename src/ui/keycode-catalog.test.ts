@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { isKnownKeycode } from "../core/validation/keycode-vocabulary.ts";
-import { EXTRA_ROW, ISO_JIS_ROWS, type PickerEntry } from "./keycode-catalog.ts";
+import {
+  EXTRA_ROW,
+  ISO_JIS_ROWS,
+  PICKER_GROUP_OFFSETS,
+  PICKER_TOTAL_UNITS,
+  type PickerEntry,
+} from "./keycode-catalog.ts";
 
 function entries(): PickerEntry[] {
   return [
@@ -38,4 +44,9 @@ test("ISO/JIS main rows preserve their intended physical widths", () => {
     [0, 4, 4, 4, 4, 4],
   );
   assert.equal(units(EXTRA_ROW), 26);
+});
+
+test("picker groups use fixed 26u coordinates", () => {
+  assert.deepEqual(PICKER_GROUP_OFFSETS, { main: 0, nav: 18, numpad: 22 });
+  assert.equal(PICKER_TOTAL_UNITS, 26);
 });

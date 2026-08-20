@@ -2,6 +2,8 @@
 
 状態: 採用
 
+表示レイアウトとShift / Holdの補助表示に関する決定は、ADR 0017で更新した。
+
 2026-08-20に、keycode pickerと盤面keycapの表記・配列をVialのISO/JIS面へ揃えるために決めた。
 実機へのwrite・flash・bootloader操作は行っていない。
 

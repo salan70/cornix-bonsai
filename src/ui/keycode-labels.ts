@@ -1,5 +1,5 @@
 import { describeKeycode } from "../core/diff/describe.ts";
-import { classifyKeycode } from "../core/validation/keycode-vocabulary.ts";
+import { canonicalKeycode, classifyKeycode } from "../core/validation/keycode-vocabulary.ts";
 import type { createKeycodeTable } from "../core/keycode/table.ts";
 import { shiftedOf } from "../core/keycode/shifted.ts";
 import { keycodeLabel, layerLabel, type WorkspaceLabels } from "../workspace/labels.ts";
@@ -19,6 +19,7 @@ export interface DisplayOptions {
 
 /** keycapに出すlayer名の上限。超えた分は`…`へ畳む。 */
 const COMPACT_LABEL_LENGTH = 7;
+const PURE_SHIFT_MODIFIERS = new Set(["LSFT", "RSFT"]);
 
 /** @doc docs/specs/ui.md#keycode-labels */
 export function keycodeDisplay(
@@ -42,6 +43,9 @@ export function keycodeDisplay(
     case "basic":
       return { primary: basicLabel(lexeme.name) };
     case "modified":
+      if (PURE_SHIFT_MODIFIERS.has(lexeme.modifier)) {
+        return { primary: shiftedResultLabel(lexeme.inner, labels, table, options) };
+      }
       return {
         primary: keycodeDisplay(lexeme.inner, labels, table, options).primary,
         role: modifierSymbol(lexeme.modifier),
@@ -49,21 +53,22 @@ export function keycodeDisplay(
     case "modTap":
       return {
         primary: keycodeDisplay(lexeme.inner, labels, table, options).primary,
-        role: `hold ${modifierSymbol(lexeme.modifier)}`,
+        role: modifierSymbol(lexeme.modifier),
       };
     case "oneShotMod":
       return { primary: modifierSymbol(lexeme.modifier), role: "one-shot" };
-    case "layerSwitch":
+    case "layerSwitch": {
+      const primary =
+        lexeme.inner === undefined
+          ? layerName(lexeme.layer)
+          : keycodeDisplay(lexeme.inner, labels, table, options).primary;
+      if (lexeme.inner === undefined && lexeme.action === "momentary") return { primary };
       return {
-        primary:
-          lexeme.inner === undefined
-            ? layerName(lexeme.layer)
-            : keycodeDisplay(lexeme.inner, labels, table, options).primary,
+        primary,
         role:
-          lexeme.inner === undefined
-            ? layerActionLabel(lexeme.action)
-            : `hold ${layerName(lexeme.layer)}`,
+          lexeme.inner === undefined ? layerActionLabel(lexeme.action) : layerName(lexeme.layer),
       };
+    }
     case "tapDance":
       return { primary: `TD ${lexeme.index}`, role: "Tap Dance" };
     case "macro":
@@ -183,6 +188,18 @@ export function basicLabel(keycode: string): string {
   const explicit = SHORT_LABELS[name];
   if (explicit !== undefined) return explicit;
   return shortLabel(name);
+}
+
+function shiftedResultLabel(
+  inner: string,
+  labels: WorkspaceLabels,
+  table: ReturnType<typeof createKeycodeTable>,
+  options: DisplayOptions,
+): string {
+  const shifted = shiftedOf(canonicalKeycode(inner));
+  return shifted === undefined
+    ? keycodeDisplay(inner, labels, table, options).primary
+    : shortLabel(shifted);
 }
 
 /** `KC_`を外した名前、またはcustom keycodeのshort nameを短い表記へ寄せる。 */

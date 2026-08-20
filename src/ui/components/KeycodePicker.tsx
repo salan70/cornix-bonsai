@@ -1,10 +1,18 @@
 import { createKeycodeTable } from "../../core/keycode/table.ts";
 import { keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
 import type { Selection } from "../types.ts";
-import { EXTRA_ROW, ISO_JIS_ROWS, type PickerEntry, type PickerRow } from "../keycode-catalog.ts";
+import {
+  EXTRA_ROW,
+  ISO_JIS_ROWS,
+  PICKER_GROUP_OFFSETS,
+  PICKER_TOTAL_UNITS,
+  type PickerEntry,
+  type PickerRow,
+} from "../keycode-catalog.ts";
 import { applyPick, canPick, structuredValues, type PickTarget } from "../keycode-compose.ts";
 import type { buildKeymapView } from "../../core/model/keymap-view.ts";
-import { keycodeLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
+import type { WorkspaceLabels } from "../../workspace/labels.ts";
+import { PickTargetButtons } from "./PickTargetButtons.tsx";
 
 /** @doc docs/specs/ui.md#keycode-picker */
 export function KeycodePicker({
@@ -44,7 +52,7 @@ export function KeycodePicker({
     <section className="picker" aria-label="keycode picker">
       <div className="picker-heading">
         <h3>Keycode picker</h3>
-        <TargetButtons
+        <PickTargetButtons
           pickTarget={pickTarget}
           onPickTarget={onPickTarget}
           value={(target) => targetValue(input?.keycode, target)}
@@ -52,7 +60,10 @@ export function KeycodePicker({
           disabled={disabled}
         />
       </div>
-      <div className="pk-grid">
+      <div
+        className="pk-grid"
+        style={{ ["--pk-total" as string]: PICKER_TOTAL_UNITS } as React.CSSProperties}
+      >
         <PickerGroup
           rows={ISO_JIS_ROWS}
           field="main"
@@ -101,49 +112,6 @@ export function KeycodePicker({
   );
 }
 
-function TargetButtons({
-  pickTarget,
-  onPickTarget,
-  value,
-  labels,
-  disabled,
-}: {
-  readonly pickTarget: PickTarget;
-  readonly onPickTarget: (target: PickTarget) => void;
-  readonly value: (target: PickTarget) => string | undefined;
-  readonly labels: WorkspaceLabels;
-  readonly disabled: boolean;
-}): React.JSX.Element {
-  return (
-    <div className="picker-target" role="group" aria-label="適用先">
-      {(
-        [
-          ["whole", "キー全体"],
-          ["tap", "Tap"],
-          ["hold", "Hold"],
-        ] as const
-      ).map(([target, label]) => (
-        <button
-          className={pickTarget === target ? "on" : ""}
-          aria-pressed={pickTarget === target}
-          disabled={disabled}
-          onClick={() => onPickTarget(target)}
-          key={target}
-        >
-          <span>{label}</span>
-          <code>{formatTargetValue(value(target), labels)}</code>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function formatTargetValue(value: string | undefined, labels: WorkspaceLabels): string {
-  if (value === undefined) return "—";
-  const name = keycodeLabel(labels, value);
-  return name === undefined ? value : `${name} (${value})`;
-}
-
 function PickerGroup({
   rows,
   field,
@@ -163,8 +131,14 @@ function PickerGroup({
   readonly pickTarget: PickTarget;
   readonly onPick: (keycode: string) => void;
 }): React.JSX.Element {
+  const width = field === "main" ? 16 : field === "nav" ? 3 : 4;
   return (
-    <div className={`pk-group pk-${field}`}>
+    <div
+      className={`pk-group pk-${field}`}
+      style={{
+        gridColumn: `${PICKER_GROUP_OFFSETS[field] + 1} / span ${width}`,
+      }}
+    >
       {rows.map((row, rowIndex) => (
         <div className="pk-row" key={rowIndex}>
           {(row[field] ?? []).map((entry, entryIndex) => (

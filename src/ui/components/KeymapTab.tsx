@@ -191,7 +191,11 @@ export function KeymapTab({
                     );
                     return (
                       <button
-                        className={`encslot ${selected ? "sel" : ""} ${diagnostic ? "diag-warn" : ""}`}
+                        className={`encslot ${keycodeClass(encoder.keycode)} ${selected ? "sel" : ""} ${diagnostic ? "diag-warn" : ""}`}
+                        title={capTitle(
+                          keycodeDisplay(encoder.keycode, labels, table, { compact: true }),
+                          encoder.keycode,
+                        )}
                         onClick={() => setSelection({ kind: "encoder", index, direction })}
                         onKeyDown={(event) => {
                           if (event.key === "Enter") {
