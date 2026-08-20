@@ -50,18 +50,6 @@ export function AppHeader({
         <button className="btn" onClick={onRead} disabled={device === undefined}>
           実機から再読み込み
         </button>
-        <label className="theme-control">
-          <span>テーマ</span>
-          <select
-            aria-label="テーマ"
-            value={themePreference}
-            onChange={(event) => onThemePreferenceChange(event.target.value as ThemePreference)}
-          >
-            <option value="system">システム</option>
-            <option value="light">ライト</option>
-            <option value="dark">ダーク</option>
-          </select>
-        </label>
         <button className="btn secondary" onClick={onRestoreBackup} disabled={!canReload}>
           backup から復元
         </button>
@@ -74,6 +62,18 @@ export function AppHeader({
         <button className="btn" onClick={onReload} disabled={!canReload}>
           再読込
         </button>
+        <label className="theme-control">
+          <span>テーマ</span>
+          <select
+            aria-label="テーマ"
+            value={themePreference}
+            onChange={(event) => onThemePreferenceChange(event.target.value as ThemePreference)}
+          >
+            <option value="system">システム</option>
+            <option value="light">ライト</option>
+            <option value="dark">ダーク</option>
+          </select>
+        </label>
       </div>
     </header>
   );
