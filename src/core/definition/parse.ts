@@ -109,19 +109,33 @@ export function toPhysicalLayout(definition: KeyboardDefinition): PhysicalLayout
   return { keys, encoders };
 }
 
+/** 点`(x, y)`を`(cx, cy)`まわりに`degrees`だけ回した座標。回転計算はこの関数を唯一の定義元とする。 */
+export function rotatePoint(
+  x: number,
+  y: number,
+  cx: number,
+  cy: number,
+  degrees: number,
+): readonly [number, number] {
+  if (degrees === 0) return [x, y];
+  const rad = (degrees * Math.PI) / 180;
+  const dx = x - cx;
+  const dy = y - cy;
+  return [
+    cx + dx * Math.cos(rad) - dy * Math.sin(rad),
+    cy + dx * Math.sin(rad) + dy * Math.cos(rad),
+  ];
+}
+
 /** 回転を適用した後のキー中心座標。 */
 export function keyCenter(key: PhysicalKey): readonly [number, number] {
-  const cx = key.x + key.width / 2;
-  const cy = key.y + key.height / 2;
-  if (key.rotationAngle === 0) return [cx, cy];
-
-  const rad = (key.rotationAngle * Math.PI) / 180;
-  const dx = cx - key.rotationX;
-  const dy = cy - key.rotationY;
-  return [
-    key.rotationX + dx * Math.cos(rad) - dy * Math.sin(rad),
-    key.rotationY + dx * Math.sin(rad) + dy * Math.cos(rad),
-  ];
+  return rotatePoint(
+    key.x + key.width / 2,
+    key.y + key.height / 2,
+    key.rotationX,
+    key.rotationY,
+    key.rotationAngle,
+  );
 }
 
 /** `kle_serial.py` の `deserialize` から、幾何と label に効く部分だけを移した実装。 */

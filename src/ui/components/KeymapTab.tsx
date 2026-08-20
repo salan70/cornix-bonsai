@@ -1,12 +1,13 @@
 import { useRef } from "react";
 import { createKeycodeTable } from "../../core/keycode/table.ts";
 import { buildKeymapView } from "../../core/model/keymap-view.ts";
-import { classifyKeycode } from "../../core/validation/keycode-vocabulary.ts";
 import type { DiagnosticSubject } from "../../core/validation/types.ts";
+import { boardMetrics, boardSize, keyBox } from "../../render/geometry.ts";
 import { layerLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 import type { Selection } from "../types.ts";
-import { keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
+import { keycodeClass, keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
 import { moveKey } from "../key-navigation.ts";
+import { useBoardScale } from "../use-board-scale.ts";
 
 /** @doc docs/specs/ui.md#keymap-editor */
 export function KeymapTab({
@@ -46,18 +47,10 @@ export function KeymapTab({
   const unusedLayers = Array.from({ length: layerCount }, (_, index) => index).filter(
     (index) => !assignedLayers.has(index),
   );
-  const boardWidth = Math.max(
-    0,
-    ...view.keys
-      .filter((key) => key.position.layer === layer)
-      .map((key) => (key.physical.x + key.physical.width) * 42),
-  );
-  const boardHeight = Math.max(
-    0,
-    ...view.keys
-      .filter((key) => key.position.layer === layer)
-      .map((key) => (key.physical.y + key.physical.height) * 42),
-  );
+  const layerKeys = view.keys.filter((key) => key.position.layer === layer);
+  const metrics = boardMetrics(layerKeys.map((key) => key.physical));
+  const { ref: fitRef, scale } = useBoardScale(metrics.width);
+  const size = boardSize(metrics, scale);
 
   function selectLayer(nextLayer: number): void {
     setLayer(nextLayer);
@@ -107,10 +100,19 @@ export function KeymapTab({
             </span>
           ) : null}
         </div>
-        <div className="board" style={{ width: `${boardWidth}px`, height: `${boardHeight}px` }}>
-          {view.keys
-            .filter((key) => key.position.layer === layer)
-            .map((key) => {
+        <div className="board-fit" ref={fitRef}>
+          <div
+            className="board"
+            style={{
+              width: `${size.width}px`,
+              height: `${size.height}px`,
+              ["--cap-font" as string]: `${Math.round(scale.unit * 0.28)}px`,
+              ["--cap-sub-font" as string]: `${Math.max(9, Math.round(scale.unit * 0.22))}px`,
+            }}
+          >
+            {layerKeys.map((key) => {
+              const box = keyBox(key.physical, metrics, scale);
+              const display = keycodeDisplay(key.keycode, labels, table, { compact: true });
               const selected =
                 selection?.kind === "key" &&
                 selection.row === key.position.row &&
@@ -125,23 +127,25 @@ export function KeymapTab({
               return (
                 <button
                   ref={selected ? selectedButtonRef : undefined}
-                  className={`key ${keyClass(key.keycode)} ${selected ? "sel" : ""} ${diagnostic ? "diag-warn" : ""}`}
+                  className={`key ${keycodeClass(key.keycode)} ${selected ? "sel" : ""} ${diagnostic ? "diag-warn" : ""}`}
                   style={{
-                    left: `${key.physical.x * 42}px`,
-                    top: `${key.physical.y * 42}px`,
-                    width: `${key.physical.width * 38}px`,
-                    height: `${key.physical.height * 38}px`,
-                    transform: `rotate(${key.physical.rotationAngle}deg)`,
-                    transformOrigin: `${key.physical.rotationX * 42}px ${key.physical.rotationY * 42}px`,
+                    left: `${box.left}px`,
+                    top: `${box.top}px`,
+                    width: `${box.width}px`,
+                    height: `${box.height}px`,
+                    transform: `rotate(${box.angle}deg)`,
+                    transformOrigin: `${box.originX}px ${box.originY}px`,
                   }}
+                  title={capTitle(display, key.keycode)}
                   onClick={() => selectKey(key)}
                   onKeyDown={(event) => handleKeyDown(event, key)}
                   key={`${key.position.row}:${key.position.col}`}
                 >
-                  {renderKeycode(keycodeDisplay(key.keycode, labels, table))}
+                  {renderKeycode(display)}
                 </button>
               );
             })}
+          </div>
         </div>
         <div className="encstrip" aria-label="encoders">
           {[
@@ -188,7 +192,7 @@ export function KeymapTab({
                         key={direction}
                       >
                         {renderKeycode(
-                          keycodeDisplay(encoder.keycode, labels, table),
+                          keycodeDisplay(encoder.keycode, labels, table, { compact: true }),
                           direction === "ccw" ? "↺ " : "↻ ",
                         )}
                       </button>
@@ -208,28 +212,11 @@ export function KeymapTab({
   );
 }
 
-function keyClass(keycode: string): string {
-  const lexeme = classifyKeycode(keycode);
-  const kind = lexeme.kind;
-  switch (kind) {
-    case "modified":
-      return "mod";
-    case "modTap":
-    case "oneShotMod":
-      return "mod-tap";
-    case "layerSwitch":
-      return lexeme.inner === undefined ? "layer" : "layer-tap";
-    case "tapDance":
-      return "tapdance";
-    case "custom":
-    case "macro":
-    case "numeric":
-    case "unknown":
-      return "custom";
-    case "none":
-      return "none";
-    case "basic":
-    case "transparent":
-      return "basic";
-  }
+function capTitle(
+  display: { readonly primary: string; readonly role?: string },
+  keycode: string,
+): string {
+  const head =
+    display.role === undefined ? display.primary : `${display.primary} / ${display.role}`;
+  return `${head}  (${keycode})`;
 }

@@ -67,14 +67,22 @@ status barのエラー・警告・情報件数は押下でき、診断panelを�
 常設し、Applyのgateと診断のseverityをUI表示上で混同しない。
 
 <!-- @code src/ui/components/index.ts#KeymapTab -->
+<!-- @code src/render/geometry.ts#keyBox -->
+<!-- @code src/render/geometry.ts#boardMetrics -->
+<!-- @code src/ui/use-board-scale.ts#useBoardScale -->
 
 ## Keymap editor
 
-Keymapはdefinition由来の物理座標をHTML/CSSの絶対配置へ投影する。artifactの表示倍率として
-`x * 42`、`y * 42`、`width * 38`、`height * 38`を使い、keycodeの語彙に応じたbasic / mod /
-mod-tap / layer / layer-tap / tapdance / custom / noneの意味別classを付ける。encoderは物理キー
-と混ぜず、実機が申告した本数から専用帯を組み立てる。方向キー、Enter、Escの操作は盤面の選択を
-保ったまま編集panelへ移動できる。
+Keymapはdefinition由来の物理座標をHTML/CSSの絶対配置へ投影する。座標からpxへの投影は
+`src/render/geometry.ts`が唯一の定義元で、盤面とOverview、SVG / PDF exportが同じ関数を消費する。
+`transform-origin`は要素自身のbox基準で解決されるため、回転中心は盤面座標ではなくキーからの
+相対値で渡す。盤面の外接矩形は回転後の四隅から求め、回転したキーがはみ出さない大きさにする。
+
+表示倍率は固定せず、盤面containerの幅から1uを30〜52pxのclampで決め、keycapのfont sizeも
+同じ倍率へ連動させる。keycapは2段までで、各段は1行に切り詰めて`…`で畳み、全文はtitleと
+side panelで出す。keycodeの語彙に応じたbasic / mod / mod-tap / layer / layer-tap / tapdance /
+custom / noneの意味別classを付ける。encoderは物理キーと混ぜず、実機が申告した本数から専用帯を
+組み立てる。方向キー、Enter、Escの操作は盤面の選択を保ったまま編集panelへ移動できる。
 
 <!-- @code src/ui/components/index.ts#KeyPanel -->
 
@@ -113,7 +121,8 @@ full readからやり直す。
 
 ## Overview layer grid
 
-Overviewは全layerを4列のmini盤面で表示する。mini盤面は218×107pxで、未使用layerは薄く表示し、
+Overviewは全layerを4列のmini盤面で表示する。mini盤面は幅218pxへfitさせ、高さは盤面の外接矩形
+から導く（倍率の計算はKeymap editorと同じ`src/render/geometry.ts`）。未使用layerは薄く表示し、
 未使用または到達不能のtagを付ける。layer名が無い場合も`layer N`として番号を隠さない。SVGとPDF
 のexportボタンは配置だけを実装し、未実装であることが分かるdisabled状態にする。
 

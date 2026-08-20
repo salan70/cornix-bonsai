@@ -9,6 +9,14 @@ export interface KeycodeDisplay {
   readonly role?: string;
 }
 
+/** keycap向けの表示option。`compact`はkeycapに収まる長さへ切り詰める。 */
+export interface DisplayOptions {
+  readonly compact?: boolean;
+}
+
+/** keycapに出すlayer名の上限。超えた分は`…`へ畳む。 */
+const COMPACT_LABEL_LENGTH = 7;
+
 export function renderKeycode(display: KeycodeDisplay, prefix = ""): JSX.Element {
   return (
     <>
@@ -25,23 +33,26 @@ export function keycodeDisplay(
   keycode: string,
   labels: WorkspaceLabels,
   table: ReturnType<typeof createKeycodeTable>,
+  options: DisplayOptions = {},
 ): KeycodeDisplay {
   const lexeme = classifyKeycode(keycode);
+  const layerName = (layer: number): string =>
+    options.compact === true ? shorten(layerLabel(labels, layer)) : layerLabel(labels, layer);
   switch (lexeme.kind) {
     case "none":
-      return { primary: "—", role: "No action" };
+      return options.compact === true ? { primary: "—" } : { primary: "—", role: "No action" };
     case "transparent":
-      return { primary: "↓", role: "Transparent" };
+      return options.compact === true ? { primary: "↓" } : { primary: "↓", role: "Transparent" };
     case "basic":
       return { primary: basicLabel(lexeme.name) };
     case "modified":
       return {
-        primary: keycodeDisplay(lexeme.inner, labels, table).primary,
+        primary: keycodeDisplay(lexeme.inner, labels, table, options).primary,
         role: modifierSymbol(lexeme.modifier),
       };
     case "modTap":
       return {
-        primary: keycodeDisplay(lexeme.inner, labels, table).primary,
+        primary: keycodeDisplay(lexeme.inner, labels, table, options).primary,
         role: `hold ${modifierSymbol(lexeme.modifier)}`,
       };
     case "oneShotMod":
@@ -50,12 +61,12 @@ export function keycodeDisplay(
       return {
         primary:
           lexeme.inner === undefined
-            ? layerLabel(labels, lexeme.layer)
-            : keycodeDisplay(lexeme.inner, labels, table).primary,
+            ? layerName(lexeme.layer)
+            : keycodeDisplay(lexeme.inner, labels, table, options).primary,
         role:
           lexeme.inner === undefined
             ? layerActionLabel(lexeme.action)
-            : `hold ${layerLabel(labels, lexeme.layer)}`,
+            : `hold ${layerName(lexeme.layer)}`,
       };
     case "tapDance":
       return { primary: `TD ${lexeme.index}`, role: "Tap Dance" };
@@ -63,7 +74,9 @@ export function keycodeDisplay(
       return { primary: `M ${lexeme.index}`, role: "Macro" };
     case "custom": {
       const resolved = table.resolve(keycode);
-      return resolved.kind === "custom" ? { primary: resolved.shortName } : { primary: keycode };
+      return resolved.kind === "custom"
+        ? { primary: shortLabel(resolved.shortName) }
+        : { primary: keycode };
     }
     case "numeric":
       return { primary: keycode, role: "Numeric" };
@@ -72,21 +85,61 @@ export function keycodeDisplay(
   }
 }
 
+/** keycapへ出す短い表記。keycodeの綴りではなく、刻印に近い1〜2文字を優先する。 */
+const SHORT_LABELS: Readonly<Record<string, string>> = {
+  BSPACE: "⌫",
+  DELETE: "⌦",
+  ENTER: "⏎",
+  ESCAPE: "Esc",
+  GESC: "⎋",
+  SPACE: "Space",
+  TAB: "⇥",
+  CAPSLOCK: "⇪",
+  LCTRL: "⌃",
+  LSHIFT: "⇧",
+  LALT: "⌥",
+  LGUI: "⌘",
+  RCTRL: "⌃",
+  RSHIFT: "⇧",
+  RALT: "⌥",
+  RGUI: "⌘",
+  MUTE: "Mute",
+  MINUS: "-",
+  EQUAL: "=",
+  LBRACKET: "[",
+  RBRACKET: "]",
+  BSLASH: "\\",
+  SCOLON: ";",
+  QUOTE: "'",
+  GRAVE: "`",
+  COMMA: ",",
+  DOT: ".",
+  SLASH: "/",
+  LEFT: "←",
+  RIGHT: "→",
+  UP: "↑",
+  DOWN: "↓",
+  HOME: "Home",
+  END: "End",
+  PGUP: "PgUp",
+  PGDOWN: "PgDn",
+  LANG1: "かな",
+  LANG2: "英数",
+  INT1: "＼",
+  INT3: "¥",
+};
+
 export function basicLabel(keycode: string): string {
-  const withoutPrefix = keycode.replace(/^KC_/, "");
-  const labels: Readonly<Record<string, string>> = {
-    BSPACE: "⌫",
-    ENTER: "⏎",
-    ESCAPE: "Esc",
-    SPACE: "Space",
-    TAB: "⇥",
-    LCTRL: "⌃",
-    LSHIFT: "⇧",
-    LALT: "⌥",
-    LGUI: "⌘",
-    MUTE: "Mute",
-  };
-  return labels[withoutPrefix] ?? withoutPrefix;
+  return shortLabel(keycode.replace(/^KC_/, ""));
+}
+
+/** `KC_`を外した名前、またはcustom keycodeのshort nameを短い表記へ寄せる。 */
+export function shortLabel(name: string): string {
+  return SHORT_LABELS[name] ?? name;
+}
+
+function shorten(label: string): string {
+  return label.length <= COMPACT_LABEL_LENGTH ? label : `${label.slice(0, COMPACT_LABEL_LENGTH)}…`;
 }
 
 export function modifierSymbol(modifier: string): string {
@@ -125,4 +178,30 @@ export function describeDisplayKeycode(
   table: ReturnType<typeof createKeycodeTable>,
 ): string {
   return describeKeycode(keycode, table);
+}
+
+/** keycodeの語彙から意味別のclassを決める。盤面とOverviewで同じ分類を使う。 */
+export function keycodeClass(keycode: string): string {
+  const lexeme = classifyKeycode(keycode);
+  switch (lexeme.kind) {
+    case "modified":
+      return "mod";
+    case "modTap":
+    case "oneShotMod":
+      return "mod-tap";
+    case "layerSwitch":
+      return lexeme.inner === undefined ? "layer" : "layer-tap";
+    case "tapDance":
+      return "tapdance";
+    case "custom":
+    case "macro":
+    case "numeric":
+    case "unknown":
+      return "custom";
+    case "none":
+      return "none";
+    case "basic":
+    case "transparent":
+      return "basic";
+  }
 }

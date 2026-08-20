@@ -82,25 +82,35 @@ button { cursor: pointer; }
 .layer-tabs, .layer-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .layer-tabs button { border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); }
 .layer-tabs button.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.board-fit { min-width: 0; align-self: flex-start; }
 .board, .key-grid { position: relative; }
 .board { flex-shrink: 0; }
 .key, .keycap {
   position: absolute; border: 1px solid var(--border-strong); border-radius: var(--r);
   background: var(--surface); display: flex; flex-direction: column;
   align-items: center; justify-content: center; overflow: hidden;
+  min-width: 0; padding: 0 1px;
 }
-.key .m, .keycap .m { font-size: 13px; line-height: 1.1; font-weight: 500; }
-.key .s, .keycap .s { font-size: 9px; line-height: 1.1; color: var(--muted); margin-top: 2px; letter-spacing: 0.01em; }
+.key .m, .keycap .m {
+  font-size: var(--cap-font, 13px); line-height: 1.1; font-weight: 500;
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.key .s, .keycap .s {
+  font-size: var(--cap-sub-font, 9px); line-height: 1.1; color: var(--muted);
+  margin-top: 1px; letter-spacing: 0.01em;
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .key.none, .keycap.none { background: var(--surface-2); border-style: dashed; border-color: var(--border); }
 .key.layer, .key.layer-tap, .keycap.layer, .keycap.layer-tap { background: var(--accent-soft); border-color: var(--accent); }
 .key.layer .s, .key.layer-tap .s, .keycap.layer .s, .keycap.layer-tap .s { color: var(--accent); }
 .key.tapdance, .key.custom, .keycap.tapdance, .keycap.custom { background: var(--surface-3); }
-.key.sel, .keycap.selected { border-color: var(--accent); border-width: 2px; outline: 2px solid var(--accent-soft); outline-offset: 1px; z-index: 2; }
+.key.sel, .keycap.selected { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: -1px; z-index: 2; }
 .key.diag-warn, .keycap.diag-warn { border-color: var(--warning); }
 .encstrip, .encoder-strip { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
 .enc, .encoder-slot { display: flex; align-items: center; gap: 8px; }
 .encdial { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--border-strong); }
-.encslot, .encoder-key { border: 1px solid var(--border-strong); border-radius: var(--r); padding: 3px 8px; background: var(--surface); text-align: center; }
+.encslot, .encoder-key { display: flex; flex-direction: column; align-items: center; min-width: 76px; max-width: 132px; border: 1px solid var(--border-strong); border-radius: var(--r); padding: 3px 8px; background: var(--surface); text-align: center; }
+.encslot .m, .encslot .s { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .encslot .m, .encoder-key .m { font-size: 12px; }
 .encslot .s, .encoder-key .s { font-size: 9px; color: var(--muted); }
 .encoder-slot { margin: 0; padding: 0; border: 0; }
@@ -194,7 +204,6 @@ dialog.modal-backdrop::backdrop { background: color-mix(in srgb, var(--bg) 65%, 
 .overview-card { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
 .overview-card.dim { opacity: .45; }
 .overview-heading { display: flex; align-items: baseline; gap: 7px; }
-.mini-board { width: 218px; height: 107px; }
 .mini-board .key { pointer-events: none; }
 .mini-board .key .m { font-size: 0; }
 .overview-note { margin-top: auto; }
