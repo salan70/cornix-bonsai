@@ -243,29 +243,35 @@ function App(): React.JSX.Element {
     }
   }
 
+  /** full readしてcurrent stateを差し替える。definition bindingの照合もここで行う。 */
+  async function readDeviceInto(connection: WebHidConnection): Promise<boolean> {
+    const result = await connection.read((event) => setProgress(`${event.label} (${event.count})`));
+    // CLI importと同じcanonical規則でdigestを取る。整形の違いだけで
+    // workspace bindingとmismatchにならないようにするため。
+    const definitionText = canonicalDefinitionText(result.definitionText);
+    const digest = await definitionDigest(definitionText, globalThis.crypto);
+    let mismatch = false;
+    if (workspace !== undefined) {
+      const path = definitionPath(digest);
+      await workspace.store.writeText(path, definitionText);
+      if (
+        workspace.binding.definitionDigest !== digest ||
+        workspace.document.uid !== result.keyboardUid
+      ) {
+        mismatch = true;
+      }
+    }
+    setDeviceDefinitionDigest(digest);
+    setDeviceRead(result);
+    return mismatch;
+  }
+
   async function readDevice(): Promise<void> {
     if (device === undefined) return;
     setApplyOpen(false);
     setApplyState(undefined);
     try {
-      const result = await device.read((event) => setProgress(`${event.label} (${event.count})`));
-      // CLI importと同じcanonical規則でdigestを取る。整形の違いだけで
-      // workspace bindingとmismatchにならないようにするため。
-      const definitionText = canonicalDefinitionText(result.definitionText);
-      const digest = await definitionDigest(definitionText, globalThis.crypto);
-      let mismatch = false;
-      if (workspace !== undefined) {
-        const path = definitionPath(digest);
-        await workspace.store.writeText(path, definitionText);
-        if (
-          workspace.binding.definitionDigest !== digest ||
-          workspace.document.uid !== result.keyboardUid
-        ) {
-          mismatch = true;
-        }
-      }
-      setDeviceDefinitionDigest(digest);
-      setDeviceRead(result);
+      const mismatch = await readDeviceInto(device);
       setStatus(
         mismatch
           ? "実機のfull readは完了したが、definitionまたはUIDがworkspaceと異なる。desired stateは上書きしていない"
@@ -361,11 +367,20 @@ function App(): React.JSX.Element {
         setApplyState(current);
         if (current.phase === "aborted") break;
       }
-      setStatus(
-        current.phase === "completed"
-          ? "実機に反映した（電源断後の永続化は未確認）"
-          : "Applyを中断した。再接続後にfull readからやり直してください",
-      );
+      if (current.phase !== "completed") {
+        setStatus("Applyを中断した。再接続後にfull readからやり直してください");
+        return;
+      }
+      // 成功後もcurrent stateが古いままだと、反映済みの差分が残り同じApplyを再開できてしまう。
+      // verify済みのoperationからcurrentを組み立てず、実機をfull readし直して収束させる。
+      try {
+        await readDeviceInto(device);
+        setStatus("実機に反映した（電源断後の永続化は未確認）");
+      } catch (error) {
+        setStatus(
+          `実機に反映したが、反映後のfull readに失敗した: ${message(error)}。再接続してfull readからやり直してください`,
+        );
+      }
     } catch (error) {
       setStatus(message(error));
     } finally {

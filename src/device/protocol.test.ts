@@ -166,6 +166,32 @@ test("baseline全layerのfull readはbaselineとの差分を1件も出さない"
   deepStrictEqual(diffDocuments(baseline, result.document, definition.parsed).entries, []);
 });
 
+test("write→再read verifyの後にfull readするとdiffが収束する", async () => {
+  const { device, baseline, definition } = await createBaselineFixture();
+  const target: WriteTarget = { kind: "key", layer: 0, row: 0, col: 0 };
+  const desired: VilDocument = {
+    ...baseline,
+    layout: baseline.layout.map((layer, layerIndex) =>
+      layerIndex !== 0
+        ? layer
+        : layer.map((row, rowIndex) =>
+            rowIndex !== 0 ? row : row.map((key, colIndex) => (colIndex === 0 ? "KC_F13" : key)),
+          ),
+    ),
+  };
+
+  const session = new VialSession(device, { timeoutMs: 100 });
+  const before = await readVialDevice(session, async () => definition.text);
+  strictEqual(diffDocuments(before.document, desired, definition.parsed).entries.length, 1);
+
+  const observed = await writeAndVerify(session, target, [encodeVialKeycode("KC_F13", 6)]);
+  deepStrictEqual(observed, [encodeVialKeycode("KC_F13", 6)]);
+
+  const after = await readVialDevice(session, async () => definition.text);
+  session.close();
+  deepStrictEqual(diffDocuments(after.document, desired, definition.parsed).entries, []);
+});
+
 /** baseline `.vil` をそのまま返す mock device 一式。 */
 async function createBaselineFixture(): Promise<{
   readonly device: MockHidDevice;

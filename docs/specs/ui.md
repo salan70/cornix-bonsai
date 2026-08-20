@@ -25,3 +25,5 @@ Settingsの表示はCornix LP公式firmware V1.12で確認したqsid辞書を使
 Applyだけは他tabへ移れない線形modalとして扱い、backup、差分、人間確認、write+verify、結果の
 順序を崩さない。`backup復元`は最新の`.vil` backupをdesiredへ読み込み、通常のdiffとApply経路へ
 戻す。
+Applyが全operationのverifyを終えたら実機をfull readし直し、currentとdesiredが一致した状態へ
+収束させる。反映済みの差分を残したままにすると、同じApplyをもう一度開始できてしまう。
