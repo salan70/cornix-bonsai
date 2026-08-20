@@ -1,7 +1,7 @@
 import { createKeycodeTable } from "../../core/keycode/table.ts";
 import { keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
 import type { Selection } from "../types.ts";
-import { ISO_JIS_ROWS, type PickerEntry, type PickerRow } from "../keycode-catalog.ts";
+import { EXTRA_ROW, ISO_JIS_ROWS, type PickerEntry, type PickerRow } from "../keycode-catalog.ts";
 import { applyPick, canPick, structuredValues, type PickTarget } from "../keycode-compose.ts";
 import type { buildKeymapView } from "../../core/model/keymap-view.ts";
 import type { WorkspaceLabels } from "../../workspace/labels.ts";
@@ -83,6 +83,19 @@ export function KeycodePicker({
           pickTarget={pickTarget}
           onPick={onPick}
         />
+      </div>
+      <div className="pk-strip">
+        {EXTRA_ROW.map((entry, entryIndex) => (
+          <PickerEntryButton
+            entry={entry}
+            table={table}
+            labels={labels}
+            selected={"keycode" in entry && entry.keycode === selectedValue}
+            disabled={disabled || ("keycode" in entry && !canPick(pickTarget, entry.keycode))}
+            onPick={onPick}
+            key={entryIndex}
+          />
+        ))}
       </div>
     </section>
   );
@@ -182,7 +195,7 @@ function PickerEntryButton({
   if (!("keycode" in entry)) {
     return (
       <span
-        className="pk-spacer"
+        className="pk-cell pk-spacer"
         aria-hidden="true"
         style={{ ["--pk-u" as string]: unit } as React.CSSProperties}
       />
@@ -190,15 +203,16 @@ function PickerEntryButton({
   }
   const display = keycodeDisplay(entry.keycode, labels, table, { compact: true });
   return (
-    <button
-      className={`pk ${selected ? "on" : ""}`}
-      style={{ ["--pk-u" as string]: unit } as React.CSSProperties}
-      title={`${display.primary}${display.role === undefined ? "" : ` / ${display.role}`} (${entry.keycode})`}
-      disabled={disabled}
-      onClick={() => onPick(entry.keycode)}
-    >
-      {renderKeycode(display)}
-    </button>
+    <span className="pk-cell" style={{ ["--pk-u" as string]: unit } as React.CSSProperties}>
+      <button
+        className={`pk ${selected ? "on" : ""}`}
+        title={`${display.primary}${display.role === undefined ? "" : ` / ${display.role}`} (${entry.keycode})`}
+        disabled={disabled}
+        onClick={() => onPick(entry.keycode)}
+      >
+        {renderKeycode(display)}
+      </button>
+    </span>
   );
 }
 

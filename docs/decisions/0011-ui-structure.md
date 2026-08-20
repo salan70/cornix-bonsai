@@ -106,7 +106,8 @@ encoderは盤面と分けた専用の帯に描く。definitionのKLE上でencode
 popoverは盤面を隠し、連続して編集するたびに位置を見失う。side panelなら
 編集中も盤面と現在のlayerが見えている。
 
-- keycapは2段まで。上段に主ラベル（tap側）、下段に役割（`⌘`、layer名、`Tap Dance`など）
+- keycapは原則2段まで。上段に主ラベル（tap側）、下段に役割（`⌘`、layer名、`Tap Dance`など）
+- shift併記による3段目の許容とラベルの改訂は、ADR 0015でこの原則を更新する
 - **layerを指すkeycodeはlayer名を出す。**`MO(2)`は「Nav」と表示し、`layer 2`とは出さない
   （名前の出どころはADR 0012）
 - ModifierはmacOS表記（`⌘` `⌥` `⌃` `⇧`）を優先する

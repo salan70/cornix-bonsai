@@ -99,11 +99,29 @@ layerを指すkeycodeは参照先のlayer名と番号を表示する。
 
 ## Keycode picker
 
-盤面の下にISO/JISの物理配列でkeycodeを常設表示する。function、数字、文字、修飾、JIS固有キー、
-navigation、numpad、shift済み記号の各帯は、表示名を個別に複製せず既存のkeycode表示関数から描く。
+盤面の下にVialのISO/JIS面に合わせた6行の物理配列でkeycodeを常設表示する。mainは各行16uに
+揃え、navigationは3uの逆T字、numpadは4uのclusterとして同じ行位置へ置く。ISO Enterの行跨ぎは
+再現せず、3段目末尾へ2.25uで置き、4段目末尾はspacerにする。
+
+pickerのキー幅はコンテナ幅と下部ストリップの26uから自動計算し、狭い画面でも横スクロールを
+発生させない。main / navigation / numpadのgridとは独立して、下部に`KC_NO`、`KC_TRNS`、shift済み
+記号、`LANG1` / `LANG2`を並べる26uのストリップを描く。各キーの表示は共通のkeycode label関数から
+描き、`KC_1`のようなbase keycodeはshift済み記号を上段へ併記し、`KC_KP_7`のようなnumpadは
+`7`の刻印へ変換する。
+
 適用先はキー全体・Tap・Holdで切り替え、現在値を各ボタンへ併記する。Holdではmodifier keycode
 だけを有効にし、選択した値はVial形式の`X_T(kc)`へ組み立てる。キーまたはencoderが未選択なら
-picker全体を無効化する。
+gridとストリップを含むpicker全体を無効化する。
+
+<!-- @code src/ui/keycode-labels.ts#keycodeDisplay -->
+<!-- @code src/core/keycode/shifted.ts#shiftedOf -->
+
+## Keycode labels
+
+keycodeの表示はwire encode用の表記とは分離し、`SHORT_LABELS`でVialの刻印へ寄せる。numpad、shift
+済み記号、JIS固有キー（`JYEN`、`KANA`、`HENK`、`MHEN`、`LANG1`、`LANG2`）は刻印を優先する。
+modifier、layer、Tap Danceのrole表記は既存の記号表記を維持する。shift keycodeのbase / shifted
+対応はcoreの単一定義元からpickerと盤面keycapの両方へ提供し、ラベル表を複製しない。
 
 <!-- @code src/ui/components/index.ts#DiagnosticsPanel -->
 

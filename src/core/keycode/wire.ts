@@ -1,6 +1,7 @@
 /** `.vil`のkeycode表記をVial protocol 6のu16へ変換するfail-closed encoder。 */
 
 import { canonicalKeycode } from "../validation/keycode-vocabulary.ts";
+import { baseOf } from "./shifted.ts";
 
 /** Vialが安全にwire値へ変換できないkeycode表記を受け取った。 */
 export class KeycodeEncodingError extends Error {}
@@ -133,30 +134,6 @@ const BASIC: Readonly<Record<string, number>> = {
   KC_SFTENT: 0x7c1e,
 };
 
-const SHIFTED: Readonly<Record<string, string>> = {
-  KC_TILD: "KC_GRAVE",
-  KC_EXLM: "KC_1",
-  KC_AT: "KC_2",
-  KC_HASH: "KC_3",
-  KC_DLR: "KC_4",
-  KC_PERC: "KC_5",
-  KC_CIRC: "KC_6",
-  KC_AMPR: "KC_7",
-  KC_ASTR: "KC_8",
-  KC_LPRN: "KC_9",
-  KC_RPRN: "KC_0",
-  KC_UNDS: "KC_MINUS",
-  KC_PLUS: "KC_EQUAL",
-  KC_LCBR: "KC_LBRACKET",
-  KC_RCBR: "KC_RBRACKET",
-  KC_PIPE: "KC_BSLASH",
-  KC_COLN: "KC_SCOLON",
-  KC_DQUO: "KC_QUOTE",
-  KC_LT: "KC_COMMA",
-  KC_GT: "KC_DOT",
-  KC_QUES: "KC_SLASH",
-};
-
 const MODIFIERS: Readonly<Record<string, number>> = {
   LCTL: 0x01,
   LSFT: 0x02,
@@ -193,7 +170,7 @@ export function encodeVialKeycode(keycode: string, protocol: number): number {
   }
   const basic = BASIC[canonical];
   if (basic !== undefined) return basic;
-  const shifted = SHIFTED[canonical];
+  const shifted = baseOf(canonical);
   if (shifted !== undefined) return 0x0200 | requireBasic(shifted, keycode);
 
   const indexed = /^(MO|TO|DF|TG|OSL|TT)\((\d+)\)$/.exec(canonical);

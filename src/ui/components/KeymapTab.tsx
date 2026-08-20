@@ -116,7 +116,7 @@ export function KeymapTab({
             style={{
               width: `${size.width}px`,
               height: `${size.height}px`,
-              ["--cap-font" as string]: `${Math.round(scale.unit * 0.28)}px`,
+              ["--cap-font" as string]: `${Math.round(scale.unit * 0.24)}px`,
               ["--cap-sub-font" as string]: `${Math.max(9, Math.round(scale.unit * 0.22))}px`,
             }}
           >

@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { isKnownKeycode } from "../core/validation/keycode-vocabulary.ts";
-import { ISO_JIS_ROWS, type PickerEntry } from "./keycode-catalog.ts";
+import { EXTRA_ROW, ISO_JIS_ROWS, type PickerEntry } from "./keycode-catalog.ts";
 
 function entries(): PickerEntry[] {
-  return ISO_JIS_ROWS.flatMap((row) => [...row.main, ...(row.nav ?? []), ...(row.numpad ?? [])]);
+  return [
+    ...ISO_JIS_ROWS.flatMap((row) => [...row.main, ...(row.nav ?? []), ...(row.numpad ?? [])]),
+    ...EXTRA_ROW,
+  ];
 }
 
 function units(entriesToMeasure: readonly PickerEntry[]): number {
@@ -24,14 +27,15 @@ test("ISO/JIS picker contains only known, unique keycodes", () => {
 test("ISO/JIS main rows preserve their intended physical widths", () => {
   assert.deepEqual(
     ISO_JIS_ROWS.map((row) => units(row.main)),
-    [16, 16, 15, 15, 16, 17.5, 26],
+    [16, 16, 16, 16, 16, 16],
   );
   assert.deepEqual(
     ISO_JIS_ROWS.map((row) => units(row.nav ?? [])),
-    [3, 3, 3, 4, 0, 0, 0],
+    [3, 3, 3, 0, 3, 3],
   );
   assert.deepEqual(
     ISO_JIS_ROWS.map((row) => units(row.numpad ?? [])),
-    [4, 5, 5, 3, 5, 0, 0],
+    [0, 4, 4, 4, 4, 4],
   );
+  assert.equal(units(EXTRA_ROW), 26);
 });
