@@ -4,6 +4,7 @@ import { Behaviors as BehaviorsComponent } from "./Behaviors.js";
 import { DiagnosticsPanel as DiagnosticsPanelComponent } from "./DiagnosticsPanel.js";
 import { KeyPanel as KeyPanelComponent } from "./KeyPanel.js";
 import { KeymapTab as KeymapTabComponent } from "./KeymapTab.js";
+import { KeycodePicker as KeycodePickerComponent } from "./KeycodePicker.js";
 import { Overview as OverviewComponent } from "./Overview.js";
 import { References as ReferencesComponent } from "./References.js";
 import { StatusBar as StatusBarComponent } from "./StatusBar.js";
@@ -20,6 +21,9 @@ export const KeymapTab = KeymapTabComponent;
 
 /** @doc docs/specs/ui.md#side-panel-editing-controls */
 export const KeyPanel = KeyPanelComponent;
+
+/** @doc docs/specs/ui.md#keycode-picker */
+export const KeycodePicker = KeycodePickerComponent;
 
 /** @doc docs/specs/ui.md#diagnostic-panel */
 export const DiagnosticsPanel = DiagnosticsPanelComponent;

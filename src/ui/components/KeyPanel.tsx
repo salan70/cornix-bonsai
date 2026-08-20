@@ -5,6 +5,13 @@ import { classifyKeycode } from "../../core/validation/keycode-vocabulary.ts";
 import { buildKeymapView } from "../../core/model/keymap-view.ts";
 import { layerLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 import type { Selection } from "../types.ts";
+import {
+  BEHAVIOR_OPTIONS,
+  behaviorKind,
+  composeKeycode,
+  structuredValues,
+  type PickTarget,
+} from "../keycode-compose.ts";
 
 /** @doc docs/specs/ui.md#side-panel-editing-controls */
 export function KeyPanel({
@@ -14,6 +21,8 @@ export function KeyPanel({
   selection,
   labels,
   editorRef,
+  pickTarget,
+  onPickTarget,
   onEditKey,
   onEditEncoder,
 }: {
@@ -23,6 +32,8 @@ export function KeyPanel({
   readonly selection: Selection | undefined;
   readonly labels: WorkspaceLabels;
   readonly editorRef: RefObject<HTMLInputElement | null>;
+  readonly pickTarget: PickTarget;
+  readonly onPickTarget: (target: PickTarget) => void;
   readonly onEditKey: (value: string) => void;
   readonly onEditEncoder: (value: string) => void;
 }): React.JSX.Element {
@@ -72,41 +83,35 @@ export function KeyPanel({
             <KeySelect
               label="動作"
               value={behaviorKind(lexeme)}
-              options={behaviorOptions}
+              options={BEHAVIOR_OPTIONS}
               onChange={(value) => {
-                const next = composeKeycode(value, structured, labels);
+                const next = composeKeycode(value, structured);
                 if (selection?.kind === "encoder") onEditEncoder(next);
                 else onEditKey(next);
               }}
             />
-            <KeySelect
-              label="Tap（単押し）"
-              value={structured?.tap ?? input.keycode}
-              options={keyOptions(structured?.tap ?? input.keycode, view)}
-              onChange={(value) => {
-                const next = composeKeycode(
-                  behaviorKind(lexeme),
-                  { ...structured, tap: value },
-                  labels,
-                );
-                if (selection?.kind === "encoder") onEditEncoder(next);
-                else onEditKey(next);
-              }}
-            />
-            <KeySelect
-              label="Hold（長押し）"
-              value={structured?.hold ?? "KC_NO"}
-              options={keyOptions(structured?.hold ?? "KC_NO", view)}
-              onChange={(value) => {
-                const next = composeKeycode(
-                  behaviorKind(lexeme),
-                  { ...structured, hold: value },
-                  labels,
-                );
-                if (selection?.kind === "encoder") onEditEncoder(next);
-                else onEditKey(next);
-              }}
-            />
+            <div className="field">
+              <span>適用先</span>
+              <div className="picker-target side-picker-target" role="group" aria-label="適用先">
+                {(
+                  [
+                    ["whole", "キー全体", input.keycode],
+                    ["tap", "Tap", structured?.tap ?? input.keycode],
+                    ["hold", "Hold", structured?.hold ?? "—"],
+                  ] as const
+                ).map(([target, label, value]) => (
+                  <button
+                    className={pickTarget === target ? "on" : ""}
+                    aria-pressed={pickTarget === target}
+                    onClick={() => onPickTarget(target)}
+                    key={target}
+                  >
+                    <span>{label}</span>
+                    <code>{value}</code>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="psec">
             <h3>詳細</h3>
@@ -187,93 +192,4 @@ function KeySelect({
       </select>
     </label>
   );
-}
-
-const behaviorOptions = [
-  "basic",
-  "modified",
-  "modTap",
-  "layerSwitch",
-  "tapDance",
-  "custom",
-  "none",
-] as const;
-
-function behaviorKind(lexeme: ReturnType<typeof classifyKeycode> | undefined): string {
-  if (lexeme === undefined) return "basic";
-  switch (lexeme.kind) {
-    case "oneShotMod":
-      return "modTap";
-    case "unknown":
-    case "numeric":
-      return "custom";
-    default:
-      return lexeme.kind === "layerSwitch" ? "layerSwitch" : lexeme.kind;
-  }
-}
-
-interface StructuredValues {
-  readonly tap?: string;
-  readonly hold?: string;
-  readonly layer?: number;
-  readonly modifier?: string;
-}
-
-function structuredValues(keycode: string): StructuredValues {
-  const lexeme = classifyKeycode(keycode);
-  switch (lexeme.kind) {
-    case "modified":
-      return { tap: lexeme.inner, modifier: lexeme.modifier };
-    case "modTap":
-      return { tap: lexeme.inner, hold: lexeme.modifier, modifier: lexeme.modifier };
-    case "layerSwitch":
-      return { tap: lexeme.inner ?? "KC_NO", layer: lexeme.layer };
-    case "basic":
-      return { tap: keycode };
-    case "none":
-      return { tap: "KC_NO" };
-    default:
-      return { tap: keycode };
-  }
-}
-
-function composeKeycode(
-  kind: string,
-  values: StructuredValues | undefined,
-  labels: WorkspaceLabels,
-): string {
-  const tap = values?.tap ?? "KC_NO";
-  const hold = values?.hold ?? "LSFT";
-  switch (kind) {
-    case "modified":
-      return `LGUI(${tap})`;
-    case "modTap":
-      return `MT(${hold}, ${tap})`;
-    case "layerSwitch":
-      return `LT${values?.layer ?? 0}(${tap})`;
-    case "tapDance":
-      return "TD(0)";
-    case "custom":
-      return tap;
-    case "none":
-      return "KC_NO";
-    case "basic":
-      return tap;
-    default:
-      return labels ? tap : tap;
-  }
-}
-
-function keyOptions(current: string, view: ReturnType<typeof buildKeymapView>): readonly string[] {
-  return [
-    "KC_NO",
-    "KC_TRNS",
-    "KC_A",
-    "KC_B",
-    "KC_ENTER",
-    "KC_SPACE",
-    "KC_ESCAPE",
-    ...Array.from({ length: view.capacities.layerCount }, (_, index) => `MO(${index})`),
-    current,
-  ];
 }

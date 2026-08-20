@@ -43,6 +43,7 @@ import { createSaveQueue, type SaveQueue } from "../workspace/save-queue.ts";
 import type { WorkspaceConflictToken } from "../workspace/types.ts";
 import { BrowserWorkspaceStore, pickWorkspace, restoreWorkspace } from "./browser-workspace.ts";
 import type { Selection, Tab } from "./types.ts";
+import type { PickTarget } from "./keycode-compose.ts";
 import { AppHeader } from "./components/AppHeader.tsx";
 import { ApplyDialog } from "./components/ApplyDialog.tsx";
 import { Behaviors } from "./components/Behaviors.tsx";
@@ -86,6 +87,7 @@ function App(): React.JSX.Element {
   const [tab, setTab] = useState<Tab>("Keymap");
   const [layer, setLayer] = useState(0);
   const [selection, setSelection] = useState<Selection | undefined>();
+  const [pickTarget, setPickTarget] = useState<PickTarget>("whole");
   const [device, setDevice] = useState<WebHidConnection | undefined>();
   const [deviceRead, setDeviceRead] = useState<ReadDeviceResult | undefined>();
   const [deviceDefinitionDigest, setDeviceDefinitionDigest] = useState<string | undefined>();
@@ -655,6 +657,10 @@ function App(): React.JSX.Element {
               selection={selection}
               setSelection={setSelection}
               labels={workspace.labels}
+              pickTarget={pickTarget}
+              onPickTarget={setPickTarget}
+              onEditKey={editKey}
+              onEditEncoder={editEncoder}
               diagnosticSubjects={
                 validation === undefined
                   ? []
@@ -680,6 +686,8 @@ function App(): React.JSX.Element {
                     selection={selection}
                     labels={workspace.labels}
                     editorRef={editorRef}
+                    pickTarget={pickTarget}
+                    onPickTarget={setPickTarget}
                     onEditKey={editKey}
                     onEditEncoder={editEncoder}
                   />

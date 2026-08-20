@@ -6,6 +6,8 @@ import { boardMetrics, boardSize, keyBox } from "../../render/geometry.ts";
 import { layerLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 import type { Selection } from "../types.ts";
 import { keycodeClass, keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
+import { KeycodePicker } from "./KeycodePicker.tsx";
+import type { PickTarget } from "../keycode-compose.ts";
 import { moveKey } from "../key-navigation.ts";
 import { useBoardScale } from "../use-board-scale.ts";
 
@@ -19,6 +21,10 @@ export function KeymapTab({
   setSelection,
   labels,
   panel,
+  pickTarget,
+  onPickTarget,
+  onEditKey,
+  onEditEncoder,
   onFocusEditor,
   diagnosticSubjects = [],
 }: {
@@ -30,6 +36,10 @@ export function KeymapTab({
   readonly setSelection: (value: Selection | undefined) => void;
   readonly labels: WorkspaceLabels;
   readonly panel: React.JSX.Element;
+  readonly pickTarget: PickTarget;
+  readonly onPickTarget: (target: PickTarget) => void;
+  readonly onEditKey: (value: string) => void;
+  readonly onEditEncoder: (value: string) => void;
   readonly onFocusEditor: () => void;
   readonly diagnosticSubjects?: readonly DiagnosticSubject[];
 }): React.JSX.Element {
@@ -203,6 +213,17 @@ export function KeymapTab({
               </div>
             ))}
         </div>
+        <KeycodePicker
+          view={view}
+          definition={definition}
+          layer={layer}
+          selection={selection}
+          labels={labels}
+          pickTarget={pickTarget}
+          onPickTarget={onPickTarget}
+          onEditKey={onEditKey}
+          onEditEncoder={onEditEncoder}
+        />
         <div className="note keyboard-note">
           方向キーで隣のキーへ選択が移り、Enter で右の編集 panel へ focus、Esc で盤面へ戻る。
         </div>

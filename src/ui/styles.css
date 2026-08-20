@@ -118,6 +118,29 @@ button { cursor: pointer; }
 .encoder-pair { display: flex; gap: 5px; }
 .note { color: var(--muted); font-size: 11.5px; line-height: 1.55; }
 .keyboard-note { margin-top: auto; }
+.picker { display: flex; flex-direction: column; gap: 9px; padding: 12px; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); overflow: hidden; }
+.picker-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.picker-heading h3 { margin: 3px 0 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+.picker-target { display: flex; gap: 4px; flex-wrap: wrap; }
+.picker-target button { min-height: 34px; padding: 3px 7px; flex-direction: column; align-items: stretch; gap: 0; border-color: var(--border); background: var(--surface-2); color: var(--muted); font-size: 10px; text-align: left; }
+.picker-target button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.picker-target button code { color: var(--text); font-size: 9.5px; white-space: nowrap; }
+.picker-target button.on code { color: var(--accent); }
+.side-picker-target { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.side-picker-target button { min-width: 0; }
+.side-picker-target button code { overflow: hidden; text-overflow: ellipsis; }
+.pk-grid { --pk: 32px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: start; gap: 7px; min-width: max-content; overflow-x: auto; padding-bottom: 2px; }
+.pk-group { display: flex; flex-direction: column; gap: 3px; }
+.pk-row { display: flex; gap: 3px; min-height: 34px; }
+.pk, .pk-spacer { flex: 0 0 calc(var(--pk) * var(--pk-u, 1)); width: calc(var(--pk) * var(--pk-u, 1)); min-width: 0; }
+.pk { position: static; height: 34px; padding: 2px; flex-direction: column; border-radius: 3px; border-color: var(--border); background: var(--surface-2); text-align: center; }
+.pk .m { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; line-height: 1.1; }
+.pk .s { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 8px; line-height: 1.1; color: var(--muted); }
+.pk.on { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: -1px; background: var(--accent-soft); color: var(--accent); }
+.pk.on .s { color: var(--accent); }
+.pk[disabled] { color: var(--faint); border-color: var(--border); opacity: .58; }
+.pk[disabled] .s { color: var(--faint); }
+.pk-spacer { display: block; }
 
 /* ---- panel ---- */
 .panel, .side-panel {

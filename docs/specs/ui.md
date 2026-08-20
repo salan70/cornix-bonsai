@@ -89,9 +89,21 @@ custom / noneの意味別classを付ける。encoderは物理キーと混ぜず�
 ## Side panel editing controls
 
 選択中のキーまたはencoderは、位置、動作、Tap（単押し）、Hold（長押し）、詳細、参照を右側の
-panelへ表示する。Tap/Holdのselectは既存keycodeの分類から構造化された文字列を組み立てて既存の
-core編集関数へ渡す。selectで表現しきれないcustom、macro、未分類表記のため、raw keycode入力も
-詳細内に残す。layerを指すkeycodeは参照先のlayer名と番号を表示する。
+panelへ表示する。動作selectは既存keycodeの分類を使い、キー全体・Tap・Holdの現在値と適用先を
+表示する。Tap/Holdの変更は盤面下のkeycode pickerから行い、選択した値は既存のcore編集関数へ
+渡す。pickerで表現しきれないcustom、macro、未分類表記のため、raw keycode入力も詳細内に残す。
+layerを指すkeycodeは参照先のlayer名と番号を表示する。
+
+<!-- @code src/ui/components/index.ts#KeycodePicker -->
+<!-- @code src/ui/keycode-compose.ts#applyPick -->
+
+## Keycode picker
+
+盤面の下にISO/JISの物理配列でkeycodeを常設表示する。function、数字、文字、修飾、JIS固有キー、
+navigation、numpad、shift済み記号の各帯は、表示名を個別に複製せず既存のkeycode表示関数から描く。
+適用先はキー全体・Tap・Holdで切り替え、現在値を各ボタンへ併記する。Holdではmodifier keycode
+だけを有効にし、選択した値はVial形式の`X_T(kc)`へ組み立てる。キーまたはencoderが未選択なら
+picker全体を無効化する。
 
 <!-- @code src/ui/components/index.ts#DiagnosticsPanel -->
 
