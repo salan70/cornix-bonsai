@@ -36,6 +36,12 @@ import {
   WORKSPACE_LAYOUT,
 } from "../workspace/layout.ts";
 import {
+  planBindingMigration,
+  planWorkspaceInit,
+  writeWorkspacePlan,
+  type BindingMigration,
+} from "../workspace/bootstrap.ts";
+import {
   EMPTY_LABELS,
   layerLabel,
   parseLabelsYaml,
@@ -62,8 +68,33 @@ interface WorkspaceModel {
   readonly token: WorkspaceConflictToken | undefined;
 }
 
+/**
+ * 選んだdirectoryをworkspaceとして読めるかの判定。
+ *
+ * 読めない理由を例外の文字列へ潰さず、復旧できる形（新規作成・binding移行）と
+ * できない形へ分けて返す。UIはこれを見て導線を出す。
+ */
+type WorkspaceProbe =
+  | { readonly kind: "ready"; readonly model: WorkspaceModel }
+  | { readonly kind: "missing-keymap" }
+  | { readonly kind: "legacy-binding"; readonly migration: BindingMigration }
+  | { readonly kind: "unresolved"; readonly reason: string };
+type WorkspaceIssue =
+  | { readonly kind: "missing-keymap"; readonly store: BrowserWorkspaceStore }
+  | {
+      readonly kind: "legacy-binding";
+      readonly store: BrowserWorkspaceStore;
+      readonly migration: BindingMigration;
+    }
+  | {
+      readonly kind: "unresolved";
+      readonly store: BrowserWorkspaceStore;
+      readonly reason: string;
+    };
+
 function App(): React.JSX.Element {
   const [workspace, setWorkspace] = useState<WorkspaceModel | undefined>();
+  const [issue, setIssue] = useState<WorkspaceIssue | undefined>();
   const [tab, setTab] = useState<Tab>("Keymap");
   const [layer, setLayer] = useState(0);
   const [selection, setSelection] = useState<Selection | undefined>();
@@ -90,13 +121,29 @@ function App(): React.JSX.Element {
     setAcknowledged(model.acknowledged);
   }
 
+  /**
+   * directoryをworkspaceとして採用する。読めない場合は復旧導線をissueへ残す。
+   *
+   * 読み込みの入口（初回復帰・選択・再読み込み・初期化後）をここ1つに閉じ、
+   * 失敗の見せ方が経路ごとにばらつかないようにする。
+   */
+  async function adoptStore(store: BrowserWorkspaceStore, okStatus: string): Promise<void> {
+    const probe = await probeStore(store);
+    if (probe.kind === "ready") {
+      setIssue(undefined);
+      adoptWorkspace(probe.model);
+      setStatus(okStatus);
+      return;
+    }
+    setWorkspace(undefined);
+    saveQueue.current = undefined;
+    setIssue({ ...probe, store });
+    setStatus(issueSummary(probe));
+  }
+
   useEffect(() => {
     void restoreWorkspace().then((store) =>
-      store === undefined
-        ? undefined
-        : loadStore(store)
-            .then((model) => adoptWorkspace(model))
-            .catch((error) => setStatus(message(error))),
+      store === undefined ? undefined : adoptStore(store, "前回のworkspaceへ復帰した"),
     );
   }, []);
 
@@ -185,19 +232,64 @@ function App(): React.JSX.Element {
 
   async function openWorkspace(): Promise<void> {
     try {
-      const store = await pickWorkspace();
-      adoptWorkspace(await loadStore(store));
-      setStatus("workspaceを開いた");
+      await adoptStore(await pickWorkspace(), "workspaceを開いた");
     } catch (error) {
       setStatus(message(error));
     }
   }
 
   async function reload(): Promise<void> {
-    if (workspace === undefined) return;
+    const store = workspace?.store ?? issue?.store;
+    if (store === undefined) return;
     try {
-      adoptWorkspace(await loadStore(workspace.store));
-      setStatus("keymap.yamlを再読み込みした");
+      await adoptStore(store, "keymap.yamlを再読み込みした");
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
+  /**
+   * 実機のfull readからworkspaceを新規に作る。
+   *
+   * `keymap.yaml`が無いdirectoryはこれ以外に入口が無い。CLIの`import vil`と
+   * 同じ組み立てをbrowserから行う。
+   */
+  async function initializeWorkspace(store: BrowserWorkspaceStore): Promise<void> {
+    try {
+      const connection = device ?? (await acquireDevice());
+      if (connection === undefined) return;
+      const result = await connection.read((event) =>
+        setProgress(`${event.label} (${event.count})`),
+      );
+      const plan = await planWorkspaceInit(
+        result.document,
+        result.definitionText,
+        globalThis.crypto,
+      );
+      await writeWorkspacePlan(store, plan);
+      setDeviceDefinitionDigest(plan.definitionDigest);
+      setDeviceRead(result);
+      await adoptStore(store, "実機のfull readからworkspaceを作成した");
+    } catch (error) {
+      setStatus(message(error));
+    } finally {
+      setProgress(undefined);
+    }
+  }
+
+  /**
+   * 旧digest規則で作られたbindingを移行する。
+   *
+   * 内容が当時と同じであることを`planBindingMigration`が証明済みのときだけ
+   * 押せる。黙って直さないのは、digest不一致がkeymapとdefinitionの取り違えの
+   * 検出手段でもあるため（ADR 0007）。
+   */
+  async function migrateBinding(
+    issued: Extract<WorkspaceIssue, { kind: "legacy-binding" }>,
+  ): Promise<void> {
+    try {
+      await writeWorkspacePlan(issued.store, issued.migration);
+      await adoptStore(issued.store, "definition bindingを新しいdigest規則へ移行した");
     } catch (error) {
       setStatus(message(error));
     }
@@ -220,17 +312,22 @@ function App(): React.JSX.Element {
     }
   }
 
+  /** chooserを出してconnectionを得る。workspace初期化からも使うので値を返す。 */
+  async function acquireDevice(): Promise<WebHidConnection | undefined> {
+    const adapter = new WebHidAdapter();
+    const next = (await adapter.reacquire()) ?? (await adapter.request());
+    if (next === undefined) {
+      setStatus("Vial deviceが選択されなかった");
+      return undefined;
+    }
+    invalidateDevice();
+    setDevice(next);
+    return next;
+  }
+
   async function connect(): Promise<void> {
     try {
-      const adapter = new WebHidAdapter();
-      const next = (await adapter.reacquire()) ?? (await adapter.request());
-      if (next === undefined) {
-        setStatus("Vial deviceが選択されなかった");
-        return;
-      }
-      invalidateDevice();
-      setDevice(next);
-      setStatus("接続済み");
+      if ((await acquireDevice()) !== undefined) setStatus("接続済み");
     } catch (error) {
       setStatus(message(error));
     }
@@ -593,6 +690,17 @@ function App(): React.JSX.Element {
           <button className="primary" onClick={() => void openWorkspace()}>
             Workspaceを開く
           </button>
+          {issue === undefined ? null : (
+            <WorkspaceRecovery
+              issue={issue}
+              busy={progress !== undefined}
+              onInitialize={() => void initializeWorkspace(issue.store)}
+              onMigrate={() =>
+                issue.kind === "legacy-binding" ? void migrateBinding(issue) : undefined
+              }
+              onRetry={() => void reload()}
+            />
+          )}
         </main>
       ) : (
         <main className="main-content">
@@ -1296,28 +1404,72 @@ function ApplyDialog({
   );
 }
 
-async function loadStore(store: BrowserWorkspaceStore): Promise<WorkspaceModel> {
-  const keymapText = required(
-    await store.readText(WORKSPACE_LAYOUT.keymap),
-    WORKSPACE_LAYOUT.keymap,
-  );
-  const parsed = parseKeymapYaml(keymapText);
-  const definitionText = await readDefinitionBinding(
-    store,
-    parsed.binding.definitionPath,
-    parsed.binding.definitionDigest,
-    globalThis.crypto,
-  );
-  const labelsText = await store.readText(WORKSPACE_LAYOUT.labels);
-  return {
-    store,
-    document: parsed.document,
-    binding: parsed.binding,
-    definition: parseDefinition(definitionText),
-    labels: labelsText === undefined ? EMPTY_LABELS : parseLabelsYaml(labelsText),
-    acknowledged: parseAcknowledgements(await store.readText(WORKSPACE_LAYOUT.acknowledgements)),
-    token: (await store.stat(WORKSPACE_LAYOUT.keymap)) ?? undefined,
-  };
+/**
+ * directoryがworkspaceとして読めるかを判定する。
+ *
+ * `keymap.yaml`が無い場合とbindingが解けない場合を例外にせず区別して返す。
+ * bindingが解けないときは、旧digest規則で作られたものかをここで確かめる。
+ */
+async function probeStore(store: BrowserWorkspaceStore): Promise<WorkspaceProbe> {
+  let parsed: ReturnType<typeof parseKeymapYaml>;
+  try {
+    const keymapText = await store.readText(WORKSPACE_LAYOUT.keymap);
+    if (keymapText === undefined) return { kind: "missing-keymap" };
+    parsed = parseKeymapYaml(keymapText);
+  } catch (error) {
+    return { kind: "unresolved", reason: message(error) };
+  }
+
+  let definitionText: string;
+  try {
+    definitionText = await readDefinitionBinding(
+      store,
+      parsed.binding.definitionPath,
+      parsed.binding.definitionDigest,
+      globalThis.crypto,
+    );
+  } catch (error) {
+    const migration = await planBindingMigration(
+      store,
+      parsed.document,
+      parsed.binding,
+      globalThis.crypto,
+    ).catch(() => undefined);
+    if (migration !== undefined) return { kind: "legacy-binding", migration };
+    return { kind: "unresolved", reason: message(error) };
+  }
+
+  try {
+    const labelsText = await store.readText(WORKSPACE_LAYOUT.labels);
+    return {
+      kind: "ready",
+      model: {
+        store,
+        document: parsed.document,
+        binding: parsed.binding,
+        definition: parseDefinition(definitionText),
+        labels: labelsText === undefined ? EMPTY_LABELS : parseLabelsYaml(labelsText),
+        acknowledged: parseAcknowledgements(
+          await store.readText(WORKSPACE_LAYOUT.acknowledgements),
+        ),
+        token: (await store.stat(WORKSPACE_LAYOUT.keymap)) ?? undefined,
+      },
+    };
+  } catch (error) {
+    return { kind: "unresolved", reason: message(error) };
+  }
+}
+
+/** status barへ出す1行。詳細と復旧操作はempty stateのpanelが持つ。 */
+function issueSummary(probe: Exclude<WorkspaceProbe, { kind: "ready" }>): string {
+  switch (probe.kind) {
+    case "missing-keymap":
+      return "このdirectoryにkeymap.yamlが無い";
+    case "legacy-binding":
+      return "definition bindingが古いdigest規則のままになっている";
+    case "unresolved":
+      return "workspaceを読み込めなかった";
+  }
 }
 function toWriteTarget(entry: DiffEntry): WriteTarget | undefined {
   const subject = entry.subject;
@@ -1343,10 +1495,93 @@ function toWriteTarget(entry: DiffEntry): WriteTarget | undefined {
       return undefined;
   }
 }
-function required(value: string | undefined, name: string): string {
-  if (value === undefined) throw new Error(`${name} が見つからない`);
-  return value;
+/**
+ * workspaceを読めなかったときに、理由と復旧操作を出す。
+ *
+ * 生の例外文字列をstatus barへ流すと、digestの64桁が並ぶだけで次の操作が分からない。
+ * 復旧できる形かどうかは`probeStore`が判定済みで、ここは提示だけを行う。
+ */
+function WorkspaceRecovery(props: {
+  readonly issue: WorkspaceIssue;
+  readonly busy: boolean;
+  readonly onInitialize: () => void;
+  readonly onMigrate: () => void;
+  readonly onRetry: () => void;
+}): React.JSX.Element {
+  const { issue, busy } = props;
+  if (issue.kind === "missing-keymap") {
+    return (
+      <section className="recovery">
+        <h2>keymap.yamlが無い</h2>
+        <p>
+          <code>{issue.store.directory.name}</code>{" "}
+          にkeymap.yamlが無いため、まだworkspaceになっていません。実機をfull readして
+          初期状態を作成できます。
+        </p>
+        <p className="recovery-detail">
+          作成するのは <code>{WORKSPACE_LAYOUT.keymap}</code> と{" "}
+          <code>{WORKSPACE_LAYOUT.definitions}/&lt;digest&gt;.json</code> の2つです。実機へは
+          書き込みません。
+        </p>
+        <div className="recovery-actions">
+          <button className="primary" disabled={busy} onClick={props.onInitialize}>
+            実機readでworkspaceを作成
+          </button>
+        </div>
+      </section>
+    );
+  }
+  if (issue.kind === "legacy-binding") {
+    return (
+      <section className="recovery">
+        <h2>definition bindingが古いdigest規則のまま</h2>
+        <p>
+          keymap.yamlが指すdefinitionは<strong>内容が記録当時と同じ</strong>ですが、digestの
+          計算規則が変わったため一致しなくなっています。内容が同じであることを確認できたので、
+          実機なしでbindingを移行できます。
+        </p>
+        <dl className="recovery-detail">
+          <dt>現在</dt>
+          <dd>
+            <code>{issue.migration.previousPath}</code>
+            <br />
+            <code>{issue.migration.previousDigest}</code>
+          </dd>
+          <dt>移行後</dt>
+          <dd>
+            <code>{issue.migration.definitionPath}</code>
+            <br />
+            <code>{issue.migration.definitionDigest}</code>
+          </dd>
+        </dl>
+        <p className="recovery-detail">
+          keymapの内容は変わりません。移行後、<code>{issue.migration.previousPath}</code>{" "}
+          は参照されなくなるので、不要なら削除してください。
+        </p>
+        <div className="recovery-actions">
+          <button className="primary" disabled={busy} onClick={props.onMigrate}>
+            bindingを移行する
+          </button>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section className="recovery">
+      <h2>workspaceを読み込めなかった</h2>
+      <p className="error">{issue.reason}</p>
+      <p className="recovery-detail">
+        別のdirectoryを選ぶか、原因を直してから再読み込みしてください。
+      </p>
+      <div className="recovery-actions">
+        <button disabled={busy} onClick={props.onRetry}>
+          再読み込み
+        </button>
+      </div>
+    </section>
+  );
 }
+
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
