@@ -4,7 +4,7 @@ import type { Selection } from "../types.ts";
 import { EXTRA_ROW, ISO_JIS_ROWS, type PickerEntry, type PickerRow } from "../keycode-catalog.ts";
 import { applyPick, canPick, structuredValues, type PickTarget } from "../keycode-compose.ts";
 import type { buildKeymapView } from "../../core/model/keymap-view.ts";
-import type { WorkspaceLabels } from "../../workspace/labels.ts";
+import { keycodeLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 
 /** @doc docs/specs/ui.md#keycode-picker */
 export function KeycodePicker({
@@ -48,6 +48,7 @@ export function KeycodePicker({
           pickTarget={pickTarget}
           onPickTarget={onPickTarget}
           value={(target) => targetValue(input?.keycode, target)}
+          labels={labels}
           disabled={disabled}
         />
       </div>
@@ -104,11 +105,13 @@ function TargetButtons({
   pickTarget,
   onPickTarget,
   value,
+  labels,
   disabled,
 }: {
   readonly pickTarget: PickTarget;
   readonly onPickTarget: (target: PickTarget) => void;
   readonly value: (target: PickTarget) => string | undefined;
+  readonly labels: WorkspaceLabels;
   readonly disabled: boolean;
 }): React.JSX.Element {
   return (
@@ -128,11 +131,17 @@ function TargetButtons({
           key={target}
         >
           <span>{label}</span>
-          <code>{value(target) ?? "—"}</code>
+          <code>{formatTargetValue(value(target), labels)}</code>
         </button>
       ))}
     </div>
   );
+}
+
+function formatTargetValue(value: string | undefined, labels: WorkspaceLabels): string {
+  if (value === undefined) return "—";
+  const name = keycodeLabel(labels, value);
+  return name === undefined ? value : `${name} (${value})`;
 }
 
 function PickerGroup({

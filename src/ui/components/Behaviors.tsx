@@ -1,14 +1,17 @@
 import type { VilDocument } from "../../core/vil/types.ts";
+import { keycodeLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 import { settingLabel } from "../../workspace/settings.ts";
 
 /** @doc docs/specs/ui.md#behaviors-and-references */
 export function Behaviors({
   document,
+  labels,
   onTapDance,
   onCombo,
   onSetting,
 }: {
   readonly document: VilDocument;
+  readonly labels: WorkspaceLabels;
   readonly onTapDance: (index: number, field: number, value: string) => void;
   readonly onCombo: (index: number, field: number, value: string) => void;
   readonly onSetting: (qsid: number, value: string) => void;
@@ -35,6 +38,9 @@ export function Behaviors({
                 value={String(value)}
                 onChange={(event) => onTapDance(index, field, event.target.value)}
               />
+              {typeof value === "string" && keycodeLabel(labels, value) !== undefined ? (
+                <span className="muted">表示名: {keycodeLabel(labels, value)}</span>
+              ) : null}
             </label>
           ))}
         </fieldset>
@@ -50,6 +56,9 @@ export function Behaviors({
                 value={value}
                 onChange={(event) => onCombo(index, field, event.target.value)}
               />
+              {keycodeLabel(labels, value) === undefined ? null : (
+                <span className="muted">表示名: {keycodeLabel(labels, value)}</span>
+              )}
             </label>
           ))}
         </fieldset>

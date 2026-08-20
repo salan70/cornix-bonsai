@@ -2,7 +2,12 @@ import { keyCenter, toPhysicalLayout } from "../core/definition/parse.ts";
 import type { KeyboardDefinition, PhysicalKey } from "../core/definition/types.ts";
 import { readKeycode } from "../core/model/keymap-view.ts";
 import type { VilDocument } from "../core/vil/types.ts";
-import { layerLabel, type WorkspaceLabels } from "../workspace/labels.ts";
+import {
+  EMPTY_LABELS,
+  keycodeLabel,
+  layerLabel,
+  type WorkspaceLabels,
+} from "../workspace/labels.ts";
 
 export interface RenderOptions {
   readonly layer?: number;
@@ -24,7 +29,9 @@ export function renderedKeys(
   const layer = options.layer ?? 0;
   return toPhysicalLayout(definition).keys.flatMap((physical) => {
     const keycode = readKeycode(document, { layer, row: physical.row, col: physical.col });
-    return keycode === undefined ? [] : [{ physical, keycode, label: keycode }];
+    if (keycode === undefined) return [];
+    const name = keycodeLabel(options.labels ?? EMPTY_LABELS, keycode);
+    return [{ physical, keycode, label: name === undefined ? keycode : `${name}\n${keycode}` }];
   });
 }
 
@@ -40,8 +47,7 @@ export function renderSvg(
   const maxX = Math.max(24, ...layout.keys.map((key) => keyCenter(key)[0] + key.width / 2));
   const maxY = Math.max(6, ...layout.keys.map((key) => keyCenter(key)[1] + key.height / 2));
   const title =
-    options.title ??
-    `${definition.name} / ${layerLabel(options.labels ?? { layers: new Map() }, layer)}`;
+    options.title ?? `${definition.name} / ${layerLabel(options.labels ?? EMPTY_LABELS, layer)}`;
   const body = keys.map((entry) => svgKey(entry.physical, entry.label)).join("\n");
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${maxX + 1} ${maxY + 1}" role="img" aria-label="${escapeXml(title)}">`,
@@ -95,7 +101,14 @@ function svgKey(key: PhysicalKey, label: string): string {
     key.rotationAngle === 0
       ? ""
       : ` transform="rotate(${key.rotationAngle} ${key.rotationX} ${key.rotationY})"`;
-  return `<g${transform}><rect x="${x}" y="${y}" width="${key.width}" height="${key.height}" rx="0.12" fill="#ffffff" stroke="#69746c"/><text x="${x + key.width / 2}" y="${y + key.height / 2 + 0.12}" text-anchor="middle" dominant-baseline="middle" font-family="system-ui" font-size="0.28">${escapeXml(label)}</text></g>`;
+  const lines = label.split("\n");
+  const text = lines
+    .map(
+      (line, index) =>
+        `<tspan x="${x + key.width / 2}" dy="${index === 0 ? -(lines.length - 1) * 0.16 : 0.32}">${escapeXml(line)}</tspan>`,
+    )
+    .join("");
+  return `<g${transform}><rect x="${x}" y="${y}" width="${key.width}" height="${key.height}" rx="0.12" fill="#ffffff" stroke="#69746c"/><text x="${x + key.width / 2}" y="${y + key.height / 2 + 0.12}" text-anchor="middle" dominant-baseline="middle" font-family="system-ui" font-size="0.28">${text}</text></g>`;
 }
 
 function pdfKey(key: PhysicalKey, label: string): readonly string[] {
@@ -106,8 +119,12 @@ function pdfKey(key: PhysicalKey, label: string): readonly string[] {
   return [
     "0.41 0.45 0.42 RG 1 w",
     `${x} ${y} ${width} ${height} re S`,
-    "BT /F1 8 Tf 0.1 0.12 0.1 rg",
-    `${x + 3} ${y + height / 2} Td (${escapePdf(label)}) Tj ET`,
+    ...label
+      .split("\n")
+      .flatMap((line, index) => [
+        "BT /F1 8 Tf 0.1 0.12 0.1 rg",
+        `${x + 3} ${y + height / 2 + (index === 0 ? 4 : -4)} Td (${escapePdf(line)}) Tj ET`,
+      ]),
   ];
 }
 

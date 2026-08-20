@@ -92,7 +92,8 @@ custom / noneの意味別classを付ける。encoderは物理キーと混ぜず�
 panelへ表示する。動作selectは既存keycodeの分類を使い、キー全体・Tap・Holdの現在値と適用先を
 表示する。Tap/Holdの変更は盤面下のkeycode pickerから行い、選択した値は既存のcore編集関数へ
 渡す。pickerで表現しきれないcustom、macro、未分類表記のため、raw keycode入力も詳細内に残す。
-layerを指すkeycodeは参照先のlayer名と番号を表示する。
+表示名（任意）はraw keycode式へ完全一致で割り当て、Enterまたはblurで`cornix/labels.yaml`へ保存する。
+空欄はその式の表示名を削除する。layerを指すkeycodeは参照先のlayer名と番号を表示する。
 
 <!-- @code src/ui/components/index.ts#KeycodePicker -->
 <!-- @code src/ui/keycode-compose.ts#applyPick -->
@@ -106,8 +107,8 @@ layerを指すkeycodeは参照先のlayer名と番号を表示する。
 pickerのキー幅はコンテナ幅と下部ストリップの26uから自動計算し、狭い画面でも横スクロールを
 発生させない。main / navigation / numpadのgridとは独立して、下部に`KC_NO`、`KC_TRNS`、shift済み
 記号、`LANG1` / `LANG2`を並べる26uのストリップを描く。各キーの表示は共通のkeycode label関数から
-描き、`KC_1`のようなbase keycodeはshift済み記号を上段へ併記し、`KC_KP_7`のようなnumpadは
-`7`の刻印へ変換する。
+描き、表示名があればそれを主表示にする。raw式はtitleで確認できる。表示名が無い場合は、`KC_1`のような
+base keycodeはshift済み記号を上段へ併記し、`KC_KP_7`のようなnumpadは`7`の刻印へ変換する。
 
 適用先はキー全体・Tap・Holdで切り替え、現在値を各ボタンへ併記する。Holdではmodifier keycode
 だけを有効にし、選択した値はVial形式の`X_T(kc)`へ組み立てる。キーまたはencoderが未選択なら
@@ -121,7 +122,8 @@ gridとストリップを含むpicker全体を無効化する。
 keycodeの表示はwire encode用の表記とは分離し、`SHORT_LABELS`でVialの刻印へ寄せる。numpad、shift
 済み記号、JIS固有キー（`JYEN`、`KANA`、`HENK`、`MHEN`、`LANG1`、`LANG2`）は刻印を優先する。
 modifier、layer、Tap Danceのrole表記は既存の記号表記を維持する。shift keycodeのbase / shifted
-対応はcoreの単一定義元からpickerと盤面keycapの両方へ提供し、ラベル表を複製しない。
+対応はcoreの単一定義元からpickerと盤面keycapの両方へ提供し、ラベル表を複製しない。workspaceの表示名は
+この既定表示より優先するが、詳細・Apply・SVG/PDFでは表示名とraw式を併記する。
 
 <!-- @code src/ui/components/index.ts#DiagnosticsPanel -->
 
@@ -161,8 +163,10 @@ Overviewは全layerを4列のmini盤面で表示する。mini盤面は幅218px�
 
 ## Behaviors and references
 
-Behaviorsは既存どおりTap Dance、Combo、Settingsをcoreの編集関数へ渡して保存する。Referencesは
-dynamic entryのusages / unusedとlayerのunreachableを、診断panelとは別の参照情報として表示する。
+Behaviorsは既存どおりTap Dance、Combo、Settingsをcoreの編集関数へ渡して保存し、入力値に対応する表示名を
+補助表示する。Referencesはdynamic entryのusages / unusedとlayerのunreachableを、診断panelとは別の参照
+情報として表示し、`TD(n)` / `M(n)`に名前があればraw表記と併記する。Applyの差分確認と書き込み進捗では
+表示名・raw式・既存の挙動説明を併記する。表示名の変更はvalidation、diff判定、Apply fingerprintへ影響しない。
 
 <!-- @code src/ui/components/index.ts#WorkspaceRecovery -->
 

@@ -1,6 +1,23 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
-import { basicLabel } from "./keycode-labels.ts";
+import { parseDefinition } from "../core/definition/parse.ts";
+import { createKeycodeTable } from "../core/keycode/table.ts";
+import { keycodeDisplay, basicLabel } from "./keycode-labels.ts";
+
+const definition = parseDefinition(
+  readFileSync(
+    join(import.meta.dirname, "../../fixtures/cornix-lp/vial-definition-v1.12.json"),
+    "utf8",
+  ),
+);
+const table = createKeycodeTable(definition, {
+  layerCount: 10,
+  macroCount: 0,
+  tapDanceCount: 32,
+  comboCount: 32,
+});
 
 test("basic keycodes use Vial-style keycap labels", () => {
   assert.equal(basicLabel("KC_KP_7"), "7");
@@ -11,4 +28,18 @@ test("basic keycodes use Vial-style keycap labels", () => {
   assert.equal(basicLabel("KC_COMMA"), "<\n,");
   assert.equal(basicLabel("KC_INT3"), "JYEN");
   assert.equal(basicLabel("KC_A"), "A");
+});
+
+test("keycode表示名はraw式の完全一致だけを置き換える", () => {
+  const labels = {
+    layers: new Map<number, string>(),
+    keycodes: new Map([["LCG(KC_Q)", "VeryLongShortcut"]]),
+  };
+  assert.deepEqual(keycodeDisplay("LCG(KC_Q)", labels, table), {
+    primary: "VeryLongShortcut",
+    name: "VeryLongShortcut",
+    raw: "LCG(KC_Q)",
+  });
+  assert.equal(keycodeDisplay("KC_Q", labels, table).primary, "Q");
+  assert.equal(keycodeDisplay("LCG(KC_Q)", labels, table, { compact: true }).primary, "VeryLon…");
 });

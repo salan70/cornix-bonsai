@@ -2,12 +2,14 @@ import { useEffect, useRef } from "react";
 import type { DiffEntry } from "../../core/diff/diff.ts";
 import type { ApplyState, WriteOperation } from "../../core/apply/plan.ts";
 import type { evaluateApplyGate } from "../../core/validation/gate.ts";
+import { keycodeLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 
 /** @doc docs/specs/ui.md#apply-modal-steps */
 export function ApplyDialog({
   state,
   changed,
   gate,
+  labels,
   acknowledged,
   backupRoundTrips,
   roundTrips,
@@ -19,6 +21,7 @@ export function ApplyDialog({
   readonly state: ApplyState | undefined;
   readonly changed: readonly DiffEntry[];
   readonly gate: ReturnType<typeof evaluateApplyGate> | undefined;
+  readonly labels: WorkspaceLabels;
   readonly acknowledged: readonly string[];
   readonly backupRoundTrips: number;
   readonly roundTrips: number;
@@ -75,6 +78,7 @@ export function ApplyDialog({
               operations={state?.phase === "writing" ? state.plan.operations : verified}
               verifiedCount={verified.length}
               changed={changed}
+              labels={labels}
               roundTrips={roundTrips}
               roundTripTotal={roundTripTotal}
             />
@@ -86,7 +90,7 @@ export function ApplyDialog({
               </div>
               <div className="diff-list">
                 {semanticChanges.map((entry, index) => (
-                  <DiffRow entry={entry} key={`${entry.subject.kind}-${index}`} />
+                  <DiffRow entry={entry} labels={labels} key={`${entry.subject.kind}-${index}`} />
                 ))}
               </div>
               {notationOnlyChanges.length > 0 ? (
@@ -183,12 +187,14 @@ function WriteProgress({
   operations,
   verifiedCount,
   changed,
+  labels,
   roundTrips,
   roundTripTotal,
 }: {
   readonly operations: readonly WriteOperation[];
   readonly verifiedCount: number;
   readonly changed: readonly DiffEntry[];
+  readonly labels: WorkspaceLabels;
   readonly roundTrips: number;
   readonly roundTripTotal: number;
 }): React.JSX.Element {
@@ -214,7 +220,7 @@ function WriteProgress({
         {operations.map((operation, index) => {
           const done = index < verifiedCount;
           const active = index === verifiedCount && verifiedCount < operations.length;
-          const description = operationDescription(operation, changed);
+          const description = operationDescription(operation, changed, labels);
           return (
             <div
               className={`row write-row ${active ? "active" : ""} ${!done && !active ? "pending" : ""}`}
@@ -241,9 +247,15 @@ function WriteProgress({
   );
 }
 
-function operationDescription(operation: WriteOperation, changed: readonly DiffEntry[]): string {
+function operationDescription(
+  operation: WriteOperation,
+  changed: readonly DiffEntry[],
+  labels: WorkspaceLabels,
+): string {
   const entry = changed.find((candidate) => subjectMatchesTarget(candidate.subject, operation));
-  return entry?.afterBehavior ?? operation.after.join(", ");
+  return entry === undefined
+    ? operation.after.join(", ")
+    : labeledBehavior(entry.subject, entry.after, entry.afterBehavior, labels);
 }
 
 function subjectMatchesTarget(subject: DiffEntry["subject"], operation: WriteOperation): boolean {
@@ -315,18 +327,39 @@ function ApplySteps({
   );
 }
 
-function DiffRow({ entry }: { readonly entry: DiffEntry }): React.JSX.Element {
+function DiffRow({
+  entry,
+  labels,
+}: {
+  readonly entry: DiffEntry;
+  readonly labels: WorkspaceLabels;
+}): React.JSX.Element {
   const label = entry.change === "added" ? "追加" : entry.change === "removed" ? "削除" : "変更";
   const className = entry.change === "added" ? "add" : entry.change === "removed" ? "rm" : "chg";
   return (
     <div className="row">
       <span className={`tag ${className}`}>{label}</span>
       <span className="diff-subject">{subjectLabel(entry.subject)}</span>
-      <span className="from">{entry.beforeBehavior}</span>
+      <span className="from">
+        {labeledBehavior(entry.subject, entry.before, entry.beforeBehavior, labels)}
+      </span>
       <span aria-hidden="true">→</span>
-      <span className="to">{entry.afterBehavior}</span>
+      <span className="to">
+        {labeledBehavior(entry.subject, entry.after, entry.afterBehavior, labels)}
+      </span>
     </div>
   );
+}
+
+function labeledBehavior(
+  subject: DiffEntry["subject"],
+  raw: string,
+  behavior: string,
+  labels: WorkspaceLabels,
+): string {
+  if (subject.kind !== "key" && subject.kind !== "encoder") return behavior;
+  const name = raw === "" ? undefined : keycodeLabel(labels, raw);
+  return name === undefined ? behavior : `${name}（${raw}） — ${behavior}`;
 }
 
 function subjectLabel(subject: DiffEntry["subject"]): string {

@@ -21,6 +21,31 @@ cornix/
   generated/<name>
 ```
 
+## 表示用labels
+
+`cornix/labels.yaml`は実機へ送らない表示用sidecarである。layer名に加えて、Anyキーなどのraw keycode式へ
+workspace共通の表示名を付けられる。表示名のkeyはraw式の完全一致で、keymapのraw値やvalidation、diff、
+Applyの入力には影響しない。
+
+`labels@1`はlayer名だけのlegacy形式として読み込み、保存時は`labels@2`へシリアライズする。
+
+```yaml
+schema: cornix-bonsai/labels@2
+layers:
+  0: "Base"
+keycodes:
+  "LCG(KC_Q)": "アプリ終了"
+```
+
+<!-- @code src/workspace/labels.ts#parseLabelsYaml -->
+<!-- @code src/workspace/labels.ts#serializeLabelsYaml -->
+<!-- @code src/workspace/labels.ts#keycodeLabel -->
+
+## 表示名の仕様
+
+表示名はUIのKeyPanelから編集し、空欄でそのraw式のentryを削除する。名前が無い場合はkeycodeの既定表示へ
+fallbackする。SVG/PDFでは名前とraw式を併記する。
+
 <!-- @code src/workspace/layout.ts#definitionDigest -->
 
 ## definitionDigest

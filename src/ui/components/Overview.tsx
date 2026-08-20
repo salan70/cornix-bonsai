@@ -1,11 +1,11 @@
 import type { JSX } from "react";
+import { createKeycodeTable } from "../../core/keycode/table.ts";
 import type { buildKeymapView } from "../../core/model/keymap-view.ts";
 import { analyzeReachability } from "../../core/validation/reachability.ts";
-import { classifyKeycode } from "../../core/validation/keycode-vocabulary.ts";
 import type { VilDocument } from "../../core/vil/types.ts";
 import { boardMetrics, boardSize, keyBox } from "../../render/geometry.ts";
 import { layerLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
-import { basicLabel, keycodeClass } from "../keycode-display.tsx";
+import { keycodeClass, keycodeDisplay } from "../keycode-display.tsx";
 
 /** mini盤面の幅。高さは幾何から導く。 */
 const MINI_BOARD_WIDTH = 218;
@@ -13,14 +13,17 @@ const MINI_BOARD_WIDTH = 218;
 /** @doc docs/specs/ui.md#overview-layer-grid */
 export function Overview({
   document,
+  definition,
   labels,
   view,
 }: {
   readonly document: VilDocument;
+  readonly definition: Parameters<typeof createKeycodeTable>[0];
   readonly labels: WorkspaceLabels;
   readonly view: ReturnType<typeof buildKeymapView>;
 }): JSX.Element {
   const reachability = analyzeReachability(document);
+  const table = createKeycodeTable(definition, view.capacities);
   const assignedLayers = new Set([
     ...view.keys
       .filter((key) => key.keycode !== "KC_NO" && key.keycode !== "KC_TRNS")
@@ -51,6 +54,8 @@ export function Overview({
             layer={layer}
             label={layerLabel(labels, layer)}
             keys={view.keys.filter((key) => key.position.layer === layer)}
+            labels={labels}
+            table={table}
             assigned={assignedLayers.has(layer)}
             reachable={reachability.reachable.has(layer)}
           />
@@ -67,12 +72,16 @@ function LayerCard({
   layer,
   label,
   keys,
+  labels,
+  table,
   assigned,
   reachable,
 }: {
   readonly layer: number;
   readonly label: string;
   readonly keys: readonly ReturnType<typeof buildKeymapView>["keys"][number][];
+  readonly labels: WorkspaceLabels;
+  readonly table: ReturnType<typeof createKeycodeTable>;
   readonly assigned: boolean;
   readonly reachable: boolean;
 }): JSX.Element {
@@ -110,7 +119,7 @@ function LayerCard({
             >
               <span className="m">
                 {assigned && key.keycode !== "KC_NO" && key.keycode !== "KC_TRNS"
-                  ? basicLabel(classifyKeycode(key.keycode).kind === "basic" ? key.keycode : "")
+                  ? keycodeDisplay(key.keycode, labels, table, { compact: true }).primary
                   : ""}
               </span>
             </div>

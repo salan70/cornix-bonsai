@@ -2,14 +2,17 @@ import { collectReferenceUsage } from "../../core/validation/reference-usage.ts"
 import { analyzeReachability } from "../../core/validation/reachability.ts";
 import type { Diagnostic } from "../../core/validation/types.ts";
 import type { VilDocument } from "../../core/vil/types.ts";
+import { keycodeLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 
 /** @doc docs/specs/ui.md#behaviors-and-references */
 export function References({
   diagnostics,
   document,
+  labels,
 }: {
   readonly diagnostics: readonly Diagnostic[];
   readonly document: VilDocument;
+  readonly labels: WorkspaceLabels;
 }): React.JSX.Element {
   const usage = collectReferenceUsage(document);
   const reachability = analyzeReachability(document);
@@ -26,12 +29,12 @@ export function References({
       <ul>
         {[...usage.tapDance.entries()].map(([index, count]) => (
           <li key={`tapDance-${index}`}>
-            TD({index}) — {count} usages
+            {namedReference(`TD(${index})`, labels)} — {count} usages
           </li>
         ))}
         {[...usage.macro.entries()].map(([index, count]) => (
           <li key={`macro-${index}`}>
-            M({index}) — {count} usages
+            {namedReference(`M(${index})`, labels)} — {count} usages
           </li>
         ))}
         {usage.tapDance.size === 0 && usage.macro.size === 0 ? (
@@ -43,10 +46,12 @@ export function References({
         Tap Dance:{" "}
         {unusedTapDance.length === 0
           ? "なし"
-          : unusedTapDance.map((index) => `TD(${index})`).join(", ")}
+          : unusedTapDance.map((index) => namedReference(`TD(${index})`, labels)).join(", ")}
         <br />
         Macro:{" "}
-        {unusedMacro.length === 0 ? "なし" : unusedMacro.map((index) => `M(${index})`).join(", ")}
+        {unusedMacro.length === 0
+          ? "なし"
+          : unusedMacro.map((index) => namedReference(`M(${index})`, labels)).join(", ")}
       </p>
       <h2>Unreachable layers</h2>
       <p>
@@ -73,4 +78,9 @@ export function References({
       )}
     </section>
   );
+}
+
+function namedReference(keycode: string, labels: WorkspaceLabels): string {
+  const name = keycodeLabel(labels, keycode);
+  return name === undefined ? keycode : `${name} (${keycode})`;
 }

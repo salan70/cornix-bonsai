@@ -36,7 +36,12 @@ import {
   writeWorkspacePlan,
   type BindingMigration,
 } from "../workspace/bootstrap.ts";
-import { EMPTY_LABELS, parseLabelsYaml, type WorkspaceLabels } from "../workspace/labels.ts";
+import {
+  EMPTY_LABELS,
+  parseLabelsYaml,
+  serializeLabelsYaml,
+  type WorkspaceLabels,
+} from "../workspace/labels.ts";
 import { parseAcknowledgements, serializeAcknowledgements } from "../workspace/acknowledgements.ts";
 import { CORNIX_LP_V112_SETTINGS } from "../workspace/settings.ts";
 import { createSaveQueue, type SaveQueue } from "../workspace/save-queue.ts";
@@ -64,6 +69,7 @@ interface WorkspaceModel {
   readonly labels: WorkspaceLabels;
   readonly acknowledged: readonly string[];
   readonly token: WorkspaceConflictToken | undefined;
+  readonly labelsToken: WorkspaceConflictToken | undefined;
 }
 
 type WorkspaceProbe =
@@ -103,6 +109,7 @@ function App(): React.JSX.Element {
   const editorRef = useRef<HTMLInputElement>(null);
   const applyCancellation = useRef(false);
   const saveQueue = useRef<SaveQueue | undefined>(undefined);
+  const labelsSaveQueue = useRef<SaveQueue | undefined>(undefined);
 
   function adoptWorkspace(model: WorkspaceModel): void {
     saveQueue.current = createSaveQueue({
@@ -110,6 +117,13 @@ function App(): React.JSX.Element {
       path: WORKSPACE_LAYOUT.keymap,
       token: model.token,
       onSaved: () => setStatus("keymap.yamlへ保存した"),
+      onError: (error) => setStatus(message(error)),
+    });
+    labelsSaveQueue.current = createSaveQueue({
+      store: model.store,
+      path: WORKSPACE_LAYOUT.labels,
+      token: model.labelsToken,
+      onSaved: () => setStatus("cornix/labels.yamlへ保存した"),
       onError: (error) => setStatus(message(error)),
     });
     setWorkspace(model);
@@ -126,6 +140,7 @@ function App(): React.JSX.Element {
     }
     setWorkspace(undefined);
     saveQueue.current = undefined;
+    labelsSaveQueue.current = undefined;
     setIssue({ ...probe, store });
     setStatus(issueSummary(probe));
   }
@@ -272,6 +287,20 @@ function App(): React.JSX.Element {
     setWorkspace({ ...workspace, document });
     try {
       saveQueue.current?.enqueue(serializeKeymapYaml(document, workspace.binding));
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
+  function editLabel(keycode: string, value: string): void {
+    if (workspace === undefined) return;
+    const keycodes = new Map(workspace.labels.keycodes);
+    if (value === "") keycodes.delete(keycode);
+    else keycodes.set(keycode, value);
+    const labels: WorkspaceLabels = { ...workspace.labels, keycodes };
+    setWorkspace({ ...workspace, labels });
+    try {
+      labelsSaveQueue.current?.enqueue(serializeLabelsYaml(labels));
     } catch (error) {
       setStatus(message(error));
     }
@@ -690,24 +719,35 @@ function App(): React.JSX.Element {
                     onPickTarget={setPickTarget}
                     onEditKey={editKey}
                     onEditEncoder={editEncoder}
+                    onEditLabel={editLabel}
                   />
                 )
               }
             />
           ) : null}
           {tab === "Overview" ? (
-            <Overview document={workspace.document} labels={workspace.labels} view={view!} />
+            <Overview
+              document={workspace.document}
+              definition={workspace.definition}
+              labels={workspace.labels}
+              view={view!}
+            />
           ) : null}
           {tab === "Behaviors" ? (
             <Behaviors
               document={workspace.document}
+              labels={workspace.labels}
               onTapDance={editTapDance}
               onCombo={editCombo}
               onSetting={editSetting}
             />
           ) : null}
           {tab === "References" ? (
-            <References diagnostics={validation?.diagnostics ?? []} document={workspace.document} />
+            <References
+              diagnostics={validation?.diagnostics ?? []}
+              document={workspace.document}
+              labels={workspace.labels}
+            />
           ) : null}
         </main>
       )}
@@ -724,6 +764,7 @@ function App(): React.JSX.Element {
           state={applyState}
           changed={changed}
           gate={applyGate}
+          labels={workspace?.labels ?? EMPTY_LABELS}
           acknowledged={acknowledged}
           backupRoundTrips={lastReadRoundTrips}
           roundTrips={applyRoundTrips}
@@ -784,6 +825,7 @@ async function probeStore(store: BrowserWorkspaceStore): Promise<WorkspaceProbe>
           await store.readText(WORKSPACE_LAYOUT.acknowledgements),
         ),
         token: (await store.stat(WORKSPACE_LAYOUT.keymap)) ?? undefined,
+        labelsToken: (await store.stat(WORKSPACE_LAYOUT.labels)) ?? undefined,
       },
     };
   } catch (error) {

@@ -2,11 +2,14 @@ import { describeKeycode } from "../core/diff/describe.ts";
 import { classifyKeycode } from "../core/validation/keycode-vocabulary.ts";
 import type { createKeycodeTable } from "../core/keycode/table.ts";
 import { shiftedOf } from "../core/keycode/shifted.ts";
-import { layerLabel, type WorkspaceLabels } from "../workspace/labels.ts";
+import { keycodeLabel, layerLabel, type WorkspaceLabels } from "../workspace/labels.ts";
 
 export interface KeycodeDisplay {
   readonly primary: string;
   readonly role?: string;
+  /** 表示名が設定されている場合の表示名とraw式。 */
+  readonly name?: string;
+  readonly raw?: string;
 }
 
 /** keycap向けの表示option。`compact`はkeycapに収まる長さへ切り詰める。 */
@@ -24,6 +27,10 @@ export function keycodeDisplay(
   table: ReturnType<typeof createKeycodeTable>,
   options: DisplayOptions = {},
 ): KeycodeDisplay {
+  const name = keycodeLabel(labels, keycode);
+  if (name !== undefined) {
+    return { primary: options.compact === true ? shorten(name) : name, name, raw: keycode };
+  }
   const lexeme = classifyKeycode(keycode);
   const layerName = (layer: number): string =>
     options.compact === true ? shorten(layerLabel(labels, layer)) : layerLabel(labels, layer);

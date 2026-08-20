@@ -1,9 +1,9 @@
-import type { RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { createKeycodeTable } from "../../core/keycode/table.ts";
 import { describeKeycode } from "../../core/diff/describe.ts";
 import { classifyKeycode } from "../../core/validation/keycode-vocabulary.ts";
 import { buildKeymapView } from "../../core/model/keymap-view.ts";
-import { layerLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
+import { keycodeLabel, layerLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 import type { Selection } from "../types.ts";
 import {
   BEHAVIOR_OPTIONS,
@@ -25,6 +25,7 @@ export function KeyPanel({
   onPickTarget,
   onEditKey,
   onEditEncoder,
+  onEditLabel,
 }: {
   readonly view: ReturnType<typeof buildKeymapView>;
   readonly definition: Parameters<typeof createKeycodeTable>[0];
@@ -36,6 +37,7 @@ export function KeyPanel({
   readonly onPickTarget: (target: PickTarget) => void;
   readonly onEditKey: (value: string) => void;
   readonly onEditEncoder: (value: string) => void;
+  readonly onEditLabel: (keycode: string, value: string) => void;
 }): React.JSX.Element {
   const table = createKeycodeTable(definition, view.capacities);
   const input =
@@ -56,6 +58,16 @@ export function KeyPanel({
         : undefined;
   const lexeme = input === undefined ? undefined : classifyKeycode(input.keycode);
   const structured = input === undefined ? undefined : structuredValues(input.keycode);
+  const [labelDraft, setLabelDraft] = useState("");
+
+  useEffect(() => {
+    setLabelDraft(input === undefined ? "" : (keycodeLabel(labels, input.keycode) ?? ""));
+  }, [input?.keycode, labels]);
+
+  function commitLabel(): void {
+    if (input === undefined) return;
+    onEditLabel(input.keycode, labelDraft.trim());
+  }
 
   return (
     <aside className="panel side-panel">
@@ -103,7 +115,7 @@ export function KeyPanel({
                     key={target}
                   >
                     <span>{label}</span>
-                    <code>{value}</code>
+                    <code>{formatKeycodeValue(labels, value)}</code>
                   </button>
                 ))}
               </div>
@@ -111,6 +123,20 @@ export function KeyPanel({
           </div>
           <div className="psec">
             <h3>詳細</h3>
+            <label className="raw-editor">
+              表示名（任意）
+              <input
+                value={labelDraft}
+                placeholder="このkeycodeの名前"
+                onChange={(event) => setLabelDraft(event.target.value)}
+                onBlur={commitLabel}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") return;
+                  event.preventDefault();
+                  event.currentTarget.blur();
+                }}
+              />
+            </label>
             <div className="kv">
               <span>keycode</span>
               <span className="mono">{input.keycode}</span>
@@ -163,6 +189,11 @@ export function KeyPanel({
       )}
     </aside>
   );
+}
+
+function formatKeycodeValue(labels: WorkspaceLabels, value: string): string {
+  const name = keycodeLabel(labels, value);
+  return name === undefined ? value : `${name} (${value})`;
 }
 
 function KeySelect({
