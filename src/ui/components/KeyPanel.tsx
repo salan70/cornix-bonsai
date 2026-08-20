@@ -71,11 +71,7 @@ export function KeyPanel({
             </span>
           )}
         </div>
-        <div className="note">
-          {input === undefined
-            ? "盤面またはencoderから入力を選択してください。"
-            : "物理位置を選択中"}
-        </div>
+        {input === undefined ? null : <div className="note">物理位置を選択中</div>}
       </div>
       {input === undefined ? null : (
         <>

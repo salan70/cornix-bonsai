@@ -51,7 +51,6 @@ export function KeycodePicker({
           disabled={disabled}
         />
       </div>
-      {disabled ? <div className="note">盤面またはencoderから入力を選択してください。</div> : null}
       <div className="pk-grid">
         <PickerGroup
           rows={ISO_JIS_ROWS}
