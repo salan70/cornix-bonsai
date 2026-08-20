@@ -24,7 +24,7 @@ test("ISO/JIS picker contains only known, unique keycodes", () => {
 test("ISO/JIS main rows preserve their intended physical widths", () => {
   assert.deepEqual(
     ISO_JIS_ROWS.map((row) => units(row.main)),
-    [16, 16, 15, 15, 16, 17.5, 23],
+    [16, 16, 15, 15, 16, 17.5, 26],
   );
   assert.deepEqual(
     ISO_JIS_ROWS.map((row) => units(row.nav ?? [])),

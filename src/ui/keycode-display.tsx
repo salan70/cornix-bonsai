@@ -104,6 +104,11 @@ const SHORT_LABELS: Readonly<Record<string, string>> = {
   RALT: "⌥",
   RGUI: "⌘",
   MUTE: "Mute",
+  PSCREEN: "Print\nScreen",
+  SCROLLLOCK: "Scroll\nLock",
+  NUMLOCK: "Num\nLock",
+  INSERT: "Insert",
+  APPLICATION: "Menu",
   MINUS: "-",
   EQUAL: "=",
   LBRACKET: "[",
@@ -123,10 +128,16 @@ const SHORT_LABELS: Readonly<Record<string, string>> = {
   END: "End",
   PGUP: "PgUp",
   PGDOWN: "PgDn",
+  KP_ENTER: "Num\nEnter",
   LANG1: "かな",
   LANG2: "英数",
   INT1: "＼",
+  INT2: "KANA",
   INT3: "¥",
+  INT4: "HENK",
+  INT5: "MHEN",
+  NONUS_HASH: "~\n#",
+  NONUS_BSLASH: "|\\",
 };
 
 export function basicLabel(keycode: string): string {
