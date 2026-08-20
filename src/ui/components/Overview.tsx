@@ -6,6 +6,7 @@ import type { VilDocument } from "../../core/vil/types.ts";
 import { layerLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 import { basicLabel } from "../keycode-display.tsx";
 
+/** @doc docs/specs/ui.md#overview-layer-grid */
 export function Overview({
   document,
   labels,

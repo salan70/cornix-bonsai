@@ -3,6 +3,7 @@ import type { DiffEntry } from "../../core/diff/diff.ts";
 import type { ApplyState, WriteOperation } from "../../core/apply/plan.ts";
 import type { evaluateApplyGate } from "../../core/validation/gate.ts";
 
+/** @doc docs/specs/ui.md#apply-modal-steps */
 export function ApplyDialog({
   state,
   changed,

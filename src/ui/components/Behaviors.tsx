@@ -1,6 +1,7 @@
 import type { VilDocument } from "../../core/vil/types.ts";
 import { settingLabel } from "../../workspace/settings.ts";
 
+/** @doc docs/specs/ui.md#behaviors-and-references */
 export function Behaviors({
   document,
   onTapDance,

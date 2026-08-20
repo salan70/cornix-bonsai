@@ -8,6 +8,7 @@ import type { Selection } from "../types.ts";
 import { keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
 import { moveKey } from "../key-navigation.ts";
 
+/** @doc docs/specs/ui.md#keymap-editor */
 export function KeymapTab({
   view,
   definition,

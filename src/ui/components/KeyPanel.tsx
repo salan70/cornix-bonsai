@@ -6,6 +6,7 @@ import { buildKeymapView } from "../../core/model/keymap-view.ts";
 import { layerLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 import type { Selection } from "../types.ts";
 
+/** @doc docs/specs/ui.md#side-panel-editing-controls */
 export function KeyPanel({
   view,
   definition,

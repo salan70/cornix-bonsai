@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import type { Diagnostic, DiagnosticSubject, Severity } from "../../core/validation/types.ts";
 import type { Selection } from "../types.ts";
 
+/** @doc docs/specs/ui.md#diagnostic-panel */
 export function DiagnosticsPanel({
   diagnostics,
   filter,

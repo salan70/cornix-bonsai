@@ -1,5 +1,6 @@
 import type { DiagnosticSummary } from "../../core/validation/types.ts";
 
+/** @doc docs/specs/ui.md#header-and-status */
 export function StatusBar({
   summary,
   changedCount,

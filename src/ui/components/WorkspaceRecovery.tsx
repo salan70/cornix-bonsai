@@ -11,6 +11,7 @@ type WorkspaceIssue =
     }
   | { readonly kind: "unresolved"; readonly store: BrowserWorkspaceStore; readonly reason: string };
 
+/** @doc docs/specs/ui.md#workspace-recovery */
 export function WorkspaceRecovery({
   issue,
   busy,

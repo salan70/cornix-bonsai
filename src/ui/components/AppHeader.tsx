@@ -1,5 +1,6 @@
 import type { WebHidConnection } from "../../device/webhid.ts";
 
+/** @doc docs/specs/ui.md#header-and-status */
 export function AppHeader({
   workspaceName,
   device,

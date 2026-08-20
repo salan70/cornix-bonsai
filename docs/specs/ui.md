@@ -53,3 +53,82 @@ Applyだけは他tabへ移れない線形modalとして扱い、backup、差分�
 戻す。
 Applyが全operationのverifyを終えたら実機をfull readし直し、currentとdesiredが一致した状態へ
 収束させる。反映済みの差分を残したままにすると、同じApplyをもう一度開始できてしまう。
+
+<!-- @code src/ui/components/index.ts#AppHeader -->
+<!-- @code src/ui/components/index.ts#StatusBar -->
+
+## Header and status
+
+headerはCornix Bonsaiのbrand、workspace path、接続状態chipを常設する。artifactの再読み込みと
+backup復元ボタンに加えて、WebHIDのuser gestureを必要とする接続・切断・実機readと、workspace
+directoryを切り替える操作を同じ行へ置く。接続状態は色だけに頼らず、未接続または製品名を文字で示す。
+
+status barのエラー・警告・情報件数は押下でき、診断panelを開く。差分件数、保存先、Apply導線も
+常設し、Applyのgateと診断のseverityをUI表示上で混同しない。
+
+<!-- @code src/ui/components/index.ts#KeymapTab -->
+
+## Keymap editor
+
+Keymapはdefinition由来の物理座標をHTML/CSSの絶対配置へ投影する。artifactの表示倍率として
+`x * 42`、`y * 42`、`width * 38`、`height * 38`を使い、keycodeの語彙に応じたbasic / mod /
+mod-tap / layer / layer-tap / tapdance / custom / noneの意味別classを付ける。encoderは物理キー
+と混ぜず、実機が申告した本数から専用帯を組み立てる。方向キー、Enter、Escの操作は盤面の選択を
+保ったまま編集panelへ移動できる。
+
+<!-- @code src/ui/components/index.ts#KeyPanel -->
+
+## Side panel editing controls
+
+選択中のキーまたはencoderは、位置、動作、Tap（単押し）、Hold（長押し）、詳細、参照を右側の
+panelへ表示する。Tap/Holdのselectは既存keycodeの分類から構造化された文字列を組み立てて既存の
+core編集関数へ渡す。selectで表現しきれないcustom、macro、未分類表記のため、raw keycode入力も
+詳細内に残す。layerを指すkeycodeは参照先のlayer名と番号を表示する。
+
+<!-- @code src/ui/components/index.ts#DiagnosticsPanel -->
+
+## Diagnostic panel
+
+status barのseverity件数から開く診断panelは400px幅で、icon、severity名、code、message、対象を
+各行に表示する。同じcodeの診断は先頭1件を表示し、対象違いの残りをcollapsed行へ畳む。行を選ぶと
+対象がkey / encoder / layerの場合はlayerと盤面選択を更新し、編集panelへ戻る。Escまたは「編集
+panelへ」で診断panelを閉じる。severityは診断の性質だけで決まり、Applyを止める判断はApply側の
+gateに委譲する。
+
+<!-- @code src/ui/components/index.ts#ApplyDialog -->
+
+## Apply modal steps
+
+Applyはbackup、差分確認、確認、書き込み、結果の5 stepをmodal内で表現する。backup行はApply前の
+full readの往復回数を示し、差分確認では追加・変更・削除のtag、対象、before/afterの挙動を1行へ
+出す。`notationOnly`はcollapsedへ畳むが、書き込み対象であることを明記する。
+
+確認stepのacknowledgeは診断ID単位のcheckboxで、根拠の値ごとに記録し、差分が変わればgateの
+fingerprintにより外れる。fatalがあればApplyを無効化する。書き込みstepはverified件数と実測往復
+回数、各operationの待機・実行中・verify済みを表示し、残り時間は推定しない。完了時は「実機に
+反映した」ことだけを確認し、電源断後の永続化は未確認だと明示する。中断後は途中状態を持ち越さず
+full readからやり直す。
+
+<!-- @code src/ui/components/index.ts#Overview -->
+
+## Overview layer grid
+
+Overviewは全layerを4列のmini盤面で表示する。mini盤面は218×107pxで、未使用layerは薄く表示し、
+未使用または到達不能のtagを付ける。layer名が無い場合も`layer N`として番号を隠さない。SVGとPDF
+のexportボタンは配置だけを実装し、未実装であることが分かるdisabled状態にする。
+
+<!-- @code src/ui/components/index.ts#Behaviors -->
+<!-- @code src/ui/components/index.ts#References -->
+
+## Behaviors and references
+
+Behaviorsは既存どおりTap Dance、Combo、Settingsをcoreの編集関数へ渡して保存する。Referencesは
+dynamic entryのusages / unusedとlayerのunreachableを、診断panelとは別の参照情報として表示する。
+
+<!-- @code src/ui/components/index.ts#WorkspaceRecovery -->
+
+## Workspace recovery
+
+workspaceを読めない場合は、keymap欠落、旧digest binding、その他の読み込み失敗を分けて表示し、
+実機readによる初期化、binding移行、再読み込みの導線をそれぞれ提示する。初期化はworkspaceファイル
+を作るだけで実機へwriteせず、実機操作の安全境界を維持する。

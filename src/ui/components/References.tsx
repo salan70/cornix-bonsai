@@ -3,6 +3,7 @@ import { analyzeReachability } from "../../core/validation/reachability.ts";
 import type { Diagnostic } from "../../core/validation/types.ts";
 import type { VilDocument } from "../../core/vil/types.ts";
 
+/** @doc docs/specs/ui.md#behaviors-and-references */
 export function References({
   diagnostics,
   document,
