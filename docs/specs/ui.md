@@ -3,6 +3,18 @@
 UIはVite + React + TypeScriptで、外部router/storeを持たない。mutableなkeymap stateは
 `VilDocument`を1つだけ持ち、編集はCoreの純関数へ委譲する。
 
+## Light / Dark theme
+
+Light / Darkは`prefers-color-scheme`へ追従し、アプリ内の独自切替状態は持たない。画像から採取した
+paletteと、それをUI状態へ使うための派生色は`src/ui/tokens.css`で別の名前空間に定義する。
+画像由来色は補正せず、派生色はsampled値と誤認できない名前とコメントを付ける。
+
+通常画面はneutral surfaceを主体とし、黄をprimary / selected、Lightの青とDarkのオレンジを
+secondary action / focus、Lightの緑とDarkのミントをconnected / successへ使う。keycapは通常、
+hover、selected、keyboard focus、disabledを識別できる状態にする。error、warning、success、
+connectionは文字、icon、borderなどを併用し、色だけを状態の識別手段にしない。本文・keycap・
+主要操作の文字は4.5:1、focusとcontrol境界は3:1以上のcontrastを保つ。
+
 <!-- @code src/ui/browser-workspace.ts#pickWorkspace -->
 <!-- @code src/ui/browser-workspace.ts#restoreWorkspace -->
 

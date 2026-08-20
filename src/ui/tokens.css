@@ -1,21 +1,85 @@
 :root {
-  --bg: oklch(0.982 0.004 145);
-  --surface: oklch(1 0 0);
-  --surface-2: oklch(0.963 0.005 145);
-  --surface-3: oklch(0.938 0.006 145);
-  --border: oklch(0.893 0.007 145);
-  --border-strong: oklch(0.795 0.010 145);
-  --text: oklch(0.275 0.013 145);
-  --muted: oklch(0.525 0.011 145);
-  --faint: oklch(0.665 0.009 145);
-  --accent: oklch(0.505 0.084 149);
-  --accent-soft: oklch(0.945 0.030 149);
-  --error: oklch(0.520 0.155 27);
-  --error-soft: oklch(0.955 0.028 27);
-  --warning: oklch(0.560 0.105 72);
-  --warning-soft: oklch(0.955 0.038 82);
-  --info: oklch(0.520 0.070 245);
-  --info-soft: oklch(0.955 0.022 245);
+  color-scheme: light;
+
+  /* Image-sampled colors. Keep these exact: they are the Issue #16 source palette. */
+  --palette-dark-darkest-charcoal: #383a3f;
+  --palette-dark-charcoal: #4c4e53;
+  --palette-dark-medium-charcoal: #5a5c61;
+  --palette-dark-gray-key: #868686;
+  --palette-dark-light-gray-key: #9b9b9b;
+  --palette-dark-yellow: #de9e04;
+  --palette-dark-yellow-highlight: #e8a619;
+  --palette-dark-orange: #f37252;
+  --palette-dark-mint: #68c2a8;
+  --palette-light-white-key: #efefef;
+  --palette-light-light-gray: #c6cbc9;
+  --palette-light-gray: #9ea19f;
+  --palette-light-yellow: #fac400;
+  --palette-light-blue: #4078e0;
+  --palette-light-blue-highlight: #5883e4;
+  --palette-light-green: #5cbc55;
+
+  /* Derived implementation colors. These are not sampled from either image. */
+  --derived-deep-ink: #0b0c0d;
+  --derived-light-border-strong: #737775;
+  --derived-light-accent-emphasis: #725a00;
+  --derived-light-error: #a83225;
+  --derived-light-warning: #725a00;
+  --derived-light-info: #285cb5;
+  --derived-light-success: #2d6b2a;
+  --derived-dark-border-strong: #9d9d9d;
+
+  /* Light semantic tokens. */
+  --bg: var(--palette-light-white-key);
+  --surface: var(--palette-light-white-key);
+  --surface-2: var(--palette-light-light-gray);
+  --surface-3: var(--palette-light-gray);
+  --border: var(--palette-light-light-gray);
+  --border-strong: var(--derived-light-border-strong);
+  --text: var(--palette-dark-darkest-charcoal);
+  --muted: var(--palette-dark-charcoal);
+  --faint: var(--palette-dark-medium-charcoal);
+  --accent: var(--palette-light-yellow);
+  --accent-hover: color-mix(
+    in srgb,
+    var(--palette-light-yellow) 88%,
+    var(--palette-dark-darkest-charcoal)
+  );
+  --accent-soft: color-mix(in srgb, var(--palette-light-yellow) 20%, var(--surface));
+  --accent-emphasis: var(--derived-light-accent-emphasis);
+  --accent-contrast: var(--palette-dark-darkest-charcoal);
+  --secondary: var(--palette-light-blue);
+  --secondary-hover: var(--palette-light-blue-highlight);
+  --secondary-soft: color-mix(in srgb, var(--palette-light-blue) 14%, var(--surface));
+  --secondary-contrast: var(--derived-deep-ink);
+  --success: var(--palette-light-green);
+  --success-soft: color-mix(in srgb, var(--palette-light-green) 16%, var(--surface));
+  --success-text: var(--derived-light-success);
+  --success-contrast: var(--derived-deep-ink);
+  --error: var(--derived-light-error);
+  --error-soft: color-mix(in srgb, var(--derived-light-error) 12%, var(--surface));
+  --warning: var(--derived-light-warning);
+  --warning-border: var(--derived-light-warning);
+  --warning-soft: color-mix(in srgb, var(--palette-light-yellow) 18%, var(--surface));
+  --info: var(--derived-light-info);
+  --info-soft: var(--secondary-soft);
+  --focus: var(--palette-light-blue);
+  --focus-outer: var(--palette-dark-darkest-charcoal);
+  --key-bg: var(--palette-light-white-key);
+  --key-hover-bg: color-mix(
+    in srgb,
+    var(--palette-light-light-gray) 45%,
+    var(--palette-light-white-key)
+  );
+  --key-special-bg: color-mix(
+    in srgb,
+    var(--palette-light-gray) 38%,
+    var(--palette-light-white-key)
+  );
+  --key-text: var(--palette-dark-darkest-charcoal);
+  --key-muted: var(--palette-dark-charcoal);
+  --disabled-bg: var(--palette-light-light-gray);
+  --disabled-text: var(--palette-dark-medium-charcoal);
   --r: 4px;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
   --sans: -apple-system, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
@@ -23,22 +87,64 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: oklch(0.196 0.008 145);
-    --surface: oklch(0.238 0.009 145);
-    --surface-2: oklch(0.276 0.010 145);
-    --surface-3: oklch(0.318 0.011 145);
-    --border: oklch(0.352 0.012 145);
-    --border-strong: oklch(0.455 0.014 145);
-    --text: oklch(0.925 0.007 145);
-    --muted: oklch(0.700 0.010 145);
-    --faint: oklch(0.575 0.010 145);
-    --accent: oklch(0.735 0.095 149);
-    --accent-soft: oklch(0.318 0.045 149);
-    --error: oklch(0.715 0.135 27);
-    --error-soft: oklch(0.315 0.060 27);
-    --warning: oklch(0.780 0.100 78);
-    --warning-soft: oklch(0.320 0.048 78);
-    --info: oklch(0.735 0.070 245);
-    --info-soft: oklch(0.305 0.040 245);
+    color-scheme: dark;
+
+    /* Derived dark-theme colors. These are not sampled from either image. */
+    --derived-dark-surface-3: color-mix(
+      in srgb,
+      var(--palette-dark-medium-charcoal) 72%,
+      var(--palette-dark-gray-key)
+    );
+    --derived-dark-secondary-hover: color-mix(
+      in srgb,
+      var(--palette-dark-orange) 84%,
+      var(--palette-light-white-key)
+    );
+    --derived-dark-error: #ffb4a9;
+    --derived-dark-warning: #f2c35b;
+
+    /* Dark semantic tokens. */
+    --bg: var(--palette-dark-darkest-charcoal);
+    --surface: var(--palette-dark-charcoal);
+    --surface-2: var(--palette-dark-medium-charcoal);
+    --surface-3: var(--derived-dark-surface-3);
+    --border: var(--palette-dark-gray-key);
+    --border-strong: var(--derived-dark-border-strong);
+    --text: var(--palette-light-white-key);
+    --muted: var(--palette-light-light-gray);
+    --faint: var(--palette-dark-light-gray-key);
+    --accent: var(--palette-dark-yellow);
+    --accent-hover: var(--palette-dark-yellow-highlight);
+    --accent-soft: color-mix(in srgb, var(--palette-dark-yellow) 20%, var(--surface));
+    --accent-emphasis: var(--palette-dark-yellow-highlight);
+    --accent-contrast: var(--palette-dark-darkest-charcoal);
+    --secondary: var(--palette-dark-orange);
+    --secondary-hover: var(--derived-dark-secondary-hover);
+    --secondary-soft: color-mix(in srgb, var(--palette-dark-orange) 16%, var(--surface));
+    --secondary-contrast: var(--derived-deep-ink);
+    --success: var(--palette-dark-mint);
+    --success-soft: color-mix(in srgb, var(--palette-dark-mint) 16%, var(--surface));
+    --success-text: var(--palette-dark-mint);
+    --success-contrast: var(--derived-deep-ink);
+    --error: var(--derived-dark-error);
+    --error-soft: color-mix(in srgb, var(--derived-dark-error) 14%, var(--surface));
+    --warning: var(--derived-dark-warning);
+    --warning-border: var(--palette-dark-yellow-highlight);
+    --warning-soft: color-mix(in srgb, var(--palette-dark-yellow) 16%, var(--surface));
+    --info: var(--palette-light-light-gray);
+    --info-soft: var(--surface-2);
+    --focus: var(--palette-dark-orange);
+    --focus-outer: var(--palette-light-white-key);
+    --key-bg: var(--palette-dark-medium-charcoal);
+    --key-hover-bg: color-mix(
+      in srgb,
+      var(--palette-dark-medium-charcoal) 78%,
+      var(--palette-dark-gray-key)
+    );
+    --key-special-bg: var(--derived-dark-surface-3);
+    --key-text: var(--palette-light-white-key);
+    --key-muted: var(--palette-light-white-key);
+    --disabled-bg: var(--palette-dark-charcoal);
+    --disabled-text: var(--palette-dark-light-gray-key);
   }
 }

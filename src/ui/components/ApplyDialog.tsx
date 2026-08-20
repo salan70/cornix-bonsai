@@ -62,10 +62,7 @@ export function ApplyDialog({
           <ApplySteps phase={state?.phase} />
         </div>
         <div className="mbody">
-          <div
-            className="row"
-            style={{ borderColor: "var(--accent)", background: "var(--accent-soft)" }}
-          >
+          <div className="row success-row">
             <span aria-hidden="true">✓</span>
             <span>
               Apply 前の全 read を <span className="mono">cornix/backups/</span> に保存した

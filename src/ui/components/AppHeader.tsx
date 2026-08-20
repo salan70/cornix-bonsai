@@ -35,7 +35,7 @@ export function AppHeader({
         <b className="mono">{workspaceName ?? "未選択"}</b>
       </div>
       <div className="header-actions">
-        <span className={`chip ${device === undefined ? "" : "on"}`} aria-live="polite">
+        <span className={`chip ${device === undefined ? "" : "connected"}`} aria-live="polite">
           <span className="dot" />
           {device === undefined ? "未接続" : `${device.info.productName} に接続済み`}
         </span>
@@ -45,7 +45,7 @@ export function AppHeader({
         <button className="btn" onClick={onRead} disabled={device === undefined}>
           実機から再読み込み
         </button>
-        <button className="btn" onClick={onRestoreBackup} disabled={!canReload}>
+        <button className="btn secondary" onClick={onRestoreBackup} disabled={!canReload}>
           backup から復元
         </button>
         <button className="btn" onClick={onConnect}>
