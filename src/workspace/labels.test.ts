@@ -6,6 +6,7 @@ import {
   layerLabel,
   parseLabelsYaml,
   serializeLabelsYaml,
+  updateLayerLabel,
 } from "./labels.ts";
 
 test("labels@1はlayer名だけのlegacy形式として読み込める", () => {
@@ -62,5 +63,23 @@ test("serializeはkeycodeを安定した辞書順で出力する", () => {
       '  "SGUI(KC_2)": "画面切替"',
       "",
     ].join("\n"),
+  );
+});
+
+test("layer名更新はtrimし、空文字で名前を削除する", () => {
+  const named = updateLayerLabel(EMPTY_LABELS, 2, "  Nav  ");
+  strictEqual(layerLabel(named, 2), "Nav");
+  strictEqual(layerLabel(updateLayerLabel(named, 2, "   "), 2), "layer 2");
+});
+
+test("layer名は重複を許し、他の表示名を変更しない", () => {
+  const first = updateLayerLabel(EMPTY_LABELS, 0, "Base");
+  const both = updateLayerLabel(first, 1, "Base");
+  deepStrictEqual(
+    [...both.layers.entries()],
+    [
+      [0, "Base"],
+      [1, "Base"],
+    ],
   );
 });

@@ -80,6 +80,16 @@
   --key-muted: var(--palette-dark-charcoal);
   --disabled-bg: var(--palette-light-light-gray);
   --disabled-text: var(--palette-dark-medium-charcoal);
+
+  /* Derived layer-link colors. The L number and layer name remain the identity. */
+  --layer-link-0: #7c3aed;
+  --layer-link-1: #2563eb;
+  --layer-link-2: #00897b;
+  --layer-link-3: #b45309;
+  --layer-link-4: #c026d3;
+  --layer-link-5: #15803d;
+  --layer-link-6: #c2410c;
+  --layer-link-7: #0369a1;
   --r: 4px;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
   --sans: -apple-system, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
@@ -145,4 +155,12 @@
   --key-muted: var(--palette-light-white-key);
   --disabled-bg: var(--palette-dark-charcoal);
   --disabled-text: var(--palette-dark-light-gray-key);
+  --layer-link-0: #c4b5fd;
+  --layer-link-1: #93c5fd;
+  --layer-link-2: #5eead4;
+  --layer-link-3: #fbbf24;
+  --layer-link-4: #f0abfc;
+  --layer-link-5: #86efac;
+  --layer-link-6: #fdba74;
+  --layer-link-7: #7dd3fc;
 }

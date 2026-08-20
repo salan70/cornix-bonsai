@@ -178,13 +178,29 @@ fingerprintにより外れる。fatalがあればApplyを無効化する。書�
 full readからやり直す。
 
 <!-- @code src/ui/components/index.ts#Overview -->
+<!-- @code src/ui/overview-model.ts#buildOverviewModel -->
 
 ## Overview layer grid
 
-Overviewは全layerを4列のmini盤面で表示する。mini盤面は幅218pxへfitさせ、高さは盤面の外接矩形
-から導く（倍率の計算はKeymap editorと同じ`src/render/geometry.ts`）。未使用layerは薄く表示し、
-未使用または到達不能のtagを付ける。layer名が無い場合も`layer N`として番号を隠さない。SVGとPDF
-のexportボタンは配置だけを実装し、未実装であることが分かるdisabled状態にする。
+Overviewはlayer gridと使用中Tap Danceのsidebarを同じ画面へ置く。初期表示はlayer 0と、物理キー・
+encoder・Tap Dance・Comboのkeycode領域から参照されるlayerだけとし、参照元のないlayerはtoggleで表示する。
+既存fixtureを1280×800で開いた初期状態では、参照layerと使用中Tap Danceがページスクロールなしで収まる。
+参照ありの判定はこの画面の表示用集計であり、既存のreachability診断、severity、Apply gateを変更しない。
+
+各layer cardは`L番号`、layer名、到達不能・参照なしtag、物理キー全件、encoder全件を表示する。mini盤面の
+倍率はcardの幅と`src/render/geometry.ts`の外接矩形から導き、各keyは通常のkeycode displayのprimaryとroleを
+表示する。raw keycodeはtitleへ残し、`KC_NO`は`—`、transparentは`↓`で表す。layer名はcard headingの
+inline inputで編集し、Enterまたはblurでtrimして`cornix/labels.yaml`へ保存する。空文字は名前を削除し、
+名前が無い場合は`layer N`へ戻す。名前の重複は許可する。
+
+layer操作の対象layerには決定的な色、`L番号`、layer名を付け、参照元key・encoder・Tap Danceとcardで共有する。
+参照元をhoverまたはkeyboard focusしたときだけ、Overview内のSVG overlayで参照元と対象cardを結ぶ。色だけに
+依存せず、識別子とaria-labelにも対象layerを含める。Tap Dance sidebarは参照数が1以上のentryだけをindex順に
+表示し、tap / hold / double tap / hold after tap / timeoutと使用箇所数を読み取り専用で示す。Comboからのみ
+参照されるlayerも表示対象とし、cardの参照元要約へ反映する。
+
+SVGとPDFのexportボタンは配置だけを実装し、未実装であることが分かるdisabled状態にする。キー、encoder、
+Tap Danceの編集はそれぞれKeymap / Behaviorsへ残し、Overviewではlayer名だけを編集可能にする。
 
 <!-- @code src/ui/components/index.ts#Behaviors -->
 <!-- @code src/ui/components/index.ts#References -->

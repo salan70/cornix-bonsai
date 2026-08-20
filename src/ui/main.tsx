@@ -40,6 +40,7 @@ import {
   EMPTY_LABELS,
   parseLabelsYaml,
   serializeLabelsYaml,
+  updateLayerLabel,
   type WorkspaceLabels,
 } from "../workspace/labels.ts";
 import { parseAcknowledgements, serializeAcknowledgements } from "../workspace/acknowledgements.ts";
@@ -325,6 +326,17 @@ function App(): React.JSX.Element {
     if (value === "") keycodes.delete(keycode);
     else keycodes.set(keycode, value);
     const labels: WorkspaceLabels = { ...workspace.labels, keycodes };
+    setWorkspace({ ...workspace, labels });
+    try {
+      labelsSaveQueue.current?.enqueue(serializeLabelsYaml(labels));
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
+  function editLayerLabel(layer: number, value: string): void {
+    if (workspace === undefined) return;
+    const labels = updateLayerLabel(workspace.labels, layer, value);
     setWorkspace({ ...workspace, labels });
     try {
       labelsSaveQueue.current?.enqueue(serializeLabelsYaml(labels));
@@ -760,6 +772,7 @@ function App(): React.JSX.Element {
               definition={workspace.definition}
               labels={workspace.labels}
               view={view!}
+              onEditLayerLabel={editLayerLabel}
             />
           ) : null}
           {tab === "Behaviors" ? (

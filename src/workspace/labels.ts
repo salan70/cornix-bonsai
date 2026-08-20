@@ -77,6 +77,19 @@ export function layerLabel(labels: WorkspaceLabels, layer: number): string {
   return labels.layers.get(layer) ?? `layer ${layer}`;
 }
 
+/** layer名を更新する。空文字は名前を削除し、未指定時の`layer N`表示へ戻す。 */
+export function updateLayerLabel(
+  labels: WorkspaceLabels,
+  layer: number,
+  value: string,
+): WorkspaceLabels {
+  const layers = new Map(labels.layers);
+  const name = value.trim();
+  if (name === "") layers.delete(layer);
+  else layers.set(layer, name);
+  return { ...labels, layers };
+}
+
 /**
  * raw keycode式の完全一致表示名。名前が無ければundefinedを返す。
  * @doc docs/specs/workspace-cli.md#表示名の仕様
