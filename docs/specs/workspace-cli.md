@@ -47,6 +47,20 @@ raw bytesを対象にすると、firmwareが配るpayloadとGit管理下のdefin
 保存直前に現在のstatを取得し、読み込み時のtokenとcontent hashまたはmtimeが異なれば上書き
 しない。file watchingは行わず、ユーザーの明示的な再読み込みで外部変更を取り込む。
 
+<!-- @code src/workspace/save-queue.ts#createSaveQueue -->
+
+## 保存の直列化
+
+UIの編集state更新とfilesystemへのwriteを分ける。編集は入力ごとにstateへ即時反映し、
+writeはこのqueueが1本の列で行う。競合検査に使うtokenは、成功したwriteごとにqueueだけが
+更新する。
+
+入力ごとに非同期saveを並行させると、先行saveの書き込みを後続saveが外部変更と誤検出するか、
+同じtokenで競合検査を通った複数のwriteの順序が入れ替わり、古い内容が最後に残る。
+
+待ち中の内容は常に最新の1つへ畳む。中間状態は捨ててよいが、最後の入力は必ず残る。
+競合を検出した時点で待ち中の予約も捨て、取り込みは明示的な再読み込みに任せる。
+
 <!-- @code src/cli/main.ts#main -->
 
 ## CLI

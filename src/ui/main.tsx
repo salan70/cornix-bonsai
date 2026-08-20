@@ -43,7 +43,8 @@ import {
 } from "../workspace/labels.ts";
 import { parseAcknowledgements, serializeAcknowledgements } from "../workspace/acknowledgements.ts";
 import { CORNIX_LP_V112_SETTINGS, settingLabel } from "../workspace/settings.ts";
-import { writeTextIfUnchanged, type WorkspaceConflictToken } from "../workspace/types.ts";
+import { createSaveQueue, type SaveQueue } from "../workspace/save-queue.ts";
+import type { WorkspaceConflictToken } from "../workspace/types.ts";
 import { BrowserWorkspaceStore, pickWorkspace, restoreWorkspace } from "./browser-workspace.ts";
 import "./styles.css";
 
@@ -75,16 +76,26 @@ function App(): React.JSX.Element {
   const [applyOpen, setApplyOpen] = useState(false);
   const [applyState, setApplyState] = useState<ApplyState | undefined>();
   const applyCancellation = useRef(false);
+  const saveQueue = useRef<SaveQueue | undefined>(undefined);
+
+  function adoptWorkspace(model: WorkspaceModel): void {
+    saveQueue.current = createSaveQueue({
+      store: model.store,
+      path: WORKSPACE_LAYOUT.keymap,
+      token: model.token,
+      onSaved: () => setStatus("keymap.yamlへ保存した"),
+      onError: (error) => setStatus(message(error)),
+    });
+    setWorkspace(model);
+    setAcknowledged(model.acknowledged);
+  }
 
   useEffect(() => {
     void restoreWorkspace().then((store) =>
       store === undefined
         ? undefined
         : loadStore(store)
-            .then((model) => {
-              setWorkspace(model);
-              setAcknowledged(model.acknowledged);
-            })
+            .then((model) => adoptWorkspace(model))
             .catch((error) => setStatus(message(error))),
     );
   }, []);
@@ -165,9 +176,7 @@ function App(): React.JSX.Element {
   async function openWorkspace(): Promise<void> {
     try {
       const store = await pickWorkspace();
-      const model = await loadStore(store);
-      setWorkspace(model);
-      setAcknowledged(model.acknowledged);
+      adoptWorkspace(await loadStore(store));
       setStatus("workspaceを開いた");
     } catch (error) {
       setStatus(message(error));
@@ -177,26 +186,25 @@ function App(): React.JSX.Element {
   async function reload(): Promise<void> {
     if (workspace === undefined) return;
     try {
-      const model = await loadStore(workspace.store);
-      setWorkspace(model);
-      setAcknowledged(model.acknowledged);
+      adoptWorkspace(await loadStore(workspace.store));
       setStatus("keymap.yamlを再読み込みした");
     } catch (error) {
       setStatus(message(error));
     }
   }
 
-  async function save(document = workspace?.document): Promise<void> {
+  /**
+   * 編集を state へ即時反映し、filesystem への書き込みは直列 queue へ渡す。
+   *
+   * 入力ごとに非同期 save を並行させると、自分の write を外部変更と誤検出したり
+   * write 順が入れ替わって古い内容が残ったりする。write の順序と token の更新は
+   * `createSaveQueue` だけが持つ。
+   */
+  function save(document = workspace?.document): void {
     if (workspace === undefined || document === undefined) return;
+    setWorkspace({ ...workspace, document });
     try {
-      const text = serializeKeymapYaml(document, workspace.binding);
-      await writeTextIfUnchanged(workspace.store, WORKSPACE_LAYOUT.keymap, text, workspace.token);
-      setWorkspace({
-        ...workspace,
-        document,
-        token: (await workspace.store.stat(WORKSPACE_LAYOUT.keymap)) ?? undefined,
-      });
-      setStatus("keymap.yamlへ保存した");
+      saveQueue.current?.enqueue(serializeKeymapYaml(document, workspace.binding));
     } catch (error) {
       setStatus(message(error));
     }
@@ -431,7 +439,7 @@ function App(): React.JSX.Element {
   function editKey(keycode: string): void {
     if (workspace === undefined || selection?.kind !== "key") return;
     try {
-      void save(
+      save(
         setKeyAssignment(
           workspace.document,
           { layer, row: selection.row, col: selection.col },
@@ -446,7 +454,7 @@ function App(): React.JSX.Element {
   function editEncoder(keycode: string): void {
     if (workspace === undefined || selection?.kind !== "encoder") return;
     try {
-      void save(
+      save(
         setEncoderAssignment(
           workspace.document,
           {
@@ -475,7 +483,7 @@ function App(): React.JSX.Element {
       }
       next[4] = timeout;
     } else next[field] = value;
-    void save({
+    save({
       ...workspace.document,
       tapDance: workspace.document.tapDance.map((entry, entryIndex) =>
         entryIndex === index ? next : entry,
@@ -489,7 +497,7 @@ function App(): React.JSX.Element {
     if (current === undefined || field < 0 || field > 4) return;
     const next = [...current] as [string, string, string, string, string];
     next[field] = value;
-    void save({
+    save({
       ...workspace.document,
       combo: workspace.document.combo.map((entry, entryIndex) =>
         entryIndex === index ? next : entry,
@@ -504,7 +512,7 @@ function App(): React.JSX.Element {
       setStatus("settingは0〜65535の整数が必要");
       return;
     }
-    void save({
+    save({
       ...workspace.document,
       settings: { ...workspace.document.settings, [String(qsid)]: parsed },
     });

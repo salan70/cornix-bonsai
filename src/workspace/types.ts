@@ -20,7 +20,7 @@ export class WorkspaceConflictError extends Error {}
 
 /** @doc docs/specs/workspace-cli.md#外部変更競合 */
 export async function writeTextIfUnchanged(
-  store: WorkspaceFileStore,
+  store: Pick<WorkspaceFileStore, "writeText" | "stat">,
   path: string,
   text: string,
   expected: WorkspaceConflictToken | undefined,
