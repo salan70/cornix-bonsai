@@ -14,7 +14,7 @@
 - 電源再投入後に再readし、元の`KC_A`へ復元した。backup復元後のdesiredも`KC_A`へ戻した。
 - Apply確認中の切断でdeviceが未接続になり、Apply計画が破棄されることを手動確認した。
 - 外部変更テストでは`keymap.yaml`への外部コメント追加後のUI保存が競合として拒否され、ファイルを上書きしなかった。
-- `KC_A`を`KC_B`へ変更して保存・Applyし、復元後に`KC_A`へ戻した。3文字連続入力の専用確認は今回の記録に含めていない。
+- raw keycode欄で`KC_B`を3文字連続入力して保存し、その後pickerから`KC_A`へ戻して保存した。入力途中の巻き戻りはなく、最終的にファイルは`KC_A`でvalidation error 0だった。
 - 実機workspaceのCLI validationはUSB/BLEともerror 0、warning 0、information 5だった。
 
 ## CLI検証
@@ -35,6 +35,5 @@
 ## Open Question
 
 - 電源再投入後の値保持は、今回の実機ではテスト前状態へ戻ったため、flash durabilityの保証根拠にはしない。
-- Issue #13の「3文字ぶん連続で編集して最後の入力を保存」は専用の受入記録が未取得である。
 - Issue #15の`.vil` import・SVG/PDF exportはCLIで確認済みだが、browser workflowとしての専用受入記録は未取得である。
 - IssueのGitHubコメント・close・pushは別途明示承認が必要であり、今回は実施していない。
