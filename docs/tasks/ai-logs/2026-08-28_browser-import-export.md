@@ -12,14 +12,15 @@
 - browser adapterのround-trip / renderer smoke testを追加した。
 - 既存fixtureで全168テスト、typecheck、build、lint（DocBridge含む）が通過した。
 - in-app browserの未選択画面で、VIL読込・VIL書出はworkspace未選択時disabled、Overviewのexport導線はworkspace選択後に有効化される構造を確認した。
+- ユーザーがBLE workspaceでブラウザのVIL読込・VIL書出・SVG/PDF書出を確認した。
+- `cornix/generated/`に`keymap.vil`、`keymap-layer-0.svg`、`keymap-layer-0.pdf`が生成され、各ファイルの形式とサイズを確認した。
+- 生成されたVILを基準にCLI diffを実行し、`changedCount: 0`だった。
 
 ## Decision
 
 - browser exportの保存先は既存のGit管理外`cornix/generated/`とする（ADR 0019）。
 - `.vil` importはdefinition bindingを変更せず、UID不一致などは通常のvalidation / Apply gateで止める。
-- Issue #15のbrowser実workspaceでのファイル選択・生成物確認は、次の手動受入で実施する。
 
 ## Open Question
 
-- Chromeで実workspaceを開き、`.vil`読込後の`keymap.yaml`反映と、生成された3 artifactの内容を目視確認する。
 - IssueへのGitHubコメント・close・pushは別途明示承認が必要であり、今回は実施していない。
