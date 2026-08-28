@@ -30,6 +30,22 @@ lint-ts:
 lint-md:
     markdownlint-cli2 "**/*.md" "!.direnv/**" "!node_modules/**" "!.claude/**" "!.agents/**"
 
+# ローカル開発サーバーを起動する
+dev:
+    pnpm dev
+
+# production buildを作成する
+build:
+    pnpm build
+
+# production buildをbase path付きで確認する
+preview:
+    pnpm exec vite preview
+
+# CLIを実行する
+cornix *ARGS:
+    pnpm run cornix -- {{ARGS}}
+
 # コードを整形する
 # .claude / .agents は正本からコピーした vendor 資産のため整形しない。
 # 整形すると正本との差分が生まれ、再同期のたびに衝突する。

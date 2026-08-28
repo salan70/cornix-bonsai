@@ -38,6 +38,9 @@ export function AppHeader({
           🌱
         </span>
         <strong>Cornix Bonsai</strong>
+        <span className="build-info mono" title={`ビルド時刻: ${__BUILD_INFO__.builtAt}`}>
+          {__BUILD_INFO__.commitSha}
+        </span>
       </div>
       <div className="ws">
         <span>workspace</span>

@@ -4,43 +4,65 @@ Cornix LP向けのキーマップ編集ツール 💚
 
 Cornix Bonsaiは、Cornix LPのキーマップをブラウザ・CLI・Git・AIエージェントから読み取り、編集、検証、可視化、バージョン管理するためのローカルファーストなツールです。
 
+Web UI: <https://salan70.github.io/cornix-bonsai/>
+
+Web UIはChromium系ブラウザ（Chrome / Edge / Brave）が必要です。WebHIDに対応しないSafariとFirefoxでは実機接続を使えません。
+
 ## 現在の状況
 
-workspace / CLI / Web UI / WebHID adapterのMVP実装を含むローカル開発版です。実機USB/BLEの
-受入確認は実機と人間の明示操作が必要なため、mock/fixtureの自動検証とは分けて扱います。
+workspace / CLI / Web UI / WebHID adapterのMVP実装を含みます。mainへのpushはGitHub Pagesへ自動デプロイされ、
+headerに利用中buildの短いcommit SHAを表示します。実機USB/BLEの受入確認は実機と人間の明示操作が必要なため、
+mock/fixtureの自動検証とは分けて扱います。
 
 ## 起動
 
-依存関係とツールチェーンはNix環境を使います。
+依存関係とツールチェーンはNix環境を使います。初回のCLI setupではpre-commit / pre-push hookも導入します。
 
 ```bash
 nix develop
 just setup
 just test
 just typecheck
+just dev
+```
+
+production buildをローカルで確認する場合は、別のterminalで次を実行してから
+<http://localhost:4173/cornix-bonsai/>をChromium系browserで開きます。
+
+```bash
 just build
+just preview
 ```
 
 ### CLI
 
-既存の`.vil`とdefinitionからworkspaceを初期化し、同じCoreで検証・解析・差分・描画・exportを
-実行できます。
+既存の`.vil`とdefinitionからworkspaceを初期化し、同じCoreで検証・解析・差分・描画・exportを実行できます。
+複数マシンでは各マシンでclone後に一度setupし、以後は`git pull`で更新します。CLIはnpm packageとしてpublishせず、
+cloneしたリポジトリから実行します。
 
 ```bash
-pnpm run cornix -- import vil fixtures/cornix-lp/baseline.vil \
+git clone https://github.com/salan70/cornix-bonsai.git
+cd cornix-bonsai
+direnv allow
+just setup
+
+just cornix import vil fixtures/cornix-lp/baseline.vil \
   --definition fixtures/cornix-lp/vial-definition-v1.12.json \
   --workspace /path/to/workspace
-pnpm run cornix -- validate --workspace /path/to/workspace
-pnpm run cornix -- analyze --workspace /path/to/workspace
-pnpm run cornix -- diff --against before.vil --workspace /path/to/workspace
-pnpm run cornix -- render --format svg --out keymap.svg --workspace /path/to/workspace
-pnpm run cornix -- render --format pdf --out keymap.pdf --workspace /path/to/workspace
-pnpm run cornix -- export vil --out keymap.vil --workspace /path/to/workspace
+just cornix validate --workspace /path/to/workspace
+just cornix analyze --workspace /path/to/workspace
+just cornix diff --against before.vil --workspace /path/to/workspace
+just cornix render --format svg --out keymap.svg --workspace /path/to/workspace
+just cornix render --format pdf --out keymap.pdf --workspace /path/to/workspace
+just cornix export vil --out keymap.vil --workspace /path/to/workspace
+
+# 更新時
+git pull
 ```
 
 ### Browser UI
 
-`pnpm run dev`で起動し、Chromium系browserでworkspace directoryを選択します。permission済みの
+`just dev`で起動し、Chromium系browserでworkspace directoryを選択します。permission済みの
 directory handleはIndexedDBへ保存され、reload後に復帰します。`接続` → `実機read` → 編集 →
 `Apply`の順に操作します。`.vil`読込はdesired stateへ反映し、OverviewのSVG/PDF書出とVIL書出は
 workspaceの`cornix/generated/`へ保存します。Applyはbackup、validation、差分確認、人間確認、
