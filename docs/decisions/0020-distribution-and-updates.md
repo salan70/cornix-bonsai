@@ -27,7 +27,8 @@ Pagesへ移る利用者はworkspaceを1回選び直す必要がある。
 - mainへのpushまたはworkflow_dispatchを契機にGitHub Actionsでinstall、typecheck、test、buildを実行し、
   成功したPages artifactをdeployする。
 - Viteのbaseは `/cornix-bonsai/` とする。build時にcommit SHAとbuild時刻を埋め込み、headerのbrand横に
-  短いcommit SHAを表示し、build時刻はtitleで確認できるようにする。
+  `build`ラベル、短いcommit SHA、利用者のローカルtimezoneで整形したbuild時刻を可視表示する。
+  build時刻は`time`要素の`dateTime`へISO文字列を保持する。
 - 更新はブラウザのリロードで受け取る。Service Worker、PWA、オフライン対応は導入しない。
 - CLIはnpm publishせず、リポジトリをcloneした環境で `just cornix ...` を実行する。
 - routerは導入しない。tabの状態をURLへ載せる判断はADR 0013のまま据え置く。

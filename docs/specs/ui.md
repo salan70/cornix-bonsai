@@ -85,7 +85,9 @@ Applyが全operationのverifyを終えたら実機をfull readし直し、curren
 headerはCornix Bonsaiのbrand、workspace path、接続状態chipを常設する。artifactの再読み込み、
 backup復元、`.vil`読込・書出ボタンに加えて、WebHIDのuser gestureを必要とする接続・切断・実機readと、
 workspace directoryを切り替える操作を同じ行へ置く。接続状態は色だけに頼らず、未接続または製品名を文字で示す。
-brandの隣にはbuild時の短いcommit SHAを表示し、build時刻をtitleで確認できるようにする。
+brandの隣には`build`ラベル、build時の短いcommit SHA、利用者のローカルtimezoneで整形したbuild時刻を
+可視表示する。build時刻は`time`要素の`dateTime`へISO文字列を保持し、build情報が無い場合は開発用の
+fallback表示へ切り替える。
 
 status barのエラー・警告・情報件数は押下でき、診断panelを開く。差分件数、保存先、Apply導線も
 常設し、Applyのgateと診断のseverityをUI表示上で混同しない。

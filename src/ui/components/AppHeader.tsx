@@ -1,4 +1,5 @@
 import type { WebHidConnection } from "../../device/webhid.ts";
+import { buildInfo, formatBuildTime } from "../build-info.ts";
 import type { ThemePreference } from "../theme.ts";
 
 /** @doc docs/specs/ui.md#header-and-status */
@@ -38,8 +39,9 @@ export function AppHeader({
           🌱
         </span>
         <strong>Cornix Bonsai</strong>
-        <span className="build-info mono" title={`ビルド時刻: ${__BUILD_INFO__.builtAt}`}>
-          {__BUILD_INFO__.commitSha}
+        <span className="build-info">
+          build {buildInfo.commitSha} ·{" "}
+          <time dateTime={buildInfo.builtAt}>{formatBuildTime(buildInfo.builtAt)}</time>
         </span>
       </div>
       <div className="ws">

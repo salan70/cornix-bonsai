@@ -26,5 +26,5 @@
 
 ## Open Question
 
-- Pagesを有効化するには、repository Settings → Pages → SourceをGitHub Actionsへ変更する必要がある。これはPR後に人間が確認して実施する。
+- Pagesのrepository Settings → Pages → SourceはGitHub Actionsへ設定済みであることをAPIで確認した。
 - Pages URL上の実機read到達、リロードによるSHA更新、Pagesの実際のdeploy成功は、mainへ反映後の環境依存確認として残る。実機writeは行わない。
