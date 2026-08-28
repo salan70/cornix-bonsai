@@ -40,11 +40,12 @@ build:
 
 # production buildをbase path付きで確認する
 preview:
-    pnpm exec vite preview
+    pnpm preview
 
 # CLIを実行する
+[positional-arguments]
 cornix *ARGS:
-    pnpm run cornix -- {{ARGS}}
+    pnpm run cornix -- "$@"
 
 # コードを整形する
 # .claude / .agents は正本からコピーした vendor 資産のため整形しない。

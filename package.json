@@ -8,6 +8,7 @@
     "typecheck": "tsc -p tsconfig.core.json && tsc -p tsconfig.app.json && tsc -p tsconfig.cli.json",
     "build": "vite build",
     "dev": "vite",
+    "preview": "vite preview",
     "cornix": "tsx src/cli/main.ts"
   },
   "dependencies": {
