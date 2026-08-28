@@ -41,5 +41,6 @@ L番号・名前・aria-labelを併用することで、色覚差やpalette循�
 - Overview専用の純粋な表示モデルとlayer参照型が追加される。
 - layer名変更は表示用sidecarだけを更新し、`VilDocument`、keymap YAML、semantic diff、validation、Apply fingerprint
   は変更しない。
-- SVG/PDF exportは引き続き未実装disabledであり、Overviewの線は画面表示専用である。
+- SVG/PDF exportはADR 0019に従い、Overviewから選択中layerを`cornix/generated/`へ書き出す。
+  Overviewの線は引き続き画面表示専用である。
 - 既存のADR 0011にある「全layerを4列で表示」という記述は本ADRと`docs/specs/ui.md`で置き換える。

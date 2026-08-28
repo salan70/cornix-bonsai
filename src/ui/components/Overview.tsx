@@ -29,12 +29,18 @@ export function Overview({
   definition,
   labels,
   view,
+  exportLayer,
+  onExportSvg,
+  onExportPdf,
   onEditLayerLabel,
 }: {
   readonly document: VilDocument;
   readonly definition: Parameters<typeof createKeycodeTable>[0];
   readonly labels: WorkspaceLabels;
   readonly view: ReturnType<typeof buildKeymapView>;
+  readonly exportLayer: number;
+  readonly onExportSvg: () => void;
+  readonly onExportPdf: () => void;
   readonly onEditLayerLabel: (layer: number, value: string) => void;
 }): JSX.Element {
   const [showUnused, setShowUnused] = useState(false);
@@ -120,11 +126,11 @@ export function Overview({
           </label>
         ) : null}
         <div className="grow" />
-        <button className="btn" disabled>
-          ⇧ SVG で書き出す
+        <button className="btn" onClick={onExportSvg}>
+          ⇧ SVG で書き出す (L{exportLayer})
         </button>
-        <button className="btn" disabled>
-          ⇧ PDF で書き出す
+        <button className="btn" onClick={onExportPdf}>
+          ⇧ PDF で書き出す (L{exportLayer})
         </button>
       </div>
       <div className="overview-canvas" ref={canvasRef}>

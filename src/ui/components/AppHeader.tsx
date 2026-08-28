@@ -6,6 +6,8 @@ export function AppHeader({
   workspaceName,
   device,
   onOpenWorkspace,
+  onImportVil,
+  onExportVil,
   onReload,
   onRestoreBackup,
   onConnect,
@@ -18,6 +20,8 @@ export function AppHeader({
   readonly workspaceName: string | undefined;
   readonly device: WebHidConnection | undefined;
   readonly onOpenWorkspace: () => void;
+  readonly onImportVil: () => void;
+  readonly onExportVil: () => void;
   readonly onReload: () => void;
   readonly onRestoreBackup: () => void;
   readonly onConnect: () => void;
@@ -46,6 +50,12 @@ export function AppHeader({
         </span>
         <button className="btn" onClick={onOpenWorkspace}>
           Workspace
+        </button>
+        <button className="btn" onClick={onImportVil} disabled={!canReload}>
+          VIL読込
+        </button>
+        <button className="btn" onClick={onExportVil} disabled={!canReload}>
+          VIL書出
         </button>
         <button className="btn" onClick={onRead} disabled={device === undefined}>
           実機から再読み込み

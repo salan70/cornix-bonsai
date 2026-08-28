@@ -27,6 +27,7 @@ import {
   backupPath,
   definitionDigest,
   definitionPath,
+  generatedPath,
   readDefinitionBinding,
   WORKSPACE_LAYOUT,
 } from "../workspace/layout.ts";
@@ -48,6 +49,13 @@ import { CORNIX_LP_V112_SETTINGS } from "../workspace/settings.ts";
 import { createSaveQueue, type SaveQueue } from "../workspace/save-queue.ts";
 import type { WorkspaceConflictToken } from "../workspace/types.ts";
 import { BrowserWorkspaceStore, pickWorkspace, restoreWorkspace } from "./browser-workspace.ts";
+import { pickVilText } from "./browser-files.ts";
+import {
+  parseBrowserVil,
+  renderBrowserPdf,
+  renderBrowserSvg,
+  serializeBrowserVil,
+} from "./browser-export.ts";
 import type { Selection, Tab } from "./types.ts";
 import type { PickTarget } from "./keycode-compose.ts";
 import { AppHeader } from "./components/AppHeader.tsx";
@@ -260,6 +268,62 @@ function App(): React.JSX.Element {
   async function openWorkspace(): Promise<void> {
     try {
       await adoptStore(await pickWorkspace(), "workspaceを開いた");
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
+  async function importVil(): Promise<void> {
+    if (workspace === undefined) return;
+    try {
+      const document = parseBrowserVil(await pickVilText());
+      save(document);
+      setStatus(".vilをdesiredへ読み込んだ。validationとdiffを確認してください");
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
+  async function exportVil(): Promise<void> {
+    if (workspace === undefined) return;
+    try {
+      const path = generatedPath("keymap.vil");
+      await workspace.store.writeText(path, serializeBrowserVil(workspace.document));
+      setStatus(`${path}へ書き出した`);
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
+  async function exportSvg(): Promise<void> {
+    if (workspace === undefined) return;
+    try {
+      const path = generatedPath(`keymap-layer-${layer}.svg`);
+      const svg = renderBrowserSvg(
+        workspace.document,
+        workspace.definition,
+        layer,
+        workspace.labels,
+      );
+      await workspace.store.writeText(path, svg);
+      setStatus(`${path}へ書き出した`);
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
+  async function exportPdf(): Promise<void> {
+    if (workspace === undefined) return;
+    try {
+      const path = generatedPath(`keymap-layer-${layer}.pdf`);
+      const pdf = renderBrowserPdf(
+        workspace.document,
+        workspace.definition,
+        layer,
+        workspace.labels,
+      );
+      await workspace.store.writeBytes(path, pdf);
+      setStatus(`${path}へ書き出した`);
     } catch (error) {
       setStatus(message(error));
     }
@@ -681,6 +745,8 @@ function App(): React.JSX.Element {
         workspaceName={workspace?.store.directory.name}
         device={device}
         onOpenWorkspace={() => void openWorkspace()}
+        onImportVil={() => void importVil()}
+        onExportVil={() => void exportVil()}
         onReload={() => void reload()}
         onRestoreBackup={() => void restoreBackup()}
         onConnect={() => void connect()}
@@ -772,6 +838,9 @@ function App(): React.JSX.Element {
               definition={workspace.definition}
               labels={workspace.labels}
               view={view!}
+              exportLayer={layer}
+              onExportSvg={() => void exportSvg()}
+              onExportPdf={() => void exportPdf()}
               onEditLayerLabel={editLayerLabel}
             />
           ) : null}

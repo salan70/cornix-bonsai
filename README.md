@@ -42,8 +42,9 @@ pnpm run cornix -- export vil --out keymap.vil --workspace /path/to/workspace
 
 `pnpm run dev`で起動し、Chromium系browserでworkspace directoryを選択します。permission済みの
 directory handleはIndexedDBへ保存され、reload後に復帰します。`接続` → `実機read` → 編集 →
-`Apply`の順に操作します。Applyはbackup、validation、差分確認、人間確認、single-entry
-write、再read verifyの順で進みます。電源断後のflash durabilityは通常の成功条件に含めません。
+`Apply`の順に操作します。`.vil`読込はdesired stateへ反映し、OverviewのSVG/PDF書出とVIL書出は
+workspaceの`cornix/generated/`へ保存します。Applyはbackup、validation、差分確認、人間確認、
+single-entry write、再read verifyの順で進みます。電源断後のflash durabilityは通常の成功条件に含めません。
 
 ## 方針
 

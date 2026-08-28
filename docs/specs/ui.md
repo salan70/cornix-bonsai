@@ -82,9 +82,9 @@ Applyが全operationのverifyを終えたら実機をfull readし直し、curren
 
 ## Header and status
 
-headerはCornix Bonsaiのbrand、workspace path、接続状態chipを常設する。artifactの再読み込みと
-backup復元ボタンに加えて、WebHIDのuser gestureを必要とする接続・切断・実機readと、workspace
-directoryを切り替える操作を同じ行へ置く。接続状態は色だけに頼らず、未接続または製品名を文字で示す。
+headerはCornix Bonsaiのbrand、workspace path、接続状態chipを常設する。artifactの再読み込み、
+backup復元、`.vil`読込・書出ボタンに加えて、WebHIDのuser gestureを必要とする接続・切断・実機readと、
+workspace directoryを切り替える操作を同じ行へ置く。接続状態は色だけに頼らず、未接続または製品名を文字で示す。
 
 status barのエラー・警告・情報件数は押下でき、診断panelを開く。差分件数、保存先、Apply導線も
 常設し、Applyのgateと診断のseverityをUI表示上で混同しない。
@@ -199,8 +199,21 @@ layer操作の対象layerには決定的な色、`L番号`、layer名を付け�
 表示し、tap / hold / double tap / hold after tap / timeoutと使用箇所数を読み取り専用で示す。Comboからのみ
 参照されるlayerも表示対象とし、cardの参照元要約へ反映する。
 
-SVGとPDFのexportボタンは配置だけを実装し、未実装であることが分かるdisabled状態にする。キー、encoder、
-Tap Danceの編集はそれぞれKeymap / Behaviorsへ残し、Overviewではlayer名だけを編集可能にする。
+SVG/PDFのexportボタンはKeymapで選択中のlayerを`cornix/generated/keymap-layer-N.*`へ書き出す。
+キー、encoder、Tap Danceの編集はそれぞれKeymap / Behaviorsへ残し、Overviewではlayer名だけを編集可能にする。
+
+<!-- @code src/ui/browser-files.ts#pickVilText -->
+<!-- @code src/ui/browser-export.ts#parseBrowserVil -->
+<!-- @code src/ui/browser-export.ts#serializeBrowserVil -->
+<!-- @code src/ui/browser-export.ts#renderBrowserSvg -->
+<!-- @code src/ui/browser-export.ts#renderBrowserPdf -->
+
+## Browser import / export
+
+`.vil`読込はファイル選択後にparseし、現在workspaceのdefinition bindingを維持したまま`keymap.yaml`の
+desired stateへ保存する。UIDや容量が実機と異なる場合は通常のvalidation / Apply gateで止める。
+VIL、SVG、PDFの書出はworkspaceのGit管理外である`cornix/generated/`へ保存する。SVG/PDFはrendererへ
+選択中のlayerを渡し、CLIと同じ座標・表示名規則を使う。いずれも実機へのwriteを開始しない。
 
 <!-- @code src/ui/components/index.ts#Behaviors -->
 <!-- @code src/ui/components/index.ts#References -->
