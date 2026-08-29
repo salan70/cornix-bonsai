@@ -5,7 +5,7 @@ import { test } from "node:test";
 
 import { keyCenter, parseDefinition, toPhysicalLayout } from "../core/definition/parse.ts";
 import type { PhysicalKey } from "../core/definition/types.ts";
-import { boardMetrics, boardSize, keyBox } from "./geometry.ts";
+import { boardMetrics, boardSize, fitUnit, keyBox } from "./geometry.ts";
 
 const FIXTURES = join(import.meta.dirname, "../../fixtures/cornix-lp");
 const definition = parseDefinition(
@@ -89,4 +89,49 @@ test("gap は 1u でも 2u でも同じ幅になる", () => {
 
 test("キーが無ければ盤面サイズは 0 になる", () => {
   strictEqual(boardSize(boardMetrics([]), SCALE).width, 0);
+});
+
+test("fitUnit は幅と高さの厳しい方に合わせる", () => {
+  const metrics = { minX: 0, minY: 0, width: 10, height: 5 };
+  const range = { min: 14, max: 52 };
+
+  strictEqual(fitUnit(metrics, { width: 300, height: 300 }, range), 30);
+  strictEqual(fitUnit(metrics, { width: 300, height: 100 }, range), 20);
+  // height を渡さなければ幅だけで決まる。
+  strictEqual(fitUnit(metrics, { width: 300 }, range), 30);
+});
+
+test("fitUnit は range で頭打ちにする", () => {
+  const metrics = { minX: 0, minY: 0, width: 10, height: 5 };
+  const range = { min: 14, max: 52 };
+
+  strictEqual(fitUnit(metrics, { width: 2000, height: 2000 }, range), 52);
+  strictEqual(fitUnit(metrics, { width: 50, height: 50 }, range), 14);
+});
+
+test("fitUnit は未実測なら max を返す", () => {
+  const metrics = { minX: 0, minY: 0, width: 10, height: 5 };
+  const range = { min: 14, max: 52 };
+
+  strictEqual(fitUnit(metrics, { width: 0, height: 0 }, range), 52);
+  // 高さだけ未実測なら幅で決める。
+  strictEqual(fitUnit(metrics, { width: 300, height: 0 }, range), 30);
+  strictEqual(fitUnit(boardMetrics([]), { width: 300, height: 300 }, range), 52);
+});
+
+test("fitUnit の倍率なら盤面は available に収まる", () => {
+  const metrics = boardMetrics(layout.keys);
+  const range = { min: 14, max: 52 };
+  for (const available of [
+    { width: 298, height: 200 },
+    { width: 634, height: 240 },
+    { width: 634, height: 120 },
+    { width: 1200, height: 900 },
+  ]) {
+    const unit = fitUnit(metrics, available, range);
+    if (unit === range.min || unit === range.max) continue;
+    const size = boardSize(metrics, { unit, gap: 0 });
+    ok(size.width <= available.width, `幅がはみ出す: ${size.width} > ${available.width}`);
+    ok(size.height <= available.height, `高さがはみ出す: ${size.height} > ${available.height}`);
+  }
 });

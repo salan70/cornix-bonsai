@@ -5,11 +5,13 @@ import { analyzeReachability } from "../../core/validation/reachability.ts";
 import type { VilDocument } from "../../core/vil/types.ts";
 import { boardMetrics, boardSize, keyBox } from "../../render/geometry.ts";
 import { layerLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
+import { overviewColumns } from "../overview-layout.ts";
 import {
   buildOverviewModel,
   type OverviewLayerReference,
   type OverviewModel,
 } from "../overview-model.ts";
+import { OVERVIEW_BOARD_SCALE, useBoardScale } from "../use-board-scale.ts";
 import { keycodeClass, keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
 
 const LAYER_COLORS = [
@@ -54,9 +56,28 @@ export function Overview({
   const referencesBySource = referencesBySourceId(overview);
   const activeReference = findReference(overview, activeRelation);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const sourceRefs = useRef(new Map<string, HTMLElement>());
   const targetRefs = useRef(new Map<number, HTMLElement>());
   const [connector, setConnector] = useState<Connector | undefined>();
+  const [gridBox, setGridBox] = useState({ width: 0, boardHeight: 0 });
+  const layerCount = visibleLayers.length;
+  const columns = overviewColumns(layerCount, gridBox.width);
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (grid === null) return;
+    const measure = (): void => {
+      const next = { width: grid.clientWidth, boardHeight: boardHeightBudget(grid, layerCount) };
+      setGridBox((current) =>
+        current.width === next.width && current.boardHeight === next.boardHeight ? current : next,
+      );
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(grid);
+    measure();
+    return () => observer.disconnect();
+  }, [layerCount]);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -135,13 +156,18 @@ export function Overview({
       </div>
       <div className="overview-canvas" ref={canvasRef}>
         <div className="overview-dashboard">
-          <div className="overview-grid">
+          <div
+            className="overview-grid"
+            ref={gridRef}
+            style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+          >
             {visibleLayers.map((layer) => (
               <LayerCard
                 key={layer}
                 layer={layer}
                 label={layerLabel(labels, layer)}
                 namedLabel={labels.layers.get(layer)}
+                boardHeightBudget={gridBox.boardHeight}
                 keys={view.keys.filter((key) => key.position.layer === layer)}
                 encoders={view.encoders.filter((encoder) => encoder.layer === layer)}
                 labels={labels}
@@ -192,6 +218,7 @@ function LayerCard({
   layer,
   label,
   namedLabel,
+  boardHeightBudget,
   keys,
   encoders,
   labels,
@@ -209,6 +236,7 @@ function LayerCard({
   readonly layer: number;
   readonly label: string;
   readonly namedLabel: string | undefined;
+  readonly boardHeightBudget: number;
   readonly keys: readonly ReturnType<typeof buildKeymapView>["keys"][number][];
   readonly encoders: readonly ReturnType<typeof buildKeymapView>["encoders"][number][];
   readonly labels: WorkspaceLabels;
@@ -224,26 +252,12 @@ function LayerCard({
   readonly onEditLayerLabel: (layer: number, value: string) => void;
 }): JSX.Element {
   const metrics = boardMetrics(keys.map((key) => key.physical));
-  const boardHostRef = useRef<HTMLDivElement>(null);
-  const [availableWidth, setAvailableWidth] = useState(0);
-  const scaleUnit =
-    metrics.width === 0
-      ? 18
-      : Math.min(24, Math.max(14, Math.floor((availableWidth || 280) / metrics.width)));
-  const scale = { unit: scaleUnit, gap: Math.max(1, Math.round(scaleUnit * 0.07)) };
+  const { ref: boardHostRef, scale } = useBoardScale(
+    metrics,
+    OVERVIEW_BOARD_SCALE,
+    boardHeightBudget,
+  );
   const size = boardSize(metrics, scale);
-
-  useEffect(() => {
-    const element = boardHostRef.current;
-    if (element === null || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width;
-      if (width !== undefined) setAvailableWidth(width);
-    });
-    observer.observe(element);
-    setAvailableWidth(element.clientWidth);
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <article
@@ -521,6 +535,24 @@ function LayerNameEditor({
       }}
     />
   );
+}
+
+/**
+ * 1枚のcardが盤面へ割ける高さ。
+ *
+ * gridの行はcardの内容で伸びるため、行数で割った残り高さから、盤面以外の高さ
+ * （heading・参照元要約・encoder帯・padding）を引いて求める。盤面以外の高さは盤面の
+ * 大きさに依らないので、実測しても倍率の計算が自分の出力へ依存しない。
+ */
+function boardHeightBudget(grid: HTMLElement, layerCount: number): number {
+  if (layerCount <= 0) return 0;
+  const rows = Math.ceil(layerCount / overviewColumns(layerCount, grid.clientWidth));
+  const card = grid.firstElementChild;
+  const host = card?.querySelector(".overview-board-host");
+  if (!(card instanceof HTMLElement) || !(host instanceof HTMLElement)) return 0;
+  const rowGap = Number.parseFloat(window.getComputedStyle(grid).rowGap) || 0;
+  const chrome = card.offsetHeight - host.offsetHeight;
+  return Math.max(0, (grid.clientHeight - rowGap * (rows - 1)) / rows - chrome);
 }
 
 interface Connector {

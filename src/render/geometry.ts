@@ -71,6 +71,35 @@ export function keyBox(key: PhysicalKey, metrics: BoardMetrics, scale: BoardScal
   };
 }
 
+/** 倍率を決めるときの制約。`min`/`max`は1uのpx。 */
+export interface UnitRange {
+  readonly min: number;
+  readonly max: number;
+}
+
+/**
+ * 盤面が`available`へ収まる1uのpx倍率。
+ *
+ * `height`を渡すと幅と高さの両方に収める。どちらも未実測（0以下）のときは`max`を返し、
+ * 実測後に縮む方向で確定させる。
+ *
+ * @doc docs/specs/ui.md#keymap-editor
+ */
+export function fitUnit(
+  metrics: BoardMetrics,
+  available: { readonly width: number; readonly height?: number },
+  range: UnitRange,
+): number {
+  if (metrics.width <= 0 || available.width <= 0) return range.max;
+  const byWidth = available.width / metrics.width;
+  const height = available.height;
+  const byHeight =
+    height === undefined || height <= 0 || metrics.height <= 0
+      ? Number.POSITIVE_INFINITY
+      : height / metrics.height;
+  return Math.min(range.max, Math.max(range.min, Math.floor(Math.min(byWidth, byHeight))));
+}
+
 /** 盤面containerのpxサイズ。 */
 export function boardSize(
   metrics: BoardMetrics,
