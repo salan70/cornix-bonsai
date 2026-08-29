@@ -1,3 +1,5 @@
+import { FitText } from "./FitText.tsx";
+
 const VARIANT_CLASS = {
   neutral: "",
   primary: "c-btn--primary",
@@ -23,7 +25,7 @@ export function Button({
   const classes = ["c-btn", VARIANT_CLASS[variant], className].filter(Boolean).join(" ");
   return (
     <button className={classes} {...rest}>
-      {children}
+      <FitText className="c-btn-label">{children}</FitText>
     </button>
   );
 }

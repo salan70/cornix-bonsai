@@ -19,6 +19,7 @@ const GEOMETRY_EXEMPT_MARKER = "geometric";
 const RUNTIME_CUSTOM_PROPERTIES = new Set([
   "--cap-font",
   "--cap-sub-font",
+  "--fit-scale",
   "--layer-color",
   "--pk",
   "--pk-total",

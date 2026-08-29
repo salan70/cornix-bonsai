@@ -41,7 +41,7 @@
     padding: 0 var(--space-1);
   }
   .keycap-main {
-    font-size: var(--cap-font, var(--text-md));
+    font-size: calc(var(--cap-font, var(--text-md)) * var(--fit-scale, 1));
     line-height: var(--leading-tight);
     font-weight: var(--weight-medium);
     max-width: 100%;
@@ -50,7 +50,7 @@
     text-overflow: ellipsis;
   }
   .keycap-sub {
-    font-size: var(--cap-sub-font, var(--text-xs));
+    font-size: calc(var(--cap-sub-font, var(--text-xs)) * var(--fit-scale, 1));
     line-height: var(--leading-tight);
     color: var(--key-muted);
     margin-top: var(--space-1);
@@ -140,10 +140,10 @@
     text-overflow: ellipsis;
   }
   .encslot .keycap-main {
-    font-size: var(--text-base);
+    font-size: calc(var(--text-base) * var(--fit-scale, 1));
   }
   .encslot .keycap-sub {
-    font-size: var(--text-xs);
+    font-size: calc(var(--text-xs) * var(--fit-scale, 1));
     color: var(--key-muted);
   }
   .encoder-pair {

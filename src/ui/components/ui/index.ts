@@ -5,6 +5,7 @@ import { Field as FieldComponent } from "./Field.tsx";
 import { Section as SectionComponent } from "./Section.tsx";
 import { Panel as PanelComponent } from "./Panel.tsx";
 import { Callout as CalloutComponent, CalloutLabel as CalloutLabelComponent } from "./Callout.tsx";
+import { FitText as FitTextComponent } from "./FitText.tsx";
 
 /** @doc docs/specs/design-system.md#react-primitive */
 export const Button = ButtonComponent;
@@ -29,6 +30,9 @@ export const Callout = CalloutComponent;
 
 /** @doc docs/specs/design-system.md#react-primitive */
 export const CalloutLabel = CalloutLabelComponent;
+
+/** @doc docs/specs/design-system.md#fittext-サイズ固定-文字を縮小 */
+export const FitText = FitTextComponent;
 
 export type { ButtonVariant } from "./Button.tsx";
 export type { TagVariant } from "./Tag.tsx";

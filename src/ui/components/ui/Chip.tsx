@@ -1,3 +1,5 @@
+import { FitText } from "./FitText.tsx";
+
 export function Chip({
   as: Tag = "span",
   selected = false,
@@ -31,7 +33,9 @@ export function Chip({
   const content = (
     <>
       {dot ? <span className="c-chip-dot" /> : null}
-      {children}
+      <span className="c-chip-label-box">
+        <FitText className="c-chip-label">{children}</FitText>
+      </span>
     </>
   );
   return Tag === "button" ? (

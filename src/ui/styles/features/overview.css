@@ -113,10 +113,10 @@
     padding: 0;
   }
   .mini-board .key .keycap-main {
-    font-size: var(--cap-font, var(--text-xs));
+    font-size: calc(var(--cap-font, var(--text-xs)) * var(--fit-scale, 1));
   }
   .mini-board .key .keycap-sub {
-    font-size: var(--cap-sub-font, 4px); /* geometric: 4pxはboard-scale未計測時のfallback */
+    font-size: calc(var(--cap-sub-font, 4px) * var(--fit-scale, 1)); /* geometric: 4pxはboard-scale未計測時のfallback */
   }
   .overview-related-source {
     border-color: var(--layer-color);
@@ -165,14 +165,14 @@
   }
   .overview-encoder-key .keycap-main {
     max-width: 100%;
-    font-size: var(--text-xs);
+    font-size: calc(var(--text-xs) * var(--fit-scale, 1));
     white-space: pre-line;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .overview-encoder-key .keycap-sub {
     max-width: 100%;
-    font-size: var(--text-xs);
+    font-size: calc(var(--text-xs) * var(--fit-scale, 1));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -238,6 +238,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: pre-line;
+    font-size: calc(var(--text-sm) * var(--fit-scale, 1));
   }
   .overview-tapdance-value .keycap-sub {
     display: block;
@@ -246,7 +247,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--muted);
-    font-size: var(--text-xs);
+    font-size: calc(var(--text-xs) * var(--fit-scale, 1));
   }
 
   @media (max-width: 1120px) /* geometric: breakpointはcustom propertyを参照できない */ {

@@ -1,5 +1,7 @@
+import { useLayoutEffect, useRef } from "react";
 import { createKeycodeTable } from "../../core/keycode/table.ts";
 import { keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
+import { observeFitContainer } from "../fit-text-bus.ts";
 import type { Selection } from "../types.ts";
 import {
   EXTRA_ROW,
@@ -40,6 +42,13 @@ export function KeycodePicker({
   const input = selectedInput(view, layer, selection);
   const selectedValue = input === undefined ? undefined : targetValue(input.keycode, pickTarget);
   const disabled = input === undefined;
+  const containerRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const element = containerRef.current;
+    if (element === null) return;
+    return observeFitContainer(element);
+  }, []);
 
   function onPick(picked: string): void {
     if (input === undefined || !canPick(pickTarget, picked)) return;
@@ -49,7 +58,7 @@ export function KeycodePicker({
   }
 
   return (
-    <section className="picker" aria-label="keycode picker">
+    <section className="picker" aria-label="keycode picker" ref={containerRef}>
       <div className="picker-heading">
         <h3>Keycode picker</h3>
         <PickTargetButtons

@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { fitUnit, type BoardMetrics, type BoardScale } from "../render/geometry.ts";
+import { notifyFit } from "./fit-text-bus.ts";
 
 /** 盤面ごとの倍率レンジと、その倍率から導くgapの決め方。 */
 export interface BoardScalePreset {
@@ -69,6 +70,10 @@ export function useBoardScale(
     heightBudget === undefined ? { width: available } : { width: available, height: heightBudget },
     { min: preset.minUnit, max: preset.maxUnit },
   );
+
+  useLayoutEffect(() => {
+    notifyFit();
+  }, [unit]);
 
   return { ref, scale: { unit, gap: Math.max(preset.minGap, Math.round(unit * preset.gapRatio)) } };
 }

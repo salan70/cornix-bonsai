@@ -113,14 +113,14 @@
     display: block;
     max-width: 100%;
     white-space: pre-line;
-    font-size: var(--text-sm);
+    font-size: calc(var(--text-sm) * var(--fit-scale, 1));
     line-height: var(--leading-tight);
   }
   .pk .keycap-sub {
     display: block;
     max-width: 100%;
     white-space: pre-line;
-    font-size: var(--text-xs);
+    font-size: calc(var(--text-xs) * var(--fit-scale, 1));
     line-height: var(--leading-tight);
     color: var(--key-muted);
   }

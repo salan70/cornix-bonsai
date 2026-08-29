@@ -51,6 +51,8 @@
   --overview-encoder-width: 62px;
   --overview-encoder-height: 25px;
   --recovery-max-width: 44rem;
+  --btn-max-width: 220px;
+  --chip-max-width: 200px;
 
   /* Focus ring. */
   --focus-ring-width: 2px;

@@ -85,6 +85,31 @@ bannerとは別の文脈で、汎用行`.row`のmodifierとして`features/apply
 
 menu / dropdown / icon libraryはこの作業では追加しない。
 
+<!-- @code src/ui/components/ui/index.ts#FitText -->
+<!-- @code src/ui/fit-text-bus.ts#subscribeFit -->
+<!-- @code src/ui/fit-text-bus.ts#notifyFit -->
+<!-- @code src/ui/fit-text-bus.ts#observeFitContainer -->
+
+## FitText: サイズ固定・文字を縮小
+
+keycap、picker cell、encoder slot、Button、Chipはbox sizeを固定し、収まらない文字は
+`FitText`がfont-sizeを段階的に縮めて収める（ellipsisでの切り詰めを既定にしない）。
+
+- 基準sizeは呼び出し側のCSSが決め、`FitText`は`--fit-scale`という掛け算係数だけを持つ。
+  例: `.keycap-main { font-size: calc(var(--cap-font) * var(--fit-scale, 1)); }`
+- 測定は`el.parentElement`のpadding込みcontent boxに対して行う。dot付きのChipのように
+  兄弟要素と幅を分け合う場合は、`c-chip-label-box`のような専用wrapperをflex itemにして
+  `min-width: 0`を与え、測定対象の親を兄弟の影響を受けない箱にする
+- 縮小は`MIN_SCALE`（0.55）を下限とする。それでも収まらない場合は`overflow: hidden` /
+  `text-overflow: ellipsis`が最終fallbackになる
+- 盤面のscale変更（`useBoardScale`）やwindow resizeでは`fit-text-bus.ts`の`notifyFit()`が
+  再計測を促す。keycode pickerの`.pk`のようにCSS container queryだけでsizeが決まり
+  Reactのpropsが変わらない場所は、`observeFitContainer()`でcontainerを直接observeする
+- `Button`は`--btn-max-width`、`Chip`は`--chip-max-width`でbox幅の上限を持つ。
+  ApplyDialogの確認ボタン（`完了` ⇔ `n 件を実機へ書き込む`）やlayer名（`Chip`・
+  ユーザーが自由に命名できる）のように内容の長さが変わる箇所で、boxが伸縮せず
+  文字だけが縮む
+
 ## 機械検証
 
 `src/ui/design-system.test.ts`が以下を検証する。

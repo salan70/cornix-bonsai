@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import type { KeycodeDisplay } from "./keycode-labels.ts";
+import { FitText } from "./components/ui/index.ts";
 
 export {
   basicLabel,
@@ -15,11 +16,15 @@ export type { DisplayOptions, KeycodeDisplay } from "./keycode-labels.ts";
 export function renderKeycode(display: KeycodeDisplay, prefix = ""): JSX.Element {
   return (
     <>
-      <span className="keycap-main">
+      <FitText className="keycap-main">
         {prefix}
         {display.primary}
-      </span>
-      {display.role === undefined ? null : <small className="keycap-sub">{display.role}</small>}
+      </FitText>
+      {display.role === undefined ? null : (
+        <FitText as="small" className="keycap-sub">
+          {display.role}
+        </FitText>
+      )}
     </>
   );
 }
