@@ -1,0 +1,23 @@
+:root {
+  --font-sans: -apple-system, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
+  /* Type scale. 6段。 */
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+  --text-xl: 18px;
+
+  --leading-tight: 1.15;
+  --leading-normal: 1.5;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* TODO(design-system): styles.cssの@layer移行が終わるまでの橋渡し。移行完了後に削除する。 */
+  --sans: var(--font-sans);
+  --mono: var(--font-mono);
+}

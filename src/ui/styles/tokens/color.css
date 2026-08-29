@@ -90,9 +90,6 @@
   --layer-link-5: #15803d;
   --layer-link-6: #c2410c;
   --layer-link-7: #0369a1;
-  --r: 4px;
-  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
-  --sans: -apple-system, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
 }
 
 :root[data-theme="dark"] {

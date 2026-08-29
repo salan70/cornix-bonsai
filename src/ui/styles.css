@@ -1,4 +1,7 @@
-@import "./tokens.css";
+@import "./styles/tokens/color.css";
+@import "./styles/tokens/dimension.css";
+@import "./styles/tokens/typography.css";
+@import "./styles/tokens/motion.css";
 
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); }

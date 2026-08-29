@@ -12,7 +12,7 @@ import {
   saveThemePreference,
 } from "./theme.ts";
 
-const TOKEN_PATH = fileURLToPath(new URL("tokens.css", import.meta.url));
+const TOKEN_PATH = fileURLToPath(new URL("styles/tokens/color.css", import.meta.url));
 const TEST_PATH = fileURLToPath(import.meta.url);
 const UI_PATH = fileURLToPath(new URL(".", import.meta.url));
 const css = readFileSync(TOKEN_PATH, "utf8");
