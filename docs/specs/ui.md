@@ -95,6 +95,7 @@ status barのエラー・警告・情報件数は押下でき、診断panelを�
 <!-- @code src/ui/components/index.ts#KeymapTab -->
 <!-- @code src/render/geometry.ts#keyBox -->
 <!-- @code src/render/geometry.ts#boardMetrics -->
+<!-- @code src/render/geometry.ts#fitUnit -->
 <!-- @code src/ui/use-board-scale.ts#useBoardScale -->
 
 ## Keymap editor
@@ -104,8 +105,11 @@ Keymapはdefinition由来の物理座標をHTML/CSSの絶対配置へ投影す�
 `transform-origin`は要素自身のbox基準で解決されるため、回転中心は盤面座標ではなくキーからの
 相対値で渡す。盤面の外接矩形は回転後の四隅から求め、回転したキーがはみ出さない大きさにする。
 
-表示倍率は固定せず、盤面containerの幅から1uを30〜52pxのclampで決め、keycapのfont sizeも
-同じ倍率へ連動させる。keycapは各段を1行に切り詰めて`…`で畳み、全文はtitleとside panelで出す。
+表示倍率は固定せず、containerの実測幅から1uのpxを決める。倍率決定も`geometry.ts`へ置き、盤面ごとの
+clamp幅はpresetで与える。Keymap editorはcontainer幅から30〜52pxで決め、keycapのfont sizeも同じ倍率へ
+連動させる。containerの高さは実測せず、必要な場合は呼び出し側が高さ予算を渡す。containerの高さが盤面自身の
+高さで決まる配置では、実測すると倍率が自分の出力へ依存するためである。計測はpaint前に行い、初回だけ違う
+倍率で描かれないようにする。keycapは各段を1行に切り詰めて`…`で畳み、全文はtitleとside panelで出す。
 keycodeの語彙に応じたbasic / mod / mod-tap / layer / layer-tap / tapdance / custom / noneの
 意味別classを付ける。encoderは物理キーと混ぜず、実機が申告した本数から専用帯を組み立て、各slotの
 幅と高さをkeycode表示名に依存させない。方向キー、Enter、Escの操作は盤面の選択を保ったまま編集panelへ
@@ -182,6 +186,7 @@ full readからやり直す。
 
 <!-- @code src/ui/components/index.ts#Overview -->
 <!-- @code src/ui/overview-model.ts#buildOverviewModel -->
+<!-- @code src/ui/overview-layout.ts#overviewColumns -->
 
 ## Overview layer grid
 
@@ -191,8 +196,10 @@ encoder・Tap Dance・Comboのkeycode領域から参照されるlayerだけと�
 参照ありの判定はこの画面の表示用集計であり、既存のreachability診断、severity、Apply gateを変更しない。
 
 各layer cardは`L番号`、layer名、到達不能・参照なしtag、物理キー全件、encoder全件を表示する。mini盤面の
-倍率はcardの幅と`src/render/geometry.ts`の外接矩形から導き、各keyは通常のkeycode displayのprimaryとroleを
-表示する。raw keycodeはtitleへ残し、`KC_NO`は`—`、transparentは`↓`で表す。layer名はcard headingの
+倍率はcardの実測幅と高さ予算の両方へ収まるよう、`src/render/geometry.ts`の外接矩形から14〜52pxで導く。
+高さ予算はgridの残り高さを行数で割り、card内の盤面以外の高さを引いて求める。cardは盤面の大きさへ縮み、
+余りはcardの中ではなくgridの下へ残す。列数は3を上限に、行あたりのcard数が揃うところまで減らす。
+各keyは通常のkeycode displayのprimaryとroleを表示する。raw keycodeはtitleへ残し、`KC_NO`は`—`、transparentは`↓`で表す。layer名はcard headingの
 inline inputで編集し、Enterまたはblurでtrimして`cornix/labels.yaml`へ保存する。空文字は名前を削除し、
 名前が無い場合は`layer N`へ戻す。名前の重複は許可する。
 

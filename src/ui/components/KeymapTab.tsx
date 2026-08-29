@@ -9,7 +9,7 @@ import { keycodeClass, keycodeDisplay, renderKeycode } from "../keycode-display.
 import { KeycodePicker } from "./KeycodePicker.tsx";
 import type { PickTarget } from "../keycode-compose.ts";
 import { moveKey } from "../key-navigation.ts";
-import { useBoardScale } from "../use-board-scale.ts";
+import { KEYMAP_BOARD_SCALE, useBoardScale } from "../use-board-scale.ts";
 
 /** @doc docs/specs/ui.md#keymap-editor */
 export function KeymapTab({
@@ -59,7 +59,7 @@ export function KeymapTab({
   );
   const layerKeys = view.keys.filter((key) => key.position.layer === layer);
   const metrics = boardMetrics(layerKeys.map((key) => key.physical));
-  const { ref: fitRef, scale } = useBoardScale(metrics.width);
+  const { ref: fitRef, scale } = useBoardScale(metrics, KEYMAP_BOARD_SCALE);
   const size = boardSize(metrics, scale);
 
   function selectLayer(nextLayer: number): void {
