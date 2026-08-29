@@ -10,6 +10,7 @@ import { KeycodePicker } from "./KeycodePicker.tsx";
 import type { PickTarget } from "../keycode-compose.ts";
 import { moveKey } from "../key-navigation.ts";
 import { KEYMAP_BOARD_SCALE, useBoardScale } from "../use-board-scale.ts";
+import { Chip } from "./ui/index.ts";
 
 /** @doc docs/specs/ui.md#keymap-editor */
 export function KeymapTab({
@@ -96,18 +97,19 @@ export function KeymapTab({
           {Array.from({ length: layerCount }, (_, index) => index)
             .filter((index) => assignedLayers.has(index))
             .map((index) => (
-              <button
-                className={`c-chip ${layer === index ? "is-selected" : ""}`}
+              <Chip
+                as="button"
+                selected={layer === index}
                 onClick={() => selectLayer(index)}
                 key={index}
               >
                 {layerLabel(labels, index)}
-              </button>
+              </Chip>
             ))}
           {unusedLayers.length > 0 ? (
-            <span className="c-chip c-chip--faint">
+            <Chip faint>
               未使用 {unusedLayers[0]}〜{unusedLayers[unusedLayers.length - 1]}
-            </span>
+            </Chip>
           ) : null}
         </div>
         <div className="board-fit" ref={fitRef}>

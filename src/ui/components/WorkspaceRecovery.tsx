@@ -1,6 +1,7 @@
 import type { BindingMigration } from "../../workspace/bootstrap.ts";
 import type { BrowserWorkspaceStore } from "../browser-workspace.ts";
 import { WORKSPACE_LAYOUT } from "../../workspace/layout.ts";
+import { Button } from "./ui/index.ts";
 
 type WorkspaceIssue =
   | { readonly kind: "missing-keymap"; readonly store: BrowserWorkspaceStore }
@@ -40,9 +41,9 @@ export function WorkspaceRecovery({
           の2つです。実機へは書き込みません。
         </p>
         <div className="recovery-actions">
-          <button className="c-btn c-btn--primary" disabled={busy} onClick={onInitialize}>
+          <Button variant="primary" disabled={busy} onClick={onInitialize}>
             実機readでworkspaceを作成
-          </button>
+          </Button>
         </div>
       </section>
     );
@@ -74,9 +75,9 @@ export function WorkspaceRecovery({
           は参照されなくなるので、不要なら削除してください。
         </p>
         <div className="recovery-actions">
-          <button className="c-btn c-btn--primary" disabled={busy} onClick={onMigrate}>
+          <Button variant="primary" disabled={busy} onClick={onMigrate}>
             bindingを移行する
-          </button>
+          </Button>
         </div>
       </section>
     );
@@ -89,9 +90,9 @@ export function WorkspaceRecovery({
         別のdirectoryを選ぶか、原因を直してから再読み込みしてください。
       </p>
       <div className="recovery-actions">
-        <button className="c-btn" disabled={busy} onClick={onRetry}>
+        <Button disabled={busy} onClick={onRetry}>
           再読み込み
-        </button>
+        </Button>
       </div>
     </section>
   );

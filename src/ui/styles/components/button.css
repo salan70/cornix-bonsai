@@ -31,6 +31,15 @@
   .c-btn--secondary:hover {
     background: var(--secondary-hover);
   }
+  .c-btn--ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--muted);
+  }
+  .c-btn--ghost:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
   .c-btn:disabled {
     color: var(--disabled-text);
     border-color: var(--border);

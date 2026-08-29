@@ -13,6 +13,7 @@ import {
 } from "../overview-model.ts";
 import { OVERVIEW_BOARD_SCALE, useBoardScale } from "../use-board-scale.ts";
 import { keycodeClass, keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
+import { Button, Panel, Tag } from "./ui/index.ts";
 
 const LAYER_COLORS = [
   "var(--layer-link-0)",
@@ -147,12 +148,8 @@ export function Overview({
           </label>
         ) : null}
         <div className="u-grow" />
-        <button className="c-btn" onClick={onExportSvg}>
-          ⇧ SVG で書き出す (L{exportLayer})
-        </button>
-        <button className="c-btn" onClick={onExportPdf}>
-          ⇧ PDF で書き出す (L{exportLayer})
-        </button>
+        <Button onClick={onExportSvg}>⇧ SVG で書き出す (L{exportLayer})</Button>
+        <Button onClick={onExportPdf}>⇧ PDF で書き出す (L{exportLayer})</Button>
       </div>
       <div className="overview-canvas" ref={canvasRef}>
         <div className="overview-dashboard">
@@ -274,10 +271,8 @@ function LayerCard({
         />
         <span className="u-mono u-muted">L{layer}</span>
         <div className="u-grow" />
-        {layer !== 0 && references.length === 0 ? <span className="c-tag">参照なし</span> : null}
-        {layer !== 0 && references.length > 0 && !reachable ? (
-          <span className="c-tag">到達不能</span>
-        ) : null}
+        {layer !== 0 && references.length === 0 ? <Tag>参照なし</Tag> : null}
+        {layer !== 0 && references.length > 0 && !reachable ? <Tag>到達不能</Tag> : null}
       </div>
       <div className="overview-reference-summary">{referenceSummary(references)}</div>
       <div className="overview-board-host" ref={boardHostRef}>
@@ -429,7 +424,7 @@ function TapDanceSidebar({
   readonly clearRelation: () => void;
 }): JSX.Element {
   return (
-    <aside className="overview-tapdance c-panel">
+    <Panel className="overview-tapdance">
       <div className="c-panel-heading">
         <h2>使用中の Tap Dance</h2>
         <span className="u-muted">{model.tapDances.length}件</span>
@@ -469,7 +464,7 @@ function TapDanceSidebar({
         </fieldset>
       ))}
       <p className="u-text-sm u-muted u-push-end">詳細編集はBehaviorsタブで行います。</p>
-    </aside>
+    </Panel>
   );
 }
 

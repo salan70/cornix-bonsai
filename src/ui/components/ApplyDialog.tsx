@@ -3,6 +3,7 @@ import type { DiffEntry } from "../../core/diff/diff.ts";
 import type { ApplyState, WriteOperation } from "../../core/apply/plan.ts";
 import type { evaluateApplyGate } from "../../core/validation/gate.ts";
 import { keycodeLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
+import { Button, Callout, Tag, type TagVariant } from "./ui/index.ts";
 
 /** @doc docs/specs/ui.md#apply-modal-steps */
 export function ApplyDialog({
@@ -99,12 +100,12 @@ export function ApplyDialog({
             </>
           )}
           {gate !== undefined && gate.acknowledgeable.length > 0 ? (
-            <section className="c-callout c-callout--warning">
+            <Callout as="section" tone="warning">
               <span aria-hidden="true">⚠</span>
               <div className="ack-body">
                 <b>警告 {gate.acknowledgeable.length} 件を確認しないと Apply できない</b>
                 {gate.acknowledgeable.map((diagnostic) => (
-                  <label className="c-callout" key={diagnostic.id}>
+                  <Callout as="label" key={diagnostic.id}>
                     <input
                       type="checkbox"
                       checked={acknowledged.includes(diagnostic.id)}
@@ -122,23 +123,23 @@ export function ApplyDialog({
                       <br />
                       <span className="u-mono u-muted">{diagnostic.code}</span>
                     </span>
-                  </label>
+                  </Callout>
                 ))}
                 <span className="u-text-sm u-muted">
                   acknowledge は根拠の値ごとに記録する。差分が変わると自動で外れる。
                 </span>
               </div>
-            </section>
+            </Callout>
           ) : null}
           {gate !== undefined && gate.fatal.length > 0 ? (
-            <section className="c-callout c-callout--error">
+            <Callout as="section" tone="error">
               <b>error があるため Apply できません。</b>
               <ul>
                 {gate.fatal.map((diagnostic) => (
                   <li key={diagnostic.id}>{diagnostic.message}</li>
                 ))}
               </ul>
-            </section>
+            </Callout>
           ) : null}
           {state?.phase === "aborted" ? (
             <p className="u-text-error">
@@ -146,14 +147,14 @@ export function ApplyDialog({
             </p>
           ) : null}
           {state?.phase === "completed" ? (
-            <div className="c-callout c-callout--info u-push-end">
+            <Callout tone="info" pushEnd>
               <span aria-hidden="true">ⓘ</span>
               <span>
                 ここで確認しているのは<b>実機に反映されたこと</b>
                 で、電源を切っても残ることまでは確認していない。残ることを確かめたい場合は、Apply
                 後に電源を入れ直して読み直す。
               </span>
-            </div>
+            </Callout>
           ) : null}
         </div>
         <div className="mfoot">
@@ -163,11 +164,11 @@ export function ApplyDialog({
               : "書き込むのは差分だけ。1 件ごとに書いて同じ entry を読み直して確認する。"}
           </span>
           <div className="u-grow" />
-          <button className="c-btn" onClick={onCancel}>
+          <Button onClick={onCancel}>
             {isWriting ? "中断" : isFinished ? "閉じる" : "キャンセル"}
-          </button>
-          <button
-            className="c-btn c-btn--primary"
+          </Button>
+          <Button
+            variant="primary"
             disabled={
               isWriting ||
               (!isFinished && (gate?.allowed !== true || state?.phase !== "awaitingConfirmation"))
@@ -175,7 +176,7 @@ export function ApplyDialog({
             onClick={isFinished ? onCancel : onApply}
           >
             {isWriting ? "完了" : isFinished ? "完了" : `${changed.length} 件を実機へ書き込む`}
-          </button>
+          </Button>
         </div>
       </section>
     </dialog>
@@ -338,15 +339,11 @@ function DiffRow({
   readonly labels: WorkspaceLabels;
 }): React.JSX.Element {
   const label = entry.change === "added" ? "追加" : entry.change === "removed" ? "削除" : "変更";
-  const modifier =
-    entry.change === "added"
-      ? "c-tag--add"
-      : entry.change === "removed"
-        ? "c-tag--remove"
-        : "c-tag--change";
+  const variant: TagVariant =
+    entry.change === "added" ? "add" : entry.change === "removed" ? "remove" : "change";
   return (
     <div className="row">
-      <span className={`c-tag ${modifier}`}>{label}</span>
+      <Tag variant={variant}>{label}</Tag>
       <span className="diff-subject">{subjectLabel(entry.subject)}</span>
       <span className="from">
         {labeledBehavior(entry.subject, entry.before, entry.beforeBehavior, labels)}

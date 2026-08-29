@@ -1,6 +1,7 @@
 import type { VilDocument } from "../../core/vil/types.ts";
 import { keycodeLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 import { settingLabel } from "../../workspace/settings.ts";
+import { Panel } from "./ui/index.ts";
 
 /** @doc docs/specs/ui.md#behaviors-and-references */
 export function Behaviors({
@@ -17,7 +18,7 @@ export function Behaviors({
   readonly onSetting: (qsid: number, value: string) => void;
 }): React.JSX.Element {
   return (
-    <section className="c-panel">
+    <Panel as="section">
       <h1>Behaviors</h1>
       <h2>Tap Dance</h2>
       {document.tapDance.map((entry, index) => (
@@ -74,6 +75,6 @@ export function Behaviors({
           />
         </label>
       ))}
-    </section>
+    </Panel>
   );
 }

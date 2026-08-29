@@ -3,6 +3,7 @@ import { analyzeReachability } from "../../core/validation/reachability.ts";
 import type { Diagnostic } from "../../core/validation/types.ts";
 import type { VilDocument } from "../../core/vil/types.ts";
 import { keycodeLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
+import { Panel } from "./ui/index.ts";
 
 /** @doc docs/specs/ui.md#behaviors-and-references */
 export function References({
@@ -23,7 +24,7 @@ export function References({
     .map((_, index) => index)
     .filter((index) => !usage.macro.has(index));
   return (
-    <section className="c-panel">
+    <Panel as="section">
       <h1>References</h1>
       <h2>Usages</h2>
       <ul>
@@ -76,7 +77,7 @@ export function References({
           ))}
         </ul>
       )}
-    </section>
+    </Panel>
   );
 }
 

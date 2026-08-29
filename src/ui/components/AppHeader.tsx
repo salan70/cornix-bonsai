@@ -1,6 +1,7 @@
 import type { WebHidConnection } from "../../device/webhid.ts";
 import { buildInfo, formatBuildTime } from "../build-info.ts";
 import type { ThemePreference } from "../theme.ts";
+import { Button, Chip } from "./ui/index.ts";
 
 /** @doc docs/specs/ui.md#header-and-status */
 export function AppHeader({
@@ -49,34 +50,36 @@ export function AppHeader({
         <b className="u-mono">{workspaceName ?? "未選択"}</b>
       </div>
       <div className="header-actions">
-        <span className={`c-chip ${device === undefined ? "" : "is-connected"}`} aria-live="polite">
-          <span className="c-chip-dot" />
-          {device === undefined ? "未接続" : `${device.info.productName} に接続済み`}
-        </span>
-        <button className="c-btn" onClick={onOpenWorkspace}>
-          Workspace
-        </button>
-        <button className="c-btn" onClick={onImportVil} disabled={!canReload}>
-          VIL読込
-        </button>
-        <button className="c-btn" onClick={onExportVil} disabled={!canReload}>
-          VIL書出
-        </button>
-        <button className="c-btn" onClick={onRead} disabled={device === undefined}>
-          実機から再読み込み
-        </button>
-        <button className="c-btn c-btn--secondary" onClick={onRestoreBackup} disabled={!canReload}>
+        <div className="header-group">
+          <Chip connected={device !== undefined} dot aria-live="polite">
+            {device === undefined ? "未接続" : `${device.info.productName} に接続済み`}
+          </Chip>
+          <Button onClick={onConnect}>接続</Button>
+          <Button onClick={onDisconnect} disabled={device === undefined}>
+            切断
+          </Button>
+          <Button onClick={onRead} disabled={device === undefined}>
+            実機から再読み込み
+          </Button>
+        </div>
+        <div className="chrome-divider" aria-hidden="true" />
+        <div className="header-group">
+          <Button onClick={onOpenWorkspace}>Workspace</Button>
+          <Button onClick={onImportVil} disabled={!canReload}>
+            VIL読込
+          </Button>
+          <Button onClick={onExportVil} disabled={!canReload}>
+            VIL書出
+          </Button>
+          <Button onClick={onReload} disabled={!canReload}>
+            再読込
+          </Button>
+        </div>
+        <div className="chrome-divider" aria-hidden="true" />
+        <Button variant="ghost" onClick={onRestoreBackup} disabled={!canReload}>
           backup から復元
-        </button>
-        <button className="c-btn" onClick={onConnect}>
-          接続
-        </button>
-        <button className="c-btn" onClick={onDisconnect} disabled={device === undefined}>
-          切断
-        </button>
-        <button className="c-btn" onClick={onReload} disabled={!canReload}>
-          再読込
-        </button>
+        </Button>
+        <div className="chrome-divider" aria-hidden="true" />
         <label className="theme-control">
           <span>テーマ</span>
           <select

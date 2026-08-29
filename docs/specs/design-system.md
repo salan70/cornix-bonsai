@@ -56,21 +56,32 @@ componentへ分割される前の面として素の要素へ依存し続ける�
 `components`層で要素セレクタのまま定義し、この面を壊さない。新しい編集UIをこれらの画面に足す
 場合は、React primitiveへ移行してから追加する。
 
+<!-- @code src/ui/components/ui/index.ts#Button -->
+<!-- @code src/ui/components/ui/index.ts#Chip -->
+<!-- @code src/ui/components/ui/index.ts#Tag -->
+<!-- @code src/ui/components/ui/index.ts#Field -->
+<!-- @code src/ui/components/ui/index.ts#Section -->
+<!-- @code src/ui/components/ui/index.ts#Panel -->
+<!-- @code src/ui/components/ui/index.ts#Callout -->
+<!-- @code src/ui/components/ui/index.ts#CalloutLabel -->
+
 ## React primitive
 
 `src/ui/components/ui/`に置く。class名の語彙を知る場所をここへ集約し、feature component側は
 primitiveのpropsだけを扱う。
 
-| primitive | variant                                                     | 用途                                     |
-| --------- | ----------------------------------------------------------- | ---------------------------------------- |
-| `Button`  | `neutral` / `primary` / `secondary` / `ghost` × `sm` / `md` | header、status bar、modal footerの操作   |
-| `Chip`    | `neutral` / `accent` / `success`（dot任意）                 | 接続状態、layer選択                      |
-| `Tag`     | `neutral` / `add` / `change` / `remove`                     | diffのadd/change/remove表示              |
-| `Field`   | —                                                           | labelと入力を1組で扱う。`.field label`が |
-|           |                                                             | 子孫に存在しない不整合を構造で解消する   |
-| `Section` | —                                                           | side panelの区切りブロック（`.psec`）    |
-| `Panel`   | `default` / `wide`                                          | side panel全般                           |
-| `Callout` | `error` / `warning` / `info` / `success`                    | 診断・banner・acknowledge行              |
+| primitive                  | props                                                                                                       | 用途                                                                                                                                         |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`                   | `variant`: `neutral` / `primary` / `secondary` / `ghost`                                                    | header、status bar、modal footerの操作                                                                                                       |
+| `Chip`                     | `as`（`span` / `button`）、`selected`、`connected`、`faint`、`dot`                                          | 接続状態、layer選択                                                                                                                          |
+| `Tag`                      | `variant`: `neutral` / `add` / `change` / `remove`                                                          | diffのadd/change/remove表示                                                                                                                  |
+| `Field`                    | `label`、`as`（`div` / `label`）                                                                            | labelと入力を1組で扱う。label textを常に`<span class="c-field-label">`へ束ね、`.field label`が子孫に存在せず不達だった不整合を構造で解消する |
+| `Section`                  | —                                                                                                           | side panelの区切りブロック（旧`.psec`）                                                                                                      |
+| `Panel`                    | `as`（`aside` / `section`）、`wide`                                                                         | side panel全般                                                                                                                               |
+| `Callout` / `CalloutLabel` | `as`（`div` / `section` / `button` / `label`）、`tone`: `neutral` / `warning` / `error` / `info`、`pushEnd` | 診断・banner・acknowledge行                                                                                                                  |
+
+`Callout`は`success` toneを持たない。`.row--success`（Apply前backupの確認行）は診断や
+bannerとは別の文脈で、汎用行`.row`のmodifierとして`features/apply.css`に残す。
 
 menu / dropdown / icon libraryはこの作業では追加しない。
 

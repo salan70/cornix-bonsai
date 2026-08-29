@@ -13,6 +13,7 @@ import {
   type PickTarget,
 } from "../keycode-compose.ts";
 import { PickTargetButtons } from "./PickTargetButtons.tsx";
+import { Field, Panel, Section } from "./ui/index.ts";
 
 /** @doc docs/specs/ui.md#side-panel-editing-controls */
 export function KeyPanel({
@@ -71,8 +72,8 @@ export function KeyPanel({
   }
 
   return (
-    <aside className="c-panel">
-      <div className="c-section">
+    <Panel>
+      <Section>
         <div className="c-panel-heading">
           <h3>選択中のキー</h3>
           {input === undefined ? null : (
@@ -85,10 +86,10 @@ export function KeyPanel({
           )}
         </div>
         {input === undefined ? null : <div className="u-text-sm u-muted">物理位置を選択中</div>}
-      </div>
+      </Section>
       {input === undefined ? null : (
         <>
-          <div className="c-section">
+          <Section>
             <KeySelect
               label="動作"
               value={behaviorKind(lexeme)}
@@ -99,8 +100,7 @@ export function KeyPanel({
                 else onEditKey(next);
               }}
             />
-            <div className="c-field">
-              <span>適用先</span>
+            <Field label="適用先">
               <PickTargetButtons
                 className="side-picker-target"
                 pickTarget={pickTarget}
@@ -114,9 +114,9 @@ export function KeyPanel({
                 }
                 labels={labels}
               />
-            </div>
-          </div>
-          <div className="c-section">
+            </Field>
+          </Section>
+          <Section>
             <h3>詳細</h3>
             <label className="c-field-raw">
               表示名（任意）
@@ -168,8 +168,8 @@ export function KeyPanel({
                 }}
               />
             </label>
-          </div>
-          <div className="c-section">
+          </Section>
+          <Section>
             <h3>参照</h3>
             {lexeme?.kind === "layerSwitch" ? (
               <div className="row">
@@ -181,10 +181,10 @@ export function KeyPanel({
             <div className="u-text-sm u-muted">
               References で使用箇所と未使用 layer を一覧できます。
             </div>
-          </div>
+          </Section>
         </>
       )}
-    </aside>
+    </Panel>
   );
 }
 
@@ -200,8 +200,7 @@ function KeySelect({
   readonly onChange: (value: string) => void;
 }): React.JSX.Element {
   return (
-    <label className="c-field">
-      <span>{label}</span>
+    <Field label={label} as="label">
       <select value={value} onChange={(event) => onChange(event.target.value)}>
         {[...new Set([value, ...options])].map((option) => (
           <option value={option} key={option}>
@@ -209,6 +208,6 @@ function KeySelect({
           </option>
         ))}
       </select>
-    </label>
+    </Field>
   );
 }

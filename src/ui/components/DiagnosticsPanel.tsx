@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import type { Diagnostic, DiagnosticSubject, Severity } from "../../core/validation/types.ts";
 import type { Selection } from "../types.ts";
+import { Button, Callout, CalloutLabel, Panel, Section, type CalloutTone } from "./ui/index.ts";
 
 /** @doc docs/specs/ui.md#diagnostic-panel */
 export function DiagnosticsPanel({
@@ -29,13 +30,11 @@ export function DiagnosticsPanel({
   const groups = useMemo(() => groupDiagnostics(filtered), [filtered]);
 
   return (
-    <aside className="c-panel c-panel--wide">
-      <div className="c-section">
+    <Panel wide>
+      <Section>
         <div className="c-panel-heading">
           <h3>診断</h3>
-          <button className="c-btn" onClick={onClose}>
-            編集 panelへ
-          </button>
+          <Button onClick={onClose}>編集 panelへ</Button>
         </div>
         <span className="u-text-sm u-muted">
           {filter === undefined ? "すべて" : severityLabel(filter)}・{filtered.length} 件
@@ -43,15 +42,16 @@ export function DiagnosticsPanel({
         <div className="u-text-sm u-muted">
           severity は診断の性質だけで決まる。Apply を止めるかどうかは Apply 側の gate が判断する。
         </div>
-      </div>
-      <div className="c-section diagnostic-list">
+      </Section>
+      <Section className="diagnostic-list">
         {groups.length === 0 ? (
           <div className="u-text-sm u-muted">該当する診断はありません。</div>
         ) : (
           groups.map((group) => (
             <div key={group.code}>
-              <button
-                className={`c-callout ${severityClass(group.items[0]?.severity)}`}
+              <Callout
+                as="button"
+                tone={severityTone(group.items[0]?.severity)}
                 onClick={() =>
                   group.items[0] === undefined ? undefined : onSelect(group.items[0].subject)
                 }
@@ -59,15 +59,13 @@ export function DiagnosticsPanel({
                 <span aria-hidden="true">{severityIcon(group.items[0]?.severity)}</span>
                 <span className="diag-body">
                   <span className="diag-top">
-                    <span className="c-callout-label">
-                      {severityLabel(group.items[0]?.severity)}
-                    </span>
+                    <CalloutLabel>{severityLabel(group.items[0]?.severity)}</CalloutLabel>
                     <span className="u-mono">{group.code}</span>
                   </span>
                   <span className="diag-message">{group.items[0]?.message}</span>
                   <span className="diag-where">{subjectLabel(group.items[0]?.subject)}</span>
                 </span>
-              </button>
+              </Callout>
               {group.items.length > 1 ? (
                 <button
                   className="collapsed diagnostic-collapse"
@@ -86,8 +84,8 @@ export function DiagnosticsPanel({
             </div>
           ))
         )}
-      </div>
-    </aside>
+      </Section>
+    </Panel>
   );
 }
 
@@ -110,12 +108,8 @@ function severityLabel(severity: Severity | undefined): string {
   return severity === "error" ? "エラー" : severity === "warning" ? "警告" : "情報";
 }
 
-function severityClass(severity: Severity | undefined): string {
-  return severity === "error"
-    ? "c-callout--error"
-    : severity === "warning"
-      ? "c-callout--warning"
-      : "c-callout--info";
+function severityTone(severity: Severity | undefined): CalloutTone {
+  return severity === "error" ? "error" : severity === "warning" ? "warning" : "info";
 }
 
 function severityIcon(severity: Severity | undefined): string {

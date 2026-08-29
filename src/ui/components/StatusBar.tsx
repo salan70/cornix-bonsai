@@ -1,4 +1,5 @@
 import type { DiagnosticSummary } from "../../core/validation/types.ts";
+import { Button } from "./ui/index.ts";
 
 /** @doc docs/specs/ui.md#header-and-status */
 export function StatusBar({
@@ -31,19 +32,18 @@ export function StatusBar({
         count={summary.information}
         onClick={onSeverity}
       />
+      <div className="chrome-divider" aria-hidden="true" />
       <span className="u-text-sm u-muted">
-        | 実機との差分 <b>{changedCount}</b> 件
+        実機との差分 <b>{changedCount}</b> 件
       </span>
       <span className="status-message">{status}</span>
       <span className="u-text-sm u-muted">
         保存先 <span className="u-mono">keymap.yaml</span>
       </span>
-      <button className="c-btn" disabled={changedCount === 0}>
-        差分を見る
-      </button>
-      <button className="c-btn c-btn--primary" onClick={onApply} disabled={!canApply}>
+      <Button disabled={changedCount === 0}>差分を見る</Button>
+      <Button variant="primary" onClick={onApply} disabled={!canApply}>
         実機へ Apply…
-      </button>
+      </Button>
     </footer>
   );
 }
