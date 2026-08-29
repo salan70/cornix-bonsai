@@ -92,12 +92,12 @@ export function KeymapTab({
     <section className="keymap-layout">
       <div className="editor-pane">
         <div className="layer-chips">
-          <span className="note">Layer</span>
+          <span className="u-text-sm u-muted">Layer</span>
           {Array.from({ length: layerCount }, (_, index) => index)
             .filter((index) => assignedLayers.has(index))
             .map((index) => (
               <button
-                className={`chip ${layer === index ? "on" : ""}`}
+                className={`c-chip ${layer === index ? "is-selected" : ""}`}
                 onClick={() => selectLayer(index)}
                 key={index}
               >
@@ -105,7 +105,7 @@ export function KeymapTab({
               </button>
             ))}
           {unusedLayers.length > 0 ? (
-            <span className="chip faint">
+            <span className="c-chip c-chip--faint">
               未使用 {unusedLayers[0]}〜{unusedLayers[unusedLayers.length - 1]}
             </span>
           ) : null}
@@ -137,7 +137,7 @@ export function KeymapTab({
               return (
                 <button
                   ref={selected ? selectedButtonRef : undefined}
-                  className={`key ${keycodeClass(key.keycode)} ${selected ? "sel" : ""} ${diagnostic ? "diag-warn" : ""}`}
+                  className={`key ${keycodeClass(key.keycode)} ${selected ? "is-selected" : ""} ${diagnostic ? "is-diag-warn" : ""}`}
                   style={{
                     left: `${box.left}px`,
                     top: `${box.top}px`,
@@ -191,7 +191,7 @@ export function KeymapTab({
                     );
                     return (
                       <button
-                        className={`encslot ${keycodeClass(encoder.keycode)} ${selected ? "sel" : ""} ${diagnostic ? "diag-warn" : ""}`}
+                        className={`encslot ${keycodeClass(encoder.keycode)} ${selected ? "is-selected" : ""} ${diagnostic ? "is-diag-warn" : ""}`}
                         title={capTitle(
                           keycodeDisplay(encoder.keycode, labels, table, { compact: true }),
                           encoder.keycode,
@@ -213,7 +213,7 @@ export function KeymapTab({
                     );
                   })}
                 </div>
-                <span className="note">Encoder {index}</span>
+                <span className="u-text-sm u-muted">Encoder {index}</span>
               </div>
             ))}
         </div>
@@ -228,7 +228,7 @@ export function KeymapTab({
           onEditKey={onEditKey}
           onEditEncoder={onEditEncoder}
         />
-        <div className="note keyboard-note">
+        <div className="u-text-sm u-muted u-push-end">
           方向キーで隣のキーへ選択が移り、Enter で右の編集 panel へ focus、Esc で盤面へ戻る。
         </div>
       </div>

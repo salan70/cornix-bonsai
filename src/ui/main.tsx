@@ -77,7 +77,7 @@ import { Overview } from "./components/Overview.tsx";
 import { References } from "./components/References.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { WorkspaceRecovery } from "./components/WorkspaceRecovery.tsx";
-import "./styles.css";
+import "./styles/index.css";
 
 const themeStorage = browserThemeStorage();
 const initialThemePreference = loadThemePreference(themeStorage);
@@ -758,7 +758,11 @@ function App(): React.JSX.Element {
       />
       <nav className="tabs" aria-label="main tabs">
         {(["Keymap", "Overview", "Behaviors", "References"] as const).map((name) => (
-          <button className={tab === name ? "active" : ""} onClick={() => setTab(name)} key={name}>
+          <button
+            className={tab === name ? "is-active" : ""}
+            onClick={() => setTab(name)}
+            key={name}
+          >
             {name}
           </button>
         ))}
@@ -767,7 +771,7 @@ function App(): React.JSX.Element {
         <main className="empty-state">
           <h1>workspaceから始める</h1>
           <p>keymap.yamlを含むディレクトリを開くか、実機readで初期状態を取得します。</p>
-          <button className="primary" onClick={() => void openWorkspace()}>
+          <button className="c-btn c-btn--primary" onClick={() => void openWorkspace()}>
             Workspaceを開く
           </button>
           {issue === undefined ? null : (

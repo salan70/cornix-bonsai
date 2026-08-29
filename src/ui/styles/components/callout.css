@@ -1,0 +1,36 @@
+@layer components {
+  .c-callout {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-md);
+    border: var(--border-width) solid var(--border);
+    background: var(--surface);
+    text-align: left;
+  }
+  .c-callout--warning {
+    border-color: var(--warning-border);
+    background: var(--warning-soft);
+  }
+  .c-callout--error {
+    border-color: var(--error);
+    background: var(--error-soft);
+  }
+  .c-callout--info {
+    background: var(--surface-2);
+  }
+  .c-callout-label {
+    font-weight: var(--weight-semibold);
+  }
+  .c-callout--warning .c-callout-label {
+    color: var(--warning);
+  }
+  .c-callout--error .c-callout-label {
+    color: var(--error);
+  }
+  .c-callout--info .c-callout-label {
+    color: var(--info);
+  }
+}

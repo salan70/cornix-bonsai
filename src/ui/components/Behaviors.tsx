@@ -17,7 +17,7 @@ export function Behaviors({
   readonly onSetting: (qsid: number, value: string) => void;
 }): React.JSX.Element {
   return (
-    <section className="panel">
+    <section className="c-panel">
       <h1>Behaviors</h1>
       <h2>Tap Dance</h2>
       {document.tapDance.map((entry, index) => (
@@ -39,7 +39,7 @@ export function Behaviors({
                 onChange={(event) => onTapDance(index, field, event.target.value)}
               />
               {typeof value === "string" && keycodeLabel(labels, value) !== undefined ? (
-                <span className="muted">表示名: {keycodeLabel(labels, value)}</span>
+                <span className="u-muted">表示名: {keycodeLabel(labels, value)}</span>
               ) : null}
             </label>
           ))}
@@ -57,7 +57,7 @@ export function Behaviors({
                 onChange={(event) => onCombo(index, field, event.target.value)}
               />
               {keycodeLabel(labels, value) === undefined ? null : (
-                <span className="muted">表示名: {keycodeLabel(labels, value)}</span>
+                <span className="u-muted">表示名: {keycodeLabel(labels, value)}</span>
               )}
             </label>
           ))}
@@ -66,7 +66,7 @@ export function Behaviors({
       <h2>Settings</h2>
       {Object.entries(document.settings).map(([qsid, value]) => (
         <label key={qsid}>
-          {settingLabel(Number(qsid))} <span className="muted">(qsid {qsid})</span>
+          {settingLabel(Number(qsid))} <span className="u-muted">(qsid {qsid})</span>
           <input
             type="number"
             value={value}

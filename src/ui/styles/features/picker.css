@@ -1,0 +1,152 @@
+@layer features {
+  .picker {
+    --pk: min(40px, calc((100cqw - 20px) / 26)); /* geometric: container queryから1uの上限を求める式 */
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+    padding: var(--pad-compact);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .picker-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-5);
+  }
+  .picker-heading h3 {
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--muted);
+  }
+  .picker-target {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-2);
+    width: min(var(--picker-target-max-width), 100%);
+    min-width: 0;
+  }
+  .picker-target button {
+    display: flex;
+    width: 100%;
+    height: var(--control-height-lg);
+    min-width: 0;
+    min-height: 0;
+    padding: var(--space-1) var(--space-3);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: var(--text-xs);
+    text-align: left;
+    overflow: hidden;
+  }
+  .picker-target button.is-selected {
+    border-color: var(--accent-emphasis);
+    background: var(--accent-soft);
+    color: var(--accent-emphasis);
+  }
+  .picker-target button code {
+    display: block;
+    min-width: 0;
+    color: var(--text);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .picker-target button.is-selected code {
+    color: var(--accent-emphasis);
+  }
+  .side-picker-target {
+    width: 100%;
+  }
+  .pk-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--pk-total), var(--pk));
+    align-items: start;
+    width: calc(var(--pk-total) * var(--pk));
+    min-width: calc(var(--pk-total) * var(--pk));
+    padding-bottom: var(--space-1);
+  }
+  .pk-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .pk-row,
+  .pk-strip {
+    display: flex;
+    gap: 0;
+    min-height: var(--control-height-lg);
+  }
+  .pk-cell {
+    flex: 0 0 calc(var(--pk) * var(--pk-u, 1));
+    width: calc(var(--pk) * var(--pk-u, 1));
+    height: var(--control-height-lg);
+    min-width: 0;
+    padding: 0 var(--space-1) var(--space-1);
+  }
+  .pk {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    position: static;
+    padding: var(--space-1) var(--space-2);
+    flex-direction: column;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--key-bg);
+    color: var(--key-text);
+    overflow: hidden;
+    text-align: center;
+  }
+  .pk .keycap-main {
+    display: block;
+    max-width: 100%;
+    white-space: pre-line;
+    font-size: var(--text-sm);
+    line-height: var(--leading-tight);
+  }
+  .pk .keycap-sub {
+    display: block;
+    max-width: 100%;
+    white-space: pre-line;
+    font-size: var(--text-xs);
+    line-height: var(--leading-tight);
+    color: var(--key-muted);
+  }
+  .pk:hover {
+    background: var(--key-hover-bg);
+  }
+  .pk.is-selected {
+    border-color: var(--accent-emphasis);
+    outline: var(--border-width-strong) solid var(--accent-emphasis);
+    outline-offset: calc(var(--border-width) * -1);
+    background: var(--accent-soft);
+    color: var(--accent-emphasis);
+  }
+  .pk.is-selected .keycap-sub {
+    color: var(--accent-emphasis);
+  }
+  .pk:disabled {
+    color: var(--disabled-text);
+    border-color: var(--border);
+    background: var(--disabled-bg);
+    opacity: 0.72;
+  }
+  .pk:disabled .keycap-sub {
+    color: var(--disabled-text);
+  }
+  .pk-spacer {
+    display: block;
+  }
+}

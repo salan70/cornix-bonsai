@@ -39,6 +39,19 @@
   --panel-width: 312px;
   --panel-width-wide: 400px;
 
+  /* Feature固有の寸法。space scaleに乗らない箇所だけここへ足す。 */
+  --encoder-slot-width: 76px;
+  --picker-target-max-width: 360px;
+  --diff-subject-width: 150px;
+  --icon-width: 21px;
+  --modal-width: 900px;
+  --modal-height: 680px;
+  --overview-sidebar-width: 280px;
+  --tapdance-field-width: 86px;
+  --overview-encoder-width: 62px;
+  --overview-encoder-height: 25px;
+  --recovery-max-width: 44rem;
+
   /* Focus ring. */
   --focus-ring-width: 2px;
   --focus-ring-offset: 1px;
@@ -48,7 +61,4 @@
   --z-related-active: 3;
   --z-connectors: 4;
   --z-modal: 10;
-
-  /* TODO(design-system): styles.cssの@layer移行が終わるまでの橋渡し。移行完了後に削除する。 */
-  --r: var(--radius-md);
 }

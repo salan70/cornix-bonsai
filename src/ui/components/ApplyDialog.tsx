@@ -58,17 +58,17 @@ export function ApplyDialog({
       <section className="modal" aria-labelledby="apply-title">
         <div className="mhdr">
           <h2 id="apply-title">実機へ Apply</h2>
-          <div className="grow" />
+          <div className="u-grow" />
           <ApplySteps phase={state?.phase} />
         </div>
         <div className="mbody">
-          <div className="row success-row">
+          <div className="row row--success">
             <span aria-hidden="true">✓</span>
             <span>
-              Apply 前の全 read を <span className="mono">cornix/backups/</span> に保存した
+              Apply 前の全 read を <span className="u-mono">cornix/backups/</span> に保存した
             </span>
-            <div className="grow" />
-            <span className="disc">往復 {backupRoundTrips} 回</span>
+            <div className="u-grow" />
+            <span className="u-text-sm u-muted">往復 {backupRoundTrips} 回</span>
           </div>
           {isWriting || state?.phase === "completed" ? (
             <WriteProgress
@@ -83,7 +83,7 @@ export function ApplyDialog({
             <>
               <div className="row-heading">
                 <h3>書き込む差分</h3>
-                <span className="disc">{changed.length} 件</span>
+                <span className="u-text-sm u-muted">{changed.length} 件</span>
               </div>
               <div className="diff-list">
                 {semanticChanges.map((entry, index) => (
@@ -99,12 +99,12 @@ export function ApplyDialog({
             </>
           )}
           {gate !== undefined && gate.acknowledgeable.length > 0 ? (
-            <section className="banner">
+            <section className="c-callout c-callout--warning">
               <span aria-hidden="true">⚠</span>
               <div className="ack-body">
                 <b>警告 {gate.acknowledgeable.length} 件を確認しないと Apply できない</b>
                 {gate.acknowledgeable.map((diagnostic) => (
-                  <label className="ack" key={diagnostic.id}>
+                  <label className="c-callout" key={diagnostic.id}>
                     <input
                       type="checkbox"
                       checked={acknowledged.includes(diagnostic.id)}
@@ -120,18 +120,18 @@ export function ApplyDialog({
                     <span>
                       {diagnostic.message}
                       <br />
-                      <span className="mono muted">{diagnostic.code}</span>
+                      <span className="u-mono u-muted">{diagnostic.code}</span>
                     </span>
                   </label>
                 ))}
-                <span className="disc">
+                <span className="u-text-sm u-muted">
                   acknowledge は根拠の値ごとに記録する。差分が変わると自動で外れる。
                 </span>
               </div>
             </section>
           ) : null}
           {gate !== undefined && gate.fatal.length > 0 ? (
-            <section className="banner error-banner">
+            <section className="c-callout c-callout--error">
               <b>error があるため Apply できません。</b>
               <ul>
                 {gate.fatal.map((diagnostic) => (
@@ -141,10 +141,12 @@ export function ApplyDialog({
             </section>
           ) : null}
           {state?.phase === "aborted" ? (
-            <p className="error">{state.reason}。再接続後にfull readからやり直してください。</p>
+            <p className="u-text-error">
+              {state.reason}。再接続後にfull readからやり直してください。
+            </p>
           ) : null}
           {state?.phase === "completed" ? (
-            <div className="banner result-banner">
+            <div className="c-callout c-callout--info u-push-end">
               <span aria-hidden="true">ⓘ</span>
               <span>
                 ここで確認しているのは<b>実機に反映されたこと</b>
@@ -155,17 +157,17 @@ export function ApplyDialog({
           ) : null}
         </div>
         <div className="mfoot">
-          <span className="disc">
+          <span className="u-text-sm u-muted">
             {isWriting
               ? "中断すると、途中までの状態は持ち越さずに全 read からやり直す。"
               : "書き込むのは差分だけ。1 件ごとに書いて同じ entry を読み直して確認する。"}
           </span>
-          <div className="grow" />
-          <button className="btn" onClick={onCancel}>
+          <div className="u-grow" />
+          <button className="c-btn" onClick={onCancel}>
             {isWriting ? "中断" : isFinished ? "閉じる" : "キャンセル"}
           </button>
           <button
-            className="btn primary"
+            className="c-btn c-btn--primary"
             disabled={
               isWriting ||
               (!isFinished && (gate?.allowed !== true || state?.phase !== "awaitingConfirmation"))
@@ -203,15 +205,17 @@ function WriteProgress({
           <b>
             {verifiedCount} / {operations.length} 件を書き込んで確認した
           </b>
-          <div className="grow" />
-          <span className="mono muted">
+          <div className="u-grow" />
+          <span className="u-mono u-muted">
             往復 {roundTrips} / {roundTripTotal} 回
           </span>
         </div>
         <div className="track">
           <div style={{ width: `${percentage}%` }} />
         </div>
-        <span className="disc">残り時間は表示しない。進み具合は実測の往復回数で示す。</span>
+        <span className="u-text-sm u-muted">
+          残り時間は表示しない。進み具合は実測の往復回数で示す。
+        </span>
       </div>
       <div className="diff-list">
         {operations.map((operation, index) => {
@@ -220,7 +224,7 @@ function WriteProgress({
           const description = operationDescription(operation, changed, labels);
           return (
             <div
-              className={`row write-row ${active ? "active" : ""} ${!done && !active ? "pending" : ""}`}
+              className={`row write-row ${active ? "is-active" : ""} ${!done && !active ? "is-pending" : ""}`}
               key={`${operation.target.kind}-${index}`}
             >
               <span className="write-icon" aria-hidden="true">
@@ -228,8 +232,8 @@ function WriteProgress({
               </span>
               <span className="diff-subject">{targetLabel(operation)}</span>
               <span>{description}</span>
-              <div className="grow" />
-              <span className="disc">
+              <div className="u-grow" />
+              <span className="u-text-sm u-muted">
                 {done
                   ? "書き込み → 再読み込みが一致"
                   : active
@@ -314,7 +318,9 @@ function ApplySteps({
       {steps.map((step, index) => (
         <span className="step-wrap" key={step}>
           {index > 0 ? <span className="bar" /> : null}
-          <span className={`st ${index < current ? "done" : ""} ${index === current ? "now" : ""}`}>
+          <span
+            className={`st ${index < current ? "is-done" : ""} ${index === current ? "is-current" : ""}`}
+          >
             {index < current ? "✓ " : ""}
             {step}
           </span>
@@ -332,10 +338,15 @@ function DiffRow({
   readonly labels: WorkspaceLabels;
 }): React.JSX.Element {
   const label = entry.change === "added" ? "追加" : entry.change === "removed" ? "削除" : "変更";
-  const className = entry.change === "added" ? "add" : entry.change === "removed" ? "rm" : "chg";
+  const modifier =
+    entry.change === "added"
+      ? "c-tag--add"
+      : entry.change === "removed"
+        ? "c-tag--remove"
+        : "c-tag--change";
   return (
     <div className="row">
-      <span className={`tag ${className}`}>{label}</span>
+      <span className={`c-tag ${modifier}`}>{label}</span>
       <span className="diff-subject">{subjectLabel(entry.subject)}</span>
       <span className="from">
         {labeledBehavior(entry.subject, entry.before, entry.beforeBehavior, labels)}

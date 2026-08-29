@@ -65,6 +65,7 @@
   --info-soft: var(--secondary-soft);
   --focus: var(--palette-light-blue);
   --focus-outer: var(--palette-dark-darkest-charcoal);
+  --focus-ring: var(--focus);
   --key-bg: var(--palette-light-white-key);
   --key-hover-bg: color-mix(
     in srgb,
@@ -141,6 +142,7 @@
   --info-soft: var(--surface-2);
   --focus: var(--palette-dark-orange);
   --focus-outer: var(--palette-light-white-key);
+  --focus-ring: var(--focus-outer);
   --key-bg: var(--palette-dark-medium-charcoal);
   --key-hover-bg: color-mix(
     in srgb,

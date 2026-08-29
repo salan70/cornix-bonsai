@@ -133,7 +133,7 @@ export function Overview({
   return (
     <section className="overview-page">
       <div className="overview-toolbar">
-        <span className="disc">
+        <span className="u-text-sm u-muted">
           参照あり {overview.visibleLayers.length} / {overview.layerCount} layer
         </span>
         {overview.hiddenLayers.length > 0 ? (
@@ -146,11 +146,11 @@ export function Overview({
             参照なし {overview.hiddenLayers.length} layerを表示
           </label>
         ) : null}
-        <div className="grow" />
-        <button className="btn" onClick={onExportSvg}>
+        <div className="u-grow" />
+        <button className="c-btn" onClick={onExportSvg}>
           ⇧ SVG で書き出す (L{exportLayer})
         </button>
-        <button className="btn" onClick={onExportPdf}>
+        <button className="c-btn" onClick={onExportPdf}>
           ⇧ PDF で書き出す (L{exportLayer})
         </button>
       </div>
@@ -207,7 +207,7 @@ export function Overview({
           </svg>
         )}
       </div>
-      <div className="note overview-note">
+      <div className="u-text-sm u-muted u-push-end">
         layer名はこの画面で編集できます。キー・encoder・Tap Danceの編集は各専用画面で行います。
       </div>
     </section>
@@ -272,11 +272,11 @@ function LayerCard({
           namedLabel={namedLabel}
           onCommit={onEditLayerLabel}
         />
-        <span className="mono muted">L{layer}</span>
-        <div className="grow" />
-        {layer !== 0 && references.length === 0 ? <span className="tag">参照なし</span> : null}
+        <span className="u-mono u-muted">L{layer}</span>
+        <div className="u-grow" />
+        {layer !== 0 && references.length === 0 ? <span className="c-tag">参照なし</span> : null}
         {layer !== 0 && references.length > 0 && !reachable ? (
-          <span className="tag">到達不能</span>
+          <span className="c-tag">到達不能</span>
         ) : null}
       </div>
       <div className="overview-reference-summary">{referenceSummary(references)}</div>
@@ -321,12 +321,12 @@ function LayerCard({
         </div>
       </div>
       <div className="overview-encoders" aria-label={`layer ${layer} encoders`}>
-        {encoders.length === 0 ? <span className="muted">encoderなし</span> : null}
+        {encoders.length === 0 ? <span className="u-muted">encoderなし</span> : null}
         {[...new Set(encoders.map((encoder) => encoder.index))]
           .sort((left, right) => left - right)
           .map((index) => (
             <div className="overview-encoder" key={index}>
-              <span className="note">E{index}</span>
+              <span className="u-text-sm u-muted">E{index}</span>
               <div className="overview-encoder-pair">
                 {(["ccw", "cw"] as const).map((direction) => {
                   const encoder = encoders.find(
@@ -391,7 +391,7 @@ function OverviewKey({
       : ({ ...style, "--layer-color": layerColor(relation.targetLayer) } as CSSProperties);
   return (
     <div
-      className={`${className}${relation === undefined ? "" : " overview-related-source"}${isActive ? " related-active" : ""}`}
+      className={`${className}${relation === undefined ? "" : " overview-related-source"}${isActive ? " is-active" : ""}`}
       style={relationStyle}
       ref={(element) =>
         relation === undefined ? undefined : setSourceRef(relation.source.id, element)
@@ -429,19 +429,19 @@ function TapDanceSidebar({
   readonly clearRelation: () => void;
 }): JSX.Element {
   return (
-    <aside className="overview-tapdance panel">
-      <div className="panel-heading">
+    <aside className="overview-tapdance c-panel">
+      <div className="c-panel-heading">
         <h2>使用中の Tap Dance</h2>
-        <span className="muted">{model.tapDances.length}件</span>
+        <span className="u-muted">{model.tapDances.length}件</span>
       </div>
       {model.tapDances.length === 0 ? (
-        <p className="note">参照されているTap Danceはありません。</p>
+        <p className="u-text-sm u-muted">参照されているTap Danceはありません。</p>
       ) : null}
       {model.tapDances.map(({ index, usageCount, entry }) => (
         <fieldset key={index} className="overview-tapdance-entry">
           <legend>
             {keycodeLabelOrRaw(labels, `TD(${index})`)}{" "}
-            <span className="muted">({usageCount} usages)</span>
+            <span className="u-muted">({usageCount} usages)</span>
           </legend>
           {entry.slice(0, 4).map((keycode, field) => {
             const relation = referencesBySource.get(`tapDance:${index}:${field}`);
@@ -468,7 +468,7 @@ function TapDanceSidebar({
           </div>
         </fieldset>
       ))}
-      <p className="note overview-tapdance-note">詳細編集はBehaviorsタブで行います。</p>
+      <p className="u-text-sm u-muted u-push-end">詳細編集はBehaviorsタブで行います。</p>
     </aside>
   );
 }

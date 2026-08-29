@@ -15,11 +15,11 @@ export type { DisplayOptions, KeycodeDisplay } from "./keycode-labels.ts";
 export function renderKeycode(display: KeycodeDisplay, prefix = ""): JSX.Element {
   return (
     <>
-      <span className="m">
+      <span className="keycap-main">
         {prefix}
         {display.primary}
       </span>
-      {display.role === undefined ? null : <small className="s">{display.role}</small>}
+      {display.role === undefined ? null : <small className="keycap-sub">{display.role}</small>}
     </>
   );
 }

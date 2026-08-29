@@ -187,7 +187,7 @@ function PickerEntryButton({
   return (
     <span className="pk-cell" style={{ ["--pk-u" as string]: unit } as React.CSSProperties}>
       <button
-        className={`pk ${selected ? "on" : ""}`}
+        className={`pk ${selected ? "is-selected" : ""}`}
         title={`${display.primary}${display.role === undefined ? "" : ` / ${display.role}`} (${entry.keycode})`}
         disabled={disabled}
         onClick={() => onPick(entry.keycode)}

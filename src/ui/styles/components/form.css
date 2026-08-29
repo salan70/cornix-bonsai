@@ -1,0 +1,15 @@
+@layer components {
+  /* legacy面: 個別のclassを持たない<input> / <select> / <textarea>すべてに適用される。
+     docs/specs/design-system.md#legacy面 */
+  select,
+  input,
+  textarea {
+    min-height: var(--control-height-md);
+    border: var(--border-width) solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--text);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-md);
+  }
+}

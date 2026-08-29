@@ -32,7 +32,7 @@ export function PickTargetButtons({
         const formatted = formatTargetValue(value(target), labels);
         return (
           <button
-            className={pickTarget === target ? "on" : ""}
+            className={pickTarget === target ? "is-selected" : ""}
             aria-pressed={pickTarget === target}
             disabled={disabled}
             title={formatted}

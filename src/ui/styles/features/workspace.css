@@ -1,0 +1,50 @@
+@layer features {
+  .main-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .empty-state {
+    flex: 1;
+    padding: var(--space-8) var(--space-6);
+    text-align: center;
+  }
+  .empty-state > p {
+    color: var(--muted);
+  }
+  .recovery {
+    max-width: var(--recovery-max-width);
+    margin: var(--space-7) auto 0;
+    padding: var(--space-6) var(--space-7);
+    text-align: left;
+    border: var(--border-width) solid var(--border);
+    border-left: var(--border-width-accent) solid var(--accent);
+    background: var(--surface);
+    display: grid;
+    gap: var(--space-5);
+  }
+  .recovery h2 {
+    margin: 0;
+    font-size: var(--text-lg);
+  }
+  .recovery p {
+    margin: 0;
+  }
+  .recovery-detail {
+    color: var(--muted);
+    font-size: var(--text-md);
+  }
+  .recovery-detail code {
+    overflow-wrap: anywhere;
+  }
+  .recovery-actions {
+    display: flex;
+    gap: var(--space-4);
+  }
+  .main-content > .c-panel {
+    width: auto;
+    margin: var(--space-7);
+    border: var(--border-width) solid var(--border);
+  }
+}

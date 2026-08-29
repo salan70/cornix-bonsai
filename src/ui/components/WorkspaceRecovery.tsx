@@ -40,7 +40,7 @@ export function WorkspaceRecovery({
           の2つです。実機へは書き込みません。
         </p>
         <div className="recovery-actions">
-          <button className="primary" disabled={busy} onClick={onInitialize}>
+          <button className="c-btn c-btn--primary" disabled={busy} onClick={onInitialize}>
             実機readでworkspaceを作成
           </button>
         </div>
@@ -74,7 +74,7 @@ export function WorkspaceRecovery({
           は参照されなくなるので、不要なら削除してください。
         </p>
         <div className="recovery-actions">
-          <button className="primary" disabled={busy} onClick={onMigrate}>
+          <button className="c-btn c-btn--primary" disabled={busy} onClick={onMigrate}>
             bindingを移行する
           </button>
         </div>
@@ -84,12 +84,12 @@ export function WorkspaceRecovery({
   return (
     <section className="recovery">
       <h2>workspaceを読み込めなかった</h2>
-      <p className="error">{issue.reason}</p>
+      <p className="u-text-error">{issue.reason}</p>
       <p className="recovery-detail">
         別のdirectoryを選ぶか、原因を直してから再読み込みしてください。
       </p>
       <div className="recovery-actions">
-        <button disabled={busy} onClick={onRetry}>
+        <button className="c-btn" disabled={busy} onClick={onRetry}>
           再読み込み
         </button>
       </div>

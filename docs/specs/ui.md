@@ -17,8 +17,10 @@ UIはVite + React + TypeScriptで、外部router/storeを持たない。mutable�
 `light` / `dark`はOS設定の変更に影響されない。実効テーマは`document.documentElement`の
 `data-theme="light"` / `data-theme="dark"`へ反映し、CSS tokenを切り替える。
 
-画像から採取したpaletteと、それをUI状態へ使うための派生色は`src/ui/tokens.css`で別の名前空間に
-定義する。画像由来色は補正せず、派生色はsampled値と誤認できない名前とコメントを付ける。
+画像から採取したpaletteと、それをUI状態へ使うための派生色は`src/ui/styles/tokens/color.css`で
+別の名前空間に定義する。画像由来色は補正せず、派生色はsampled値と誤認できない名前とコメントを
+付ける。寸法・タイポグラフィのtoken、cascade layer構成、React primitiveの契約は
+[design-system.md](./design-system.md)を参照する。
 
 通常画面はneutral surfaceを主体とし、黄をprimary / selected、Lightの青とDarkのオレンジを
 secondary action / focus、Lightの緑とDarkのミントをconnected / successへ使う。keycapは通常、

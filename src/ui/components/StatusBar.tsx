@@ -31,17 +31,17 @@ export function StatusBar({
         count={summary.information}
         onClick={onSeverity}
       />
-      <span className="status-disc">
+      <span className="u-text-sm u-muted">
         | 実機との差分 <b>{changedCount}</b> 件
       </span>
       <span className="status-message">{status}</span>
-      <span className="disc">
-        保存先 <span className="mono">keymap.yaml</span>
+      <span className="u-text-sm u-muted">
+        保存先 <span className="u-mono">keymap.yaml</span>
       </span>
-      <button className="btn" disabled={changedCount === 0}>
+      <button className="c-btn" disabled={changedCount === 0}>
         差分を見る
       </button>
-      <button className="btn primary" onClick={onApply} disabled={!canApply}>
+      <button className="c-btn c-btn--primary" onClick={onApply} disabled={!canApply}>
         実機へ Apply…
       </button>
     </footer>
@@ -60,10 +60,11 @@ function SeverityButton({
   readonly onClick: ((severity: keyof DiagnosticSummary) => void) | undefined;
 }): React.JSX.Element {
   const key = severity;
-  const className = severity === "error" ? "err" : severity === "warning" ? "warn" : "info";
+  const className =
+    severity === "error" ? "sev--error" : severity === "warning" ? "sev--warning" : "sev--info";
   return (
     <button
-      className={`sev ${className} ${count === 0 ? "zero" : ""}`}
+      className={`sev ${className} ${count === 0 ? "is-zero" : ""}`}
       onClick={() => onClick?.(key)}
       aria-label={`${label} ${count}件`}
     >

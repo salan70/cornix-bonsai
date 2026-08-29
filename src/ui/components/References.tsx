@@ -23,7 +23,7 @@ export function References({
     .map((_, index) => index)
     .filter((index) => !usage.macro.has(index));
   return (
-    <section className="panel">
+    <section className="c-panel">
       <h1>References</h1>
       <h2>Usages</h2>
       <ul>
@@ -69,7 +69,7 @@ export function References({
         <ul className="diagnostics">
           {diagnostics.map((diagnostic) => (
             <li key={diagnostic.id}>
-              <span className={`severity ${diagnostic.severity}`}>{diagnostic.severity}</span>
+              <span className={severityClassName(diagnostic.severity)}>{diagnostic.severity}</span>
               <code>{diagnostic.code}</code>
               <span>{diagnostic.message}</span>
             </li>
@@ -83,4 +83,12 @@ export function References({
 function namedReference(keycode: string, labels: WorkspaceLabels): string {
   const name = keycodeLabel(labels, keycode);
   return name === undefined ? keycode : `${name} (${keycode})`;
+}
+
+function severityClassName(severity: Diagnostic["severity"]): string {
+  return severity === "error"
+    ? "severity--error"
+    : severity === "warning"
+      ? "severity--warning"
+      : "severity--information";
 }

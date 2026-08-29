@@ -1,0 +1,57 @@
+@layer components {
+  .c-panel {
+    width: var(--panel-width);
+    flex-shrink: 0;
+    border-left: var(--border-width) solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+  .c-panel--wide {
+    width: var(--panel-width-wide);
+  }
+  .c-panel h1,
+  .c-panel h2 {
+    margin: 0;
+    font-size: var(--text-md);
+  }
+  .c-panel h3 {
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--muted);
+  }
+  .c-panel-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+  }
+
+  /* legacy面: Behaviors / Referencesは素のtable / fieldset / label / ulを使う。
+     docs/specs/design-system.md#legacy面 */
+  .c-panel table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .c-panel th,
+  .c-panel td {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: var(--border-width) solid var(--border);
+    text-align: left;
+  }
+  .c-panel fieldset {
+    border: var(--border-width) solid var(--border);
+    margin: var(--space-4) 0;
+    padding: var(--space-4);
+  }
+  .c-panel label {
+    display: grid;
+    gap: var(--space-1);
+    margin: var(--space-3) 0;
+  }
+  .c-panel ul {
+    padding-left: var(--space-7);
+  }
+}

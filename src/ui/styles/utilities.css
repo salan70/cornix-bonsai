@@ -1,0 +1,22 @@
+@layer utilities {
+  .u-grow {
+    flex-grow: 1;
+  }
+  .u-mono {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+  .u-muted {
+    color: var(--muted);
+  }
+  .u-text-sm {
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+  }
+  .u-text-error {
+    color: var(--error);
+  }
+  .u-push-end {
+    margin-top: auto;
+  }
+}

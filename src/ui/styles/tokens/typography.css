@@ -16,8 +16,4 @@
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
-
-  /* TODO(design-system): styles.cssの@layer移行が終わるまでの橋渡し。移行完了後に削除する。 */
-  --sans: var(--font-sans);
-  --mono: var(--font-mono);
 }

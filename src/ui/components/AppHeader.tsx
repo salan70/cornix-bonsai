@@ -46,35 +46,35 @@ export function AppHeader({
       </div>
       <div className="ws">
         <span>workspace</span>
-        <b className="mono">{workspaceName ?? "未選択"}</b>
+        <b className="u-mono">{workspaceName ?? "未選択"}</b>
       </div>
       <div className="header-actions">
-        <span className={`chip ${device === undefined ? "" : "connected"}`} aria-live="polite">
-          <span className="dot" />
+        <span className={`c-chip ${device === undefined ? "" : "is-connected"}`} aria-live="polite">
+          <span className="c-chip-dot" />
           {device === undefined ? "未接続" : `${device.info.productName} に接続済み`}
         </span>
-        <button className="btn" onClick={onOpenWorkspace}>
+        <button className="c-btn" onClick={onOpenWorkspace}>
           Workspace
         </button>
-        <button className="btn" onClick={onImportVil} disabled={!canReload}>
+        <button className="c-btn" onClick={onImportVil} disabled={!canReload}>
           VIL読込
         </button>
-        <button className="btn" onClick={onExportVil} disabled={!canReload}>
+        <button className="c-btn" onClick={onExportVil} disabled={!canReload}>
           VIL書出
         </button>
-        <button className="btn" onClick={onRead} disabled={device === undefined}>
+        <button className="c-btn" onClick={onRead} disabled={device === undefined}>
           実機から再読み込み
         </button>
-        <button className="btn secondary" onClick={onRestoreBackup} disabled={!canReload}>
+        <button className="c-btn c-btn--secondary" onClick={onRestoreBackup} disabled={!canReload}>
           backup から復元
         </button>
-        <button className="btn" onClick={onConnect}>
+        <button className="c-btn" onClick={onConnect}>
           接続
         </button>
-        <button className="btn" onClick={onDisconnect} disabled={device === undefined}>
+        <button className="c-btn" onClick={onDisconnect} disabled={device === undefined}>
           切断
         </button>
-        <button className="btn" onClick={onReload} disabled={!canReload}>
+        <button className="c-btn" onClick={onReload} disabled={!canReload}>
           再読込
         </button>
         <label className="theme-control">

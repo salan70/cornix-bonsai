@@ -10,10 +10,10 @@ const TOKENS_PATH = join(STYLES_PATH, "tokens");
 const COLOR_TOKEN_PATH = join(TOKENS_PATH, "color.css");
 
 /**
- * 幾何由来でtoken化できない宣言に付ける印。盤面・pickerのように実行時に幅を実測して
- * 倍率を決める箇所だけがこの印を持てる（docs/specs/design-system.md#幾何由来の例外）。
+ * 幾何由来でtoken化できない宣言に付ける印。宣言と同じ行のコメント内に含む文字列で判定する
+ * （盤面・pickerの実行時計算、@mediaのbreakpointなど。docs/specs/design-system.md#幾何由来の例外）。
  */
-const GEOMETRY_EXEMPT_MARKER = "/* geometric */";
+const GEOMETRY_EXEMPT_MARKER = "geometric";
 
 /** globalなJS/CSSが実行時に注入するcustom propertyで、tokenの定義元を持たない。 */
 const RUNTIME_CUSTOM_PROPERTIES = new Set([
@@ -93,23 +93,27 @@ test("component / feature層は生のpx・remを直値で持たない（token fi
   const offenders = styleFiles()
     .filter((path) => !path.startsWith(TOKENS_PATH))
     .flatMap((path) => {
-      const lines = readFileSync(path, "utf8").split("\n");
-      return lines
-        .map((line, index) => ({ line, index }))
-        .filter(({ line }) => !line.includes(GEOMETRY_EXEMPT_MARKER))
-        .filter(({ line }) => /\d+(\.\d+)?(px|rem)\b/.test(stripComments(line)))
-        .map(({ line, index }) => `${relative(UI_PATH, path)}:${index + 1}: ${line.trim()}`);
+      const raw = readFileSync(path, "utf8");
+      const rawLines = raw.split("\n");
+      const codeLines = stripBlockComments(raw).split("\n");
+      return codeLines
+        .map((code, index) => ({ code, index }))
+        .filter(({ index }) => !rawLines[index]!.includes(GEOMETRY_EXEMPT_MARKER))
+        .filter(({ code }) => /\d+(\.\d+)?(px|rem)\b/.test(code))
+        .map(({ index }) => `${relative(UI_PATH, path)}:${index + 1}: ${rawLines[index]!.trim()}`);
     });
   deepStrictEqual(offenders, []);
 });
 
 test("CSSは!importantを使わない", () => {
   const offenders = styleFiles().flatMap((path) => {
-    const lines = readFileSync(path, "utf8").split("\n");
-    return lines
-      .map((line, index) => ({ line, index }))
-      .filter(({ line }) => stripComments(line).includes("!important"))
-      .map(({ line, index }) => `${relative(UI_PATH, path)}:${index + 1}: ${line.trim()}`);
+    const raw = readFileSync(path, "utf8");
+    const rawLines = raw.split("\n");
+    const codeLines = stripBlockComments(raw).split("\n");
+    return codeLines
+      .map((code, index) => ({ code, index }))
+      .filter(({ code }) => code.includes("!important"))
+      .map(({ index }) => `${relative(UI_PATH, path)}:${index + 1}: ${rawLines[index]!.trim()}`);
   });
   deepStrictEqual(offenders, []);
 });
@@ -181,8 +185,9 @@ function exists(path: string): boolean {
   }
 }
 
-function stripComments(line: string): string {
-  return line.replace(/\/\*.*?\*\//g, "");
+/** コメントを行数が変わらないように空白へ置き換える。行番号がずれないようにするため。 */
+function stripBlockComments(text: string): string {
+  return text.replace(/\/\*[\s\S]*?\*\//g, (match) => match.replace(/[^\n]/g, " "));
 }
 
 function extractClassSelectors(css: string): readonly string[] {

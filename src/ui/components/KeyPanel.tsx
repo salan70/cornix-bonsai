@@ -71,12 +71,12 @@ export function KeyPanel({
   }
 
   return (
-    <aside className="panel side-panel">
-      <div className="psec">
-        <div className="panel-heading">
+    <aside className="c-panel">
+      <div className="c-section">
+        <div className="c-panel-heading">
           <h3>選択中のキー</h3>
           {input === undefined ? null : (
-            <span className="mono muted">
+            <span className="u-mono u-muted">
               layer {layer} /{" "}
               {selection?.kind === "encoder"
                 ? `encoder ${selection.index}`
@@ -84,11 +84,11 @@ export function KeyPanel({
             </span>
           )}
         </div>
-        {input === undefined ? null : <div className="note">物理位置を選択中</div>}
+        {input === undefined ? null : <div className="u-text-sm u-muted">物理位置を選択中</div>}
       </div>
       {input === undefined ? null : (
         <>
-          <div className="psec">
+          <div className="c-section">
             <KeySelect
               label="動作"
               value={behaviorKind(lexeme)}
@@ -99,7 +99,7 @@ export function KeyPanel({
                 else onEditKey(next);
               }}
             />
-            <div className="field">
+            <div className="c-field">
               <span>適用先</span>
               <PickTargetButtons
                 className="side-picker-target"
@@ -116,9 +116,9 @@ export function KeyPanel({
               />
             </div>
           </div>
-          <div className="psec">
+          <div className="c-section">
             <h3>詳細</h3>
-            <label className="raw-editor">
+            <label className="c-field-raw">
               表示名（任意）
               <input
                 value={labelDraft}
@@ -134,11 +134,11 @@ export function KeyPanel({
             </label>
             <div className="kv">
               <span>keycode</span>
-              <span className="mono">{input.keycode}</span>
+              <span className="u-mono">{input.keycode}</span>
             </div>
             <div className="kv">
               <span>keymap.yaml</span>
-              <span className="mono">
+              <span className="u-mono">
                 layers[{layer}]{" "}
                 {selection?.kind === "encoder"
                   ? `encoder ${selection.index}`
@@ -149,7 +149,7 @@ export function KeyPanel({
               <span>挙動</span>
               <span>{describeKeycode(input.keycode, table)}</span>
             </div>
-            <label className="raw-editor">
+            <label className="c-field-raw">
               raw keycode
               <input
                 ref={editorRef}
@@ -169,16 +169,18 @@ export function KeyPanel({
               />
             </label>
           </div>
-          <div className="psec">
+          <div className="c-section">
             <h3>参照</h3>
             {lexeme?.kind === "layerSwitch" ? (
               <div className="row">
                 このキーは <b>{layerLabel(labels, lexeme.layer)}</b> を参照している
               </div>
             ) : (
-              <div className="note">layer を指す keycode ではありません。</div>
+              <div className="u-text-sm u-muted">layer を指す keycode ではありません。</div>
             )}
-            <div className="note">References で使用箇所と未使用 layer を一覧できます。</div>
+            <div className="u-text-sm u-muted">
+              References で使用箇所と未使用 layer を一覧できます。
+            </div>
           </div>
         </>
       )}
@@ -198,7 +200,7 @@ function KeySelect({
   readonly onChange: (value: string) => void;
 }): React.JSX.Element {
   return (
-    <label className="field">
+    <label className="c-field">
       <span>{label}</span>
       <select value={value} onChange={(event) => onChange(event.target.value)}>
         {[...new Set([value, ...options])].map((option) => (
