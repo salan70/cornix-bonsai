@@ -18,52 +18,9 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { generateAsset, generateProfile, resolveKeycode } from "./generate.mjs";
+import { DESIRED } from "./desired.mjs";
 
 const KARABINER_CLI = "/Library/Application Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli";
-
-/**
- * MacBook 内蔵キーボード（JIS）を想定した最小の desired state。
- *
- * 位置は Karabiner の `key_code` 名で、値は QMK 表記（ADR 0022）。matrix の row / col は無い。
- * 書かれていないキーは素通しなので、全キーを並べる必要がない。
- */
-const DESIRED = {
-  schema: "cornix-bonsai/mac-keymap@1",
-  profile: "Cornix Bonsai",
-  layers: [
-    {
-      // layer 0: 単押し Esc / 長押し Ctrl、かなキーで layer 1、英数キーで layer 2
-      caps_lock: "LCTL_T(KC_ESC)",
-      japanese_kana: "LT1(KC_LANG1)",
-      japanese_eisuu: "MO(2)",
-      right_command: "TG(3)",
-    },
-    {
-      // layer 1: カーソル移動
-      h: "KC_LEFT",
-      j: "KC_DOWN",
-      k: "KC_UP",
-      l: "KC_RGHT",
-      a: "KC_HOME",
-      e: "KC_END",
-      d: "KC_DEL",
-    },
-    {
-      // layer 2: function key と無効化
-      1: "KC_F1",
-      2: "KC_F2",
-      q: "KC_NO",
-      w: "KC_TRNS",
-      caps_lock: "LCTL_T(KC_ESC)",
-    },
-    {
-      // layer 3: TG で切り替わる。テンキー相当
-      u: "KC_7",
-      i: "KC_8",
-      o: "KC_9",
-    },
-  ],
-};
 
 let failures = 0;
 function check(label, condition, detail = "") {
@@ -182,6 +139,30 @@ const { profile } = generateProfile(DESIRED);
 check("profile 名が固定", profile.name === "Cornix Bonsai");
 check("selected を持たない", !("selected" in profile));
 check("simple_modifications を持たない", !("simple_modifications" in profile));
+
+console.log("7. verify-on-macbook.sh の埋め込み JSON");
+// スクリプトは開発環境の無いマシンで curl から実行するため、生成器を呼べない。
+// 生成物を直接埋め込んでいるので、生成器とずれていないことをここで検査する。
+const scriptPath = new URL("./verify-on-macbook.sh", import.meta.url);
+const script = readFileSync(scriptPath, "utf8");
+const begin = script.indexOf("<<'CORNIX_ASSET_JSON'\n");
+const end = script.indexOf("\nCORNIX_ASSET_JSON\n", begin);
+check("heredoc の marker が見つかる", begin !== -1 && end !== -1);
+if (begin !== -1 && end !== -1) {
+  const embedded = script.slice(begin + "<<'CORNIX_ASSET_JSON'\n".length, end);
+  let parsed;
+  try {
+    parsed = JSON.parse(embedded);
+  } catch (error) {
+    parsed = undefined;
+    check("埋め込み JSON をparseできる", false, String(error));
+  }
+  check(
+    "埋め込み JSON が生成器の出力と一致する",
+    parsed !== undefined && JSON.stringify(parsed) === JSON.stringify(asset),
+    "生成器を変えたら verify-on-macbook.sh の heredoc も更新すること",
+  );
+}
 
 console.log(`\n${failures === 0 ? "すべて成功" : `${failures} 件失敗`}`);
 process.exit(failures === 0 ? 0 : 1);

@@ -42,12 +42,19 @@ JSON を書き戻すため、**Apply の diff と verify をテキスト比較�
 
 ## ファイル
 
-| ファイル         | 役割                                                 |
-| ---------------- | ---------------------------------------------------- |
-| `generate.mjs`   | desired state → Karabiner rules の生成器プロトタイプ |
-| `self-check.mjs` | 上記 1〜5 の検証と、最小の desired state             |
+| ファイル               | 役割                                                      |
+| ---------------------- | --------------------------------------------------------- |
+| `desired.mjs`          | 検証用の最小の desired state。単一の定義元                |
+| `generate.mjs`         | desired state → Karabiner rules の生成器プロトタイプ      |
+| `self-check.mjs`       | 上記 1〜5 の検証                                          |
+| `verify-on-macbook.sh` | 開発環境の無い MacBook で実機確認するための単体スクリプト |
 
 `generate.mjs` の QMK → Karabiner key_code 表は網羅表ではありません。Spike に必要な範囲だけです。
+
+`verify-on-macbook.sh` は生成器を呼べないため生成物を直接埋め込んでいます。
+**埋め込みが生成器の出力とずれていないことは `self-check.mjs` が検査します。**
+`generate.mjs` か `desired.mjs` を変えたら、スクリプトの `CORNIX_ASSET_JSON` heredoc も
+更新してください。self-check が落ちて気づけます。
 
 ## MacBook 実機でしか確認できないこと
 
@@ -61,13 +68,37 @@ Open Question に記録してあります。
 
 ### 実機での手順
 
+対象の MacBook に開発環境が無くても実行できるよう、`verify-on-macbook.sh` を用意してあります。
+**macOS 標準のコマンドしか使いません。** Node も pnpm も Nix も Xcode Command Line Tools も要りません。
+
 ```bash
-nix develop -c node spikes/r-006-macos-keyboard/self-check.mjs
+curl -fsSL https://raw.githubusercontent.com/salan70/cornix-bonsai/main/spikes/r-006-macos-keyboard/verify-on-macbook.sh -o verify.sh
+less verify.sh
+sh verify.sh
 ```
 
-を MacBook 上で実行したあと、生成された asset を Karabiner-Elements の
-Settings → Complex Modifications から手動で読み込みます。**この Spike は
-`karabiner.json` を書き換えません。** 読み込みと profile の選択は人間が行ってください。
+**`curl | sh` で直接パイプせず、落として中身を読んでから実行してください。**
 
-Cornix LP を USB か BLE で同時に接続し、内蔵キーボードでのみ layer と tap-hold が
-効くことを確認します。
+既定では読み取りと一時ディレクトリへの書き出しだけを行います。
+`--install-asset` を付けたときに限り、Karabiner の import 用ライブラリへ 1 ファイル置きます。
+**`~/.config/karabiner/karabiner.json` は決して変更しません。**
+
+スクリプトが行うこと:
+
+1. macOS のバージョンと arch から、必要な Karabiner の系列を判定する
+   （13 以降は 15.x、11〜12 は v14.13.0、10.15 は v13.7.0）
+2. Karabiner の導入状態、DriverKit extension の有効性、core service の起動を確認する
+3. `karabiner_cli --list-connected-devices` で `is_built_in_keyboard` を実際に観測する
+   （取れない場合は `ioreg` で代替表示する）
+4. asset を書き出し、`--format-json` で整形して `--lint-complex-modifications` に通す
+5. 人間が行う確認手順を出力する
+
+layer・tap-hold・device スコープの確認は人間の操作が要ります。スクリプトは手順を出すだけです。
+**確認前に専用 profile を作ってください。** 現在の profile へ直接入れると普段の設定と混ざります。
+
+### Intel Mac について
+
+Karabiner は Intel / Apple Silicon の両方を対象にしているため、Intel Mac であること自体は
+障壁になりません。効いてくるのは **macOS のバージョン**だけです。
+macOS 12 以前では Karabiner 15.x を使えず、kext 方式の古い系列になります。
+スクリプトがバージョンを判定して必要な版を表示します。
