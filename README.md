@@ -2,21 +2,33 @@
 
 Cornix LP向けのキーマップ編集ツール 💚
 
-Cornix Bonsaiは、Cornix LPのキーマップをブラウザ・CLI・Git・AIエージェントから読み取り、編集、検証、可視化、バージョン管理するためのローカルファーストなツールです。
+Cornix Bonsaiは、Cornix LPのキーマップをブラウザ・CLI・Git・AIエージェントから
+読み取り、編集、検証、可視化、バージョン管理するためのローカルファーストなツールです。
+
+## 今すぐ使う
 
 Web UI: <https://salan70.github.io/cornix-bonsai/>
 
-Web UIはChromium系ブラウザ（Chrome / Edge / Brave）が必要です。WebHIDに対応しないSafariとFirefoxでは実機接続を使えません。
+確認済み環境はmacOSとChrome / Chromiumです。WebHIDに対応しないSafariとFirefoxでは
+実機接続を利用できません。既存のworkspaceを開く手順と、実機readからworkspaceを作る手順は
+[クイックスタート](./docs/user-guide/README.md#クイックスタート)を参照してください。
 
-## 現在の状況
+実機からのreadはキーボードを変更しません。実機を変更するのは、人間が差分を確認して
+「実機へ Apply」を実行した場合だけです。
 
-workspace / CLI / Web UI / WebHID adapterのMVP実装を含みます。mainへのpushはGitHub Pagesへ自動デプロイされ、
-headerに利用中buildの短いcommit SHAを表示します。実機USB/BLEの受入確認は実機と人間の明示操作が必要なため、
-mock/fixtureの自動検証とは分けて扱います。
+## 利用者向けドキュメント
 
-## 起動
+- [利用者ガイド](./docs/user-guide/README.md)
+- [Web UIの使い方](./docs/user-guide/web-ui.md)
+- [CLIの使い方](./docs/user-guide/cli.md)
+- [Safe Applyと復旧](./docs/user-guide/safe-apply.md)
+- [workspaceと用語](./docs/user-guide/workspace-and-terms.md)
+- [トラブルシューティング](./docs/user-guide/troubleshooting.md)
 
-依存関係とツールチェーンはNix環境を使います。初回のCLI setupではpre-commit / pre-push hookも導入します。
+## 開発環境から起動する
+
+依存関係とツールチェーンはNix環境で固定しています。初回のsetupではpre-commit / pre-push
+hookも導入します。
 
 ```bash
 nix develop
@@ -34,39 +46,13 @@ just build
 just preview
 ```
 
-### CLI
+cloneした環境でCLIを使う方法は[CLIの使い方](./docs/user-guide/cli.md)を参照してください。
 
-既存の`.vil`とdefinitionからworkspaceを初期化し、同じCoreで検証・解析・差分・描画・exportを実行できます。
-複数マシンでは各マシンでclone後に一度setupし、以後は`git pull`で更新します。CLIはnpm packageとしてpublishせず、
-cloneしたリポジトリから実行します。
+## 現在の状況
 
-```bash
-git clone https://github.com/salan70/cornix-bonsai.git
-cd cornix-bonsai
-direnv allow
-just setup
-
-just cornix import vil fixtures/cornix-lp/baseline.vil \
-  --definition fixtures/cornix-lp/vial-definition-v1.12.json \
-  --workspace /path/to/workspace
-just cornix validate --workspace /path/to/workspace
-just cornix analyze --workspace /path/to/workspace
-just cornix diff --against before.vil --workspace /path/to/workspace
-just cornix render --format svg --out keymap.svg --workspace /path/to/workspace
-just cornix render --format pdf --out keymap.pdf --workspace /path/to/workspace
-just cornix export vil --out keymap.vil --workspace /path/to/workspace
-
-# 更新時
-git pull
-```
-
-### Browser UI
-
-`just dev`で起動し、Chromium系browserでworkspace directoryを選択します。permission済みの
-directory handleはIndexedDBへ保存され、reload後に復帰します。`接続` → `実機read` → 編集 →
-`Apply`の順に操作します。`.vil`読込はdesired stateへ反映し、OverviewのSVG/PDF書出とVIL書出は
-workspaceの`cornix/generated/`へ保存します。Applyはbackup、validation、差分確認、人間確認、
-single-entry write、再read verifyの順で進みます。電源断後のflash durabilityは通常の成功条件に含めません。
+workspace / CLI / Web UI / WebHID adapterのMVP実装を含みます。mainへのpushはGitHub Pagesへ
+自動デプロイされ、headerに利用中buildの短いcommit SHAを表示します。実機USB/BLEの受入確認は
+実機と人間の明示操作が必要なため、mock/fixtureの自動検証とは分けて扱います。
 
 ## 方針
 
@@ -80,8 +66,10 @@ single-entry write、再read verifyの順で進みます。電源断後のflash 
 - 実機writeはbackupとverifyを伴い、人間の明示操作でのみ行う
 - AIエージェントは設定編集や検証を行えるが、実機へ直接writeしない
 
-## 表記
+## 開発者向けドキュメント
 
-プロジェクト内の文章・ドキュメント・Issueは日本語を基本とします。コード識別子、CLIコマンド、プロトコル名などは必要に応じて英語表記を維持します。
+重要な設計判断は`docs/decisions/`、コードと対応する実装仕様は`docs/specs/`に記録します。
+[ドキュメントの責務](./docs/README.md)も参照してください。
 
-重要な設計判断は`docs/decisions/`にADRとして記録します。
+プロジェクト内の文章・ドキュメント・Issueは日本語を基本とします。コード識別子、CLIコマンド、
+プロトコル名などは必要に応じて英語表記を維持します。

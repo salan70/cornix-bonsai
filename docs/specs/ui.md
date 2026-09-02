@@ -66,6 +66,7 @@ UIは読み込み失敗を例外の文字列のまま出さず、`keymap.yaml`�
 ## 4 tab
 
 常設header、`Keymap` / `Overview` / `Behaviors` / `References`の4 tab、status barを置く。
+tab navigationの右端には利用者ガイドへの外部linkを置き、新しいtabで操作・安全・復旧手順を開く。
 Keymapはdefinitionの座標をHTML/CSSの絶対配置へ投影し、encoderを専用帯へ分ける。選択中の
 key / encoderのraw keycodeをside panelで編集し、盤面は方向キー、Enter、Escで操作できる。
 keycapはlayer名、macOS modifier記号、Tap/Hold roleを優先表示する。BehaviorsはTap Dance / Combo / Settingsを直接編集して保存する。Apply warningの

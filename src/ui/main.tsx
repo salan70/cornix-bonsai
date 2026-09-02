@@ -81,6 +81,8 @@ import "./styles/index.css";
 
 const themeStorage = browserThemeStorage();
 const initialThemePreference = loadThemePreference(themeStorage);
+const USER_GUIDE_URL =
+  "https://github.com/salan70/cornix-bonsai/blob/main/docs/user-guide/README.md";
 applyTheme(document.documentElement, initialThemePreference, browserSystemDark());
 
 interface WorkspaceModel {
@@ -766,6 +768,15 @@ function App(): React.JSX.Element {
             {name}
           </button>
         ))}
+        <a
+          className="tabs-guide"
+          href={USER_GUIDE_URL}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="利用者ガイドを新しいタブで開く"
+        >
+          利用者ガイド
+        </a>
       </nav>
       {workspace === undefined ? (
         <main className="empty-state">
