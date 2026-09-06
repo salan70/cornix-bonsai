@@ -96,9 +96,15 @@ case "$OS_MAJOR" in
 	;;
 esac
 
-case "$MODEL" in
+# Apple Silicon 世代の hw.model は MacXX,YY 形式 (例: MacBook Air M4 = Mac16,13) で
+# 機種名を判別できないため、Model Name で判定する。
+MODEL_NAME="$(system_profiler SPHardwareDataType 2>/dev/null | sed -n 's/^ *Model Name: *//p')"
+[ -n "$MODEL_NAME" ] || MODEL_NAME="$MODEL"
+note "machine : $MODEL_NAME"
+
+case "$MODEL_NAME" in
 MacBook*) ok "MacBook である。内蔵キーボードの確認ができる" ;;
-*) warn "MacBook ではない ($MODEL)。内蔵キーボードが無いと手順 5 を確認できない" ;;
+*) warn "MacBook ではない ($MODEL_NAME)。内蔵キーボードが無いと手順 5 を確認できない" ;;
 esac
 
 # ------------------------------------------------------ 2. Karabiner の導入
@@ -141,10 +147,8 @@ fi
 
 if pgrep -f karabiner_console_user_server >/dev/null 2>&1; then
 	ok "core service が起動している"
-	CORE_RUNNING=1
 else
-	warn "core service が起動していない。Karabiner-Elements.app を起動すると手順 3 が動く"
-	CORE_RUNNING=0
+	warn "core service が起動していない。手順 5 の確認前に Karabiner-Elements.app を起動する"
 fi
 
 # --------------------------------------------- 3. 内蔵キーボードの識別
@@ -153,25 +157,26 @@ note 'ADR 0022 は device_if の is_built_in_keyboard: true で内蔵キーボ�
 note '対象にすると決めている。実際にどう見えるかをここで観測する。'
 printf '\n'
 
+# karabiner_cli には device 一覧のオプションが無い (v15.3.0 で実測)。
+# root daemon の karabiner_grabber が観測した device 一覧ファイルを読む。
+GRABBER_DEVICES="/Library/Application Support/org.pqrs/tmp/karabiner_grabber_devices.json"
+
 DEVICES_SEEN=0
-if [ -n "$KCLI" ] && [ "$CORE_RUNNING" -eq 1 ]; then
-	if DEVICES="$("$KCLI" --list-connected-devices 2>&1)"; then
-		printf '%s\n' "$DEVICES" | sed 's/^/    /'
-		DEVICES_SEEN=1
-		if printf '%s' "$DEVICES" | grep -q '"is_built_in_keyboard": *true'; then
-			ok 'is_built_in_keyboard: true の device がある'
-		else
-			ng 'is_built_in_keyboard: true の device が無い'
-			note 'この Karabiner の版が該当フィールドを出さない可能性もある'
-		fi
+if [ -r "$GRABBER_DEVICES" ]; then
+	DEVICES="$(cat "$GRABBER_DEVICES")"
+	printf '%s\n' "$DEVICES" | sed 's/^/    /'
+	DEVICES_SEEN=1
+	if printf '%s' "$DEVICES" | grep -q '"is_built_in_keyboard": *true'; then
+		ok 'is_built_in_keyboard: true の device がある'
 	else
-		warn "--list-connected-devices が失敗した: $DEVICES"
+		ng 'is_built_in_keyboard: true の device が無い'
+		note 'この Karabiner の版が該当フィールドを出さない可能性もある'
 	fi
 fi
 
 if [ "$DEVICES_SEEN" -eq 0 ]; then
-	warn 'karabiner_cli から device 一覧を取れなかった'
-	note 'Karabiner-Elements.app を起動してから再実行すると is_built_in_keyboard を直接確認できる'
+	warn "$GRABBER_DEVICES を読めなかった"
+	note 'Karabiner の導入直後は core service の起動後に生成される'
 	note 'ここでは ioreg で HID device の名前だけ代替表示する:'
 	PRODUCTS="$(ioreg -c IOHIDDevice -r -l 2>/dev/null |
 		sed -n 's/.*"Product" = "\(.*\)".*/\1/p' | sort -u)"

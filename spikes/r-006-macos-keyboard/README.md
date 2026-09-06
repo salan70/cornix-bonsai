@@ -88,8 +88,10 @@ sh verify.sh
 1. macOS のバージョンと arch から、必要な Karabiner の系列を判定する
    （13 以降は 15.x、11〜12 は v14.13.0、10.15 は v13.7.0）
 2. Karabiner の導入状態、DriverKit extension の有効性、core service の起動を確認する
-3. `karabiner_cli --list-connected-devices` で `is_built_in_keyboard` を実際に観測する
-   （取れない場合は `ioreg` で代替表示する）
+3. karabiner_grabber の device 一覧
+   （`/Library/Application Support/org.pqrs/tmp/karabiner_grabber_devices.json`）で
+   `is_built_in_keyboard` を実際に観測する（読めない場合は `ioreg` で代替表示する）。
+   `karabiner_cli` に device 一覧のオプションは無い（v15.3.0 で実測）
 4. asset を書き出し、`--format-json` で整形して `--lint-complex-modifications` に通す
 5. 人間が行う確認手順を出力する
 
