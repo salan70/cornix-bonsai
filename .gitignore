@@ -12,10 +12,11 @@ result
 result-*
 
 # 環境変数
-# .envrc は Git 管理対象（秘匿情報を入れない方針）。
+# .envrc は Git 管理対象（秘匿情報を入れない方針）。マシン固有の設定は .envrc.local へ。
 .env
 .env.*
 !.env.example
+.envrc.local
 
 # Coverage
 coverage/
