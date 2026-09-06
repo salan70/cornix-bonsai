@@ -174,10 +174,20 @@ Karabiner-Elementsに寄せるか、同等品を自作するかになる。
 
 ## Open Question
 
-作業マシン（Mac mini Mac16,11）に内蔵キーボードが無いため、以下はMacBook実機でしか確認できない。
+当初の4点は、2026-09-06にMacBook Air（Mac16,13 / M4 / macOS 26.5.2 / Karabiner 15.3.0）の
+実機確認（#22、詳細は`docs/tasks/ai-logs/2026-09-06_r006-macbook-verify.md`）ですべて解消した。
 
-- `is_built_in_keyboard: true`がMacBook内蔵キーボードだけにマッチすること
-- 同時接続したCornix LPに一切影響しないこと
-- layerとtap-holdの実挙動。特に`to_if_alone`の閾値が打鍵感として妥当かどうか
-- Karabiner起動中に外部から`karabiner.json`をtemp + renameで置換したときの競合挙動。
-  親ディレクトリのwatchは壊れないはずだが、Karabiner側のin-memory stateとの競合は未検証
+- `is_built_in_keyboard: true`を持つdeviceは内蔵キーボードだけだった。Cornix LP（BLE接続）は
+  フラグ無しで見え、layer変数がglobalに立った状態でもLP側の入力は素通しした
+- layer（MO / LT / TG）とtap-holdは実機で期待どおり動いた。`to_if_alone`の既定閾値は妥当
+- temp + renameでの外部置換はFSEventsでreloadされ、設定は壊れない。**Karabinerは書き戻しを
+  行わず**、外部が書いた内容がbyte単位でそのまま残る。reload後もremapは動作し続ける
+
+実機確認で新たに判明し、#21が前提にすべき事実。
+
+- `karabiner_cli`にdevice一覧のオプションは無い（15.3.0で実測）。deviceの観測は
+  `/Library/Application Support/org.pqrs/tmp/karabiner_grabber_devices.json`を読む
+- GUIのrule Enableはクリック順に追加されるため、「高いlayerから降順」の順序を保証できない。
+  順序の制御はCLIがprofileを所有して書くことでのみ成立する（所有境界の決定を補強する）
+- US配列のMacBookには`japanese_kana` / `japanese_eisuu`の物理キーが存在しない。
+  desired stateのfromキーは対象マシンの物理配列に依存するため、#21でvalidationの扱いを検討する

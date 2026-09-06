@@ -46,10 +46,62 @@
 2. **device 一覧**: `--list-connected-devices` が存在しないため、
    `karabiner_grabber_devices.json` を読む方式へ変更。ioreg fallback は維持
 
-## 未実施（人間の操作が必要）
+## 手動確認の結果（同日実施）
 
-- 手動確認 [1]〜[4]: mod-tap / layer 1 (LT) / layer 2 (MO) / layer 3 (TG) の実挙動
-- 手動確認 [5]: Cornix LP 同時接続時に Cornix LP 側で rule が発火しないこと
-  （観測時点で Cornix LP は未接続）
-- 手動確認 [6]: Karabiner 起動中の `karabiner.json` temp + rename 置換の挙動
-- 上記完了後の ADR 0022 Open Question への反映と後始末（専用 profile と asset の削除）
+専用 profile を作成し、Cornix Bonsai の 4 rule を有効化して確認した。
+
+### [1] mod-tap / [4] layer 3 (TG) — 確認 OK
+
+- Caps Lock 単押し → Esc、押しながら他キー → Ctrl（Fact）
+- 右 Command 単押しで layer 3 が toggle し、`u/i/o` → `7/8/9`、再度押すと復帰（Fact）
+- `to_if_alone` の既定閾値の打鍵感に問題なし
+
+### [2] layer 1 (LT) / [3] layer 2 (MO) — 代替キーで確認 OK
+
+- **Fact: この MacBook は US 配列で、`japanese_kana` / `japanese_eisuu` の物理キーが存在しない。**
+  生成された rule そのままでは発火させられない
+- 同じ変数（`cornix_layer_1` / `cornix_layer_2`）を操作する代替 rule
+  （右 Option = LT1、左 Option = MO2）を追加して確認した。layer 側の manipulator は
+  生成された本物の rule をそのまま使用
+- LT: 右 Option 押しながら `h/j/k/l` → 矢印、単押し → `to_if_alone` の出力。OK
+- MO: 左 Option 押しながら `1/2` → F1/F2、`q` → 無反応（`KC_NO`）。OK
+- Inference: 検証できていないのは「かなキーそのものからの発火」だけで、
+  機構（`set_variable` + `to_after_key_up` + `to_if_alone`）は実機で成立する
+
+### [5] device スコープ — 確認 OK
+
+- Cornix LP を BLE で接続。grabber の device 一覧では `"product": "Cornix"`
+  （keyboard + pointing device の 2 entry、transport: Bluetooth Low Energy）として見え、
+  **`is_built_in_keyboard` フラグを持たない**（Fact）
+- 内蔵キーボードで layer 3 を ON にした状態で LP 側の `u` を打つと `u` のまま
+  （内蔵側は `7`）。**layer 変数は global に立っていても `device_if` が LP を除外する**（Fact）
+
+### [6] atomic 置換 — 確認 OK
+
+外部プロセス（node）から `karabiner.json` を読み、テスト profile 名を変更して
+同一ディレクトリの temp ファイルへ書き出し、`rename(2)` で置換した。
+
+- Fact: rename 直後に grabber が `Load .../karabiner.json... core_configuration is updated.`
+  を記録し、`karabiner_cli --show-current-profile-name` が外部から書いた新名称を返した
+- Fact: Karabiner は書き戻しを行わない。置換 4 分後のディスク上のファイルは
+  外部から書いた内容と md5 一致（独自整形での上書きは起きない）
+- Fact: reload 後も remap は動作し続ける（Caps Lock → Esc で確認）
+- 後始末の復帰書き込み（profile 削除 + selected 変更）も同方式で行い、同様に reload された
+
+## #21 が前提にできること / 追加で判明したこと
+
+- ADR 0022 の Open Question 4 点はすべて解消。#21 は
+  `device_if: is_built_in_keyboard` と temp + rename 適用を前提にできる
+- `karabiner_cli` に device 一覧オプションは無い（15.3.0）。device の観測が必要なら
+  `/Library/Application Support/org.pqrs/tmp/karabiner_grabber_devices.json` を読む
+- GUI の rule Enable はクリック順に追加されるため、rule の並びが ADR の
+  「高い layer から降順」にならない（今回は layer 0→3 の昇順で追加された。
+  from キーが layer 間で重複しない keymap のため挙動への影響は無し）。
+  **rule 順序の制御は CLI が profile を所有して書くことでのみ保証できる**
+- **US 配列では JIS 固有キーが物理的に存在しない。** desired state（`mac-keyboard.yaml`）の
+  from キーは対象マシンの物理配列に依存する。#21 で validation の扱いを検討する
+
+## 後始末（実施済み）
+
+- テスト profile を削除し `Default profile` (selected) へ復帰
+- `~/.config/karabiner/assets/complex_modifications/` の cornix asset 2 ファイルを削除
