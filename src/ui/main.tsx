@@ -55,6 +55,7 @@ import {
   renderBrowserPdf,
   renderBrowserSvg,
   serializeBrowserVil,
+  generateBrowserKarabiner,
 } from "./browser-export.ts";
 import type { Selection, Tab } from "./types.ts";
 import type { PickTarget } from "./keycode-compose.ts";
@@ -292,6 +293,43 @@ function App(): React.JSX.Element {
       const path = generatedPath("keymap.vil");
       await workspace.store.writeText(path, serializeBrowserVil(workspace.document));
       setStatus(`${path}へ書き出した`);
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
+  /**
+   * `mac-keyboard.yaml` から Karabiner の asset を書き出す。
+   *
+   * 適用は行わない。Browser UI は `cornix/generated/` への書き出しまでで、
+   * `karabiner.json` へ触るのは CLI だけ（ADR 0022）。
+   */
+  async function exportKarabiner(): Promise<void> {
+    const store = workspace?.store ?? issue?.store;
+    if (store === undefined) return;
+    try {
+      const text = await store.readText(WORKSPACE_LAYOUT.macKeymap);
+      if (text === undefined) {
+        setStatus(`${WORKSPACE_LAYOUT.macKeymap}が見つからない`);
+        return;
+      }
+      const { asset, diagnostics, summary } = generateBrowserKarabiner(text);
+      if (asset === undefined) {
+        setStatus(
+          `${WORKSPACE_LAYOUT.macKeymap}にerrorが${summary.error}件ある: ${diagnostics
+            .filter((diagnostic) => diagnostic.severity === "error")
+            .map((diagnostic) => diagnostic.message)
+            .join(" / ")}`,
+        );
+        return;
+      }
+      const path = generatedPath("karabiner-complex-modifications.json");
+      await store.writeText(path, asset);
+      const rest =
+        diagnostics.length === 0
+          ? ""
+          : `（warning ${summary.warning}件・information ${summary.information}件）`;
+      setStatus(`${path}へ書き出した${rest}。適用はcornix mac applyで行う`);
     } catch (error) {
       setStatus(message(error));
     }
@@ -749,6 +787,7 @@ function App(): React.JSX.Element {
         onOpenWorkspace={() => void openWorkspace()}
         onImportVil={() => void importVil()}
         onExportVil={() => void exportVil()}
+        onExportKarabiner={() => void exportKarabiner()}
         onReload={() => void reload()}
         onRestoreBackup={() => void restoreBackup()}
         onConnect={() => void connect()}

@@ -1,4 +1,8 @@
 import type { KeyboardDefinition } from "../core/definition/types.ts";
+import { generateKarabinerAsset } from "../core/mac-keymap/generate.ts";
+import { parseMacKeymapYaml } from "../core/mac-keymap/parse.ts";
+import { validateMacKeymap } from "../core/mac-keymap/validate.ts";
+import type { Diagnostic, DiagnosticSummary } from "../core/validation/types.ts";
 import { parseVil } from "../core/vil/parse.ts";
 import { serializeVil } from "../core/vil/serialize.ts";
 import { renderPdf, renderSvg } from "../render/keyboard.ts";
@@ -41,4 +45,25 @@ export function renderBrowserPdf(
     labels,
     title: `${definition.name} / layer ${layer}`,
   });
+}
+
+/**
+ * `mac-keyboard.yaml` から Karabiner の complex_modifications asset を組み立てる。
+ *
+ * error が 1 件でもあれば `asset` は `undefined` にする。Browser UI から**適用はしない**
+ * ので、書き出す前に落とせないことが分かった時点で止めるのがここでできる最後の防壁になる
+ * （ADR 0022）。
+ *
+ * @doc docs/specs/ui.md#browser-import-export
+ */
+export function generateBrowserKarabiner(text: string): {
+  readonly asset: string | undefined;
+  readonly diagnostics: readonly Diagnostic[];
+  readonly summary: DiagnosticSummary;
+} {
+  const document = parseMacKeymapYaml(text);
+  const { diagnostics, summary } = validateMacKeymap(document);
+  if (summary.error > 0) return { asset: undefined, diagnostics, summary };
+  const { asset } = generateKarabinerAsset(document);
+  return { asset: `${JSON.stringify(asset, null, 2)}\n`, diagnostics, summary };
 }
