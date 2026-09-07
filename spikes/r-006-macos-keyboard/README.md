@@ -5,6 +5,12 @@ QMK 表記の desired state から Karabiner-Elements の complex modifications 
 捨てないこと**、**生成物が Karabiner の lint を通ること**を確かめる使い捨てコードです。
 本実装ではありません。判断の結果は `docs/decisions/0022-macos-keyboard-management.md` にあります。
 
+**本実装は `src/core/mac-keymap/` と `src/karabiner/` にあります**（I-022）。この Spike は
+判断時点の記録として凍結してあり、以後は更新しません。`self-check.mjs` が固定していた契約は
+`src/core/mac-keymap/generate.test.ts` へ移してあり、生成器の正はそちらです。
+`verify-on-macbook.sh` は開発環境の無い MacBook で実機確認するためのものなので、
+埋め込み JSON ごとそのまま残してあります。
+
 実機への write は 1 行もありません。生成物は一時ディレクトリへ書き、
 `~/.config/karabiner/karabiner.json` には触れません。
 

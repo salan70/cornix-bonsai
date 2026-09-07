@@ -1,7 +1,10 @@
 # CLIの使い方
 
 CLIはWeb UIと同じCoreを使い、workspaceのvalidation、解析、差分、SVG/PDF rendering、VIL入出力を
-行います。CLIにはWebHID接続や実機writeのコマンドはありません。
+行います。CLIにはWebHID接続やCornix LPへの実機writeのコマンドはありません。
+
+MacBook内蔵キーボードの設定だけは例外で、`cornix mac`から適用まで行えます。Karabiner-Elementsの
+設定ファイルを書き換えるだけなので、firmwareへは触れません。
 
 ## Setup
 
@@ -120,6 +123,60 @@ just cornix export vil \
 ```
 
 `--out`を省略すると`keymap.vil`へ保存します。この操作はファイルを書き出すだけで、実機へwriteしません。
+
+## MacBook内蔵キーボード
+
+MacBook内蔵キーボードはKarabiner-Elementsをengineにして管理します。desired stateはworkspace直下の
+`mac-keyboard.yaml`で、Cornix LPの`keymap.yaml`とは別のファイルです。片方だけを置いたworkspaceでも
+動きます。
+
+事前にKarabiner-Elementsをインストールし、入力監視の権限を与えておいてください。
+
+### 生成する
+
+```bash
+just cornix mac generate --workspace /path/to/workspace
+```
+
+`cornix/generated/karabiner-complex-modifications.json`へ書き出します。Karabinerが入っていれば
+`karabiner_cli --lint-complex-modifications`も通します。Karabinerへ落とせないkeycodeが1つでも
+あれば書き出さず、終了コード1を返します。黙って捨てることはありません。
+
+Web UIの`Mac書出`ボタンも同じファイルを書き出します。Web UIから適用はできません。
+
+### 差分を見る
+
+```bash
+just cornix mac diff --workspace /path/to/workspace
+```
+
+`~/.config/karabiner/karabiner.json`を読み、Cornixが所有する`Cornix Bonsai` profileだけを
+構造で比較します。`--karabiner <path>`で対象を変えられます。読むだけで書き換えません。
+
+### 適用する
+
+```bash
+just cornix mac apply --workspace /path/to/workspace
+```
+
+`--confirm`を付けないうちは差分とfingerprintを表示して終わります。中身を確認してから、表示された
+fingerprintをそのまま渡します。
+
+```bash
+just cornix mac apply \
+  --confirm v1-xxxxxxxx-xxxxxxxx \
+  --workspace /path/to/workspace
+```
+
+適用は次の順で進みます。
+
+1. `cornix/backups/karabiner-<時刻>.json`へ現在の設定をそのまま退避する
+2. 一時ファイルへ書いてから`rename`で置き換える
+3. 読み直して所有profileが期待どおりかを確認する
+
+Cornixが触るのは`Cornix Bonsai`という名前のprofile 1つだけです。`global`と他のprofile、
+どのprofileが選ばれているかは変更しません。Cornix側のprofileが選ばれていない場合はwarningを出すので、
+Karabiner-Elementsの設定画面か`karabiner_cli --select-profile 'Cornix Bonsai'`で切り替えてください。
 
 ## 更新する
 
