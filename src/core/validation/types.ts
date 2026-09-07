@@ -38,7 +38,12 @@ export type DiagnosticSubject =
   | { readonly kind: "combo"; readonly index: number }
   | { readonly kind: "macro"; readonly index: number }
   | { readonly kind: "setting"; readonly qsid: number }
-  | { readonly kind: "field"; readonly name: string };
+  | { readonly kind: "field"; readonly name: string }
+  /**
+   * MacBook 内蔵キーボードの 1 キー。位置は Karabiner の `key_code` 名で、
+   * matrix の row / col を持たない（ADR 0022）。`key` とは層が違うので統合しない。
+   */
+  | { readonly kind: "macKey"; readonly layer: number; readonly keyCode: string };
 
 /** 診断 1 件。`message` は日本語（AGENTS.md）。 */
 export interface Diagnostic {
@@ -79,6 +84,8 @@ export function subjectKey(subject: DiagnosticSubject): string {
       return `setting:${subject.qsid}`;
     case "field":
       return `field:${subject.name}`;
+    case "macKey":
+      return `macKey:${subject.layer}:${subject.keyCode}`;
   }
 }
 

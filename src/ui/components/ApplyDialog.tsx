@@ -387,5 +387,7 @@ function subjectLabel(subject: DiffEntry["subject"]): string {
       return `layer ${subject.layer}`;
     case "field":
       return subject.name;
+    case "macKey":
+      return `Mac layer ${subject.layer} / ${subject.keyCode}`;
   }
 }

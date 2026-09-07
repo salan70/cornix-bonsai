@@ -277,6 +277,7 @@ export const KEYCODE_ALIASES: ReadonlyMap<string, string> = new Map<string, stri
   ["KC_PSCR", "KC_PSCREEN"],
   ["KC_SLCK", "KC_SCROLLLOCK"],
   ["KC_PGDN", "KC_PGDOWN"],
+  ["KC_RGHT", "KC_RIGHT"],
   ["KC_INS", "KC_INSERT"],
   ["KC_DEL", "KC_DELETE"],
   ["KC_APP", "KC_APPLICATION"],

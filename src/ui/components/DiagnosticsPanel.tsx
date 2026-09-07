@@ -137,6 +137,8 @@ function subjectLabel(subject: DiagnosticSubject | undefined): string {
       return `qsid ${subject.qsid}`;
     case "field":
       return subject.name;
+    case "macKey":
+      return `Mac layer ${subject.layer} / ${subject.keyCode}`;
   }
 }
 
