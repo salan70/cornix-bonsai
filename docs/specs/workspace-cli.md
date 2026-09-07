@@ -99,6 +99,17 @@ writeはこのqueueが1本の列で行う。競合検査に使うtokenは、成�
 `cornix render --format svg|pdf`、`cornix export vil`を提供する。`.vil` importは
 `cornix import vil <file> --definition <definition.json>`でworkspaceへ初期化する。
 
+MacBook内蔵キーボードは`cornix mac generate|diff|apply`で扱う。仕様は`mac-keymap.md`にある。
+`keymap.yaml`もdefinitionも要らないため、`import vil`と同じく**workspaceを読み込む手前で
+分岐**する。`--karabiner <path>`の既定は`~/.config/karabiner/karabiner.json`。
+
+適用はCLIだけが行う（ADR 0022）。`cornix mac apply`は`--confirm`が無いうちは構造diffと
+fingerprintを出して終わり、人間が同じfingerprintを渡したときだけ書き込む。書き込みは
+backup → temp + renameでのatomic置換 → 再read → verifyの順に進む。error diagnosticが
+1件でもあれば適用しない。
+
+exit codeは他のコマンドと揃える。errorが1件でもあれば1、それ以外は0。
+
 <!-- @code src/render/keyboard.ts#renderSvg -->
 <!-- @code src/render/keyboard.ts#renderPdf -->
 

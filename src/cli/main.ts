@@ -11,10 +11,23 @@ import { parseVil } from "../core/vil/parse.ts";
 import { serializeVil } from "../core/vil/serialize.ts";
 import { parseKeymapYaml } from "../core/keymap-yaml/parse.ts";
 import { serializeKeymapYaml } from "../core/keymap-yaml/serialize.ts";
+import { planMacApply, verifyMacApply } from "../core/mac-keymap/apply.ts";
+import { generateKarabinerAsset } from "../core/mac-keymap/generate.ts";
+import { parseMacKeymapYaml } from "../core/mac-keymap/parse.ts";
+import { validateMacKeymap } from "../core/mac-keymap/validate.ts";
+import type { MacKeymapDocument } from "../core/mac-keymap/types.ts";
+import {
+  defaultKarabinerConfigPath,
+  lintComplexModifications,
+  readKarabinerConfig,
+  writeFileAtomic,
+} from "../karabiner/node.ts";
 import { renderPdf, renderSvg } from "../render/keyboard.ts";
 import {
+  backupPath,
   definitionDigest,
   definitionPath,
+  generatedPath,
   readDefinitionBinding,
   WORKSPACE_LAYOUT,
 } from "../workspace/layout.ts";
@@ -45,6 +58,8 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   try {
     if (command === "import" && args._[0] === "vil")
       return await importVil(root, String(args._[1] ?? ""), args);
+    // mac 系は keymap.yaml も definition も要らない。loadWorkspace の手前で分ける（ADR 0022）。
+    if (command === "mac") return await mac(root, args);
     const workspace = await loadWorkspace(root);
     switch (command) {
       case "validate":
@@ -165,6 +180,142 @@ async function importVil(root: string, input: string, args: ParsedArgs): Promise
   return 0;
 }
 
+/**
+ * MacBook 内蔵キーボードの生成・差分・適用。
+ *
+ * 適用は CLI だけが行う。Browser UI は `cornix/generated/` への書き出しまで（ADR 0022）。
+ */
+async function mac(root: string, args: ParsedArgs): Promise<number> {
+  const sub = args._[0];
+  const document = await loadMacKeymap(root);
+  if (sub === "generate") return await macGenerate(root, document, args);
+  if (sub === "diff") return await macDiff(document, args);
+  if (sub === "apply") return await macApply(root, document, args);
+  throw new Error("cornix mac generate|diff|apply が必要");
+}
+
+async function loadMacKeymap(root: string): Promise<MacKeymapDocument> {
+  const store = new NodeWorkspaceStore(root);
+  const text = required(
+    await store.readText(WORKSPACE_LAYOUT.macKeymap),
+    WORKSPACE_LAYOUT.macKeymap,
+  );
+  return parseMacKeymapYaml(text);
+}
+
+/** complex_modifications の asset を書き出す。Karabiner が入っていれば lint も通す。 */
+async function macGenerate(
+  root: string,
+  document: MacKeymapDocument,
+  args: ParsedArgs,
+): Promise<number> {
+  const result = validateMacKeymap(document);
+  const output = String(args.out ?? generatedPath("karabiner-complex-modifications.json"));
+  if (result.summary.error > 0) {
+    console.log(
+      JSON.stringify({ summary: result.summary, diagnostics: result.diagnostics }, null, 2),
+    );
+    return 1;
+  }
+  const { asset } = generateKarabinerAsset(document);
+  await new NodeWorkspaceStore(root).writeText(output, `${JSON.stringify(asset, null, 2)}\n`);
+  const lint = await lintComplexModifications(join(root, output));
+  console.log(
+    JSON.stringify(
+      { output, summary: result.summary, diagnostics: result.diagnostics, lint: lint ?? null },
+      null,
+      2,
+    ),
+  );
+  return lint !== undefined && !lint.ok ? 1 : 0;
+}
+
+/** 所有 profile の構造 diff を出す。karabiner.json は読むだけ。 */
+async function macDiff(document: MacKeymapDocument, args: ParsedArgs): Promise<number> {
+  const path = karabinerPath(args);
+  const { config } = await readKarabinerConfig(path);
+  const plan = planMacApply(config, document);
+  console.log(
+    JSON.stringify(
+      {
+        karabiner: path,
+        summary: plan.validation.summary,
+        diagnostics: plan.diagnostics,
+        fingerprint: plan.fingerprint,
+        diff: plan.diff,
+      },
+      null,
+      2,
+    ),
+  );
+  return plan.validation.summary.error > 0 ? 1 : 0;
+}
+
+/**
+ * 所有 profile を置き換える。
+ *
+ * `--confirm` が無いうちは diff と fingerprint を出して終わる。人間が中身を見てから
+ * 同じ fingerprint を渡したときだけ書き込む（ADR 0022 の Apply フロー）。
+ */
+async function macApply(
+  root: string,
+  document: MacKeymapDocument,
+  args: ParsedArgs,
+): Promise<number> {
+  const path = karabinerPath(args);
+  const { config, text } = await readKarabinerConfig(path);
+  const plan = planMacApply(config, document);
+  if (plan.validation.summary.error > 0) {
+    console.log(
+      JSON.stringify({ summary: plan.validation.summary, diagnostics: plan.diagnostics }, null, 2),
+    );
+    throw new Error("error のある desired state は適用しない");
+  }
+
+  const confirmed = args.confirm === undefined ? undefined : String(args.confirm);
+  if (confirmed === undefined) {
+    console.log(
+      JSON.stringify(
+        {
+          karabiner: path,
+          diagnostics: plan.diagnostics,
+          diff: plan.diff,
+          fingerprint: plan.fingerprint,
+          confirm: `cornix mac apply --confirm ${plan.fingerprint}`,
+        },
+        null,
+        2,
+      ),
+    );
+    return 0;
+  }
+  if (confirmed !== plan.fingerprint) {
+    throw new Error(`fingerprint が一致しない: expected=${plan.fingerprint} actual=${confirmed}`);
+  }
+
+  // backup は読んだテキストをそのまま置く。再 serialize すると Karabiner 独自の整形が落ちる。
+  const backup = backupPath(new Date(), { prefix: "karabiner-", extension: "json" });
+  await new NodeWorkspaceStore(root).writeText(backup, text);
+  await writeFileAtomic(path, `${JSON.stringify(plan.next, null, 4)}\n`);
+
+  const { config: observed } = await readKarabinerConfig(path);
+  const verified = verifyMacApply(observed, plan.profile);
+  console.log(
+    JSON.stringify(
+      { karabiner: path, backup, diagnostics: plan.diagnostics, verify: verified },
+      null,
+      2,
+    ),
+  );
+  return verified.ok ? 0 : 1;
+}
+
+function karabinerPath(args: ParsedArgs): string {
+  return args.karabiner === undefined
+    ? defaultKarabinerConfigPath()
+    : resolve(String(args.karabiner));
+}
+
 async function loadWorkspace(root: string): Promise<LoadedWorkspace> {
   const store = new NodeWorkspaceStore(root);
   const keymapText = required(
@@ -218,7 +369,7 @@ function mapReplacer(_key: string, value: unknown): unknown {
 }
 function printHelp(): void {
   console.log(
-    `cornix validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>`,
+    `cornix validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint>`,
   );
 }
 
