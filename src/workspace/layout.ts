@@ -11,6 +11,8 @@ import type { WorkspaceFileStore } from "./types.ts";
 /** @doc docs/specs/workspace-cli.md#配置 */
 export const WORKSPACE_LAYOUT = {
   keymap: "keymap.yaml",
+  /** MacBook 内蔵キーボードの desired state。`keymap.yaml` とは別 document（ADR 0022）。 */
+  macKeymap: "mac-keyboard.yaml",
   definitions: "cornix/definitions",
   labels: "cornix/labels.yaml",
   acknowledgements: "cornix/acknowledgements.json",

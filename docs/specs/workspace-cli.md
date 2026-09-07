@@ -12,6 +12,7 @@ mtimeだけでなく読み出したcontent hashを優先する。
 
 ```text
 keymap.yaml
+mac-keyboard.yaml
 cornix/
   definitions/<digest-prefix>.json
   labels.yaml
@@ -20,6 +21,10 @@ cornix/
   backups/latest.vil
   generated/<name>
 ```
+
+`mac-keyboard.yaml`はMacBook内蔵キーボードのdesired stateで、`keymap.yaml`とは別documentである
+（ADR 0022）。仕様は`mac-keymap.md`にある。片方だけが存在するworkspaceも成立するため、
+CLIのmac系サブコマンドは`keymap.yaml`を要求しない。
 
 ## 表示用labels
 

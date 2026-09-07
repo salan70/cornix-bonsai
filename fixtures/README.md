@@ -30,3 +30,10 @@ Fixtureは、parse、round-trip、analysis、renderingを検証するための�
 - `vial-definition-v1.12.json`: 公式firmware V1.12のUF2から取り出したkeyboard definition。
   Vialが実機から配るものと同一で、matrix対応・encoder数・custom keycodeの定義元。
   取り出し手順は`spikes/r-002-cornix-lp-matrix/README.md`にある。
+
+## `mac-keyboard/`
+
+- `desired.yaml`: MacBook内蔵キーボードのdesired state（ADR 0022）。R-006 Spikeの
+  `spikes/r-006-macos-keyboard/desired.mjs`と同じ内容で、`MO` / `LT` / `TG` / mod-tap /
+  `KC_NO` / `KC_TRNS` / layer 0と同値のキーをすべて含む。generatorの展開規則は
+  このfixtureでしか一度に検証できない。
