@@ -5,6 +5,7 @@
     "src/core/**/*.ts",
     "src/workspace/**/*.ts",
     "src/render/**/*.ts",
+    "src/karabiner/**/*.ts",
     "src/device/protocol.ts",
     "src/device/protocol.test.ts"
   ]

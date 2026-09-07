@@ -1,7 +1,7 @@
 import { deepStrictEqual, rejects, strictEqual } from "node:assert/strict";
 import { webcrypto } from "node:crypto";
 import { test } from "node:test";
-import { definitionDigest, definitionPath, readDefinitionBinding } from "./layout.ts";
+import { backupPath, definitionDigest, definitionPath, readDefinitionBinding } from "./layout.ts";
 
 test("definition bindingはpathと内容のdigestを検証する", async () => {
   const bytes = new TextEncoder().encode('{"name":"Cornix LP"}\n');
@@ -40,4 +40,19 @@ test("整形とキー順が違う同じdefinitionは同じbindingになる", asy
   const path = definitionPath(digest);
   const store = { readBytes: async () => new TextEncoder().encode(pretty) };
   strictEqual(await readDefinitionBinding(store, path, digest, webcrypto), pretty);
+});
+
+test("backupPathは既定でVilの拡張子を使う", () => {
+  strictEqual(
+    backupPath(new Date("2026-09-07T01:02:03.456Z")),
+    "cornix/backups/2026-09-07T010203456Z.vil",
+  );
+});
+
+test("backupPathは接頭辞と拡張子を差し替えられる", () => {
+  // MacBook内蔵キーボードのbackupはkarabiner.json 1ファイル（ADR 0022）。
+  strictEqual(
+    backupPath(new Date("2026-09-07T01:02:03.456Z"), { prefix: "karabiner-", extension: "json" }),
+    "cornix/backups/karabiner-2026-09-07T010203456Z.json",
+  );
 });

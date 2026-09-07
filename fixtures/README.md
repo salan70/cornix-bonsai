@@ -37,3 +37,6 @@ Fixtureは、parse、round-trip、analysis、renderingを検証するための�
   `spikes/r-006-macos-keyboard/desired.mjs`と同じ内容で、`MO` / `LT` / `TG` / mod-tap /
   `KC_NO` / `KC_TRNS` / layer 0と同値のキーをすべて含む。generatorの展開規則は
   このfixtureでしか一度に検証できない。
+- `karabiner-baseline.json`: `karabiner.json`の合成fixture。`global`と`Default profile`に加えて
+  desiredとは食い違う内容のCornix所有profileを持つ。所有profile以外へ触らないこと、
+  `selected`を変更しないこと、構造diffがmanipulator単位で出ることの検証に使う。

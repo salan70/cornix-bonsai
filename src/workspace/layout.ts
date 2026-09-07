@@ -58,9 +58,20 @@ export async function readDefinitionBinding(
   return text;
 }
 
-export function backupPath(date = new Date()): string {
+/**
+ * backup の path。既定は Vial の `.vil`。
+ *
+ * MacBook 内蔵キーボードの backup は `karabiner.json` 1 ファイルなので、
+ * 接頭辞と拡張子を差し替えて同じ場所へ置く（ADR 0022）。
+ */
+export function backupPath(
+  date = new Date(),
+  options: { readonly prefix?: string; readonly extension?: string } = {},
+): string {
   const stamp = date.toISOString().replace(/[:.]/g, "");
-  return `${WORKSPACE_LAYOUT.backups}/${stamp}.vil`;
+  const prefix = options.prefix ?? "";
+  const extension = options.extension ?? "vil";
+  return `${WORKSPACE_LAYOUT.backups}/${prefix}${stamp}.${extension}`;
 }
 
 export function generatedPath(name: string): string {

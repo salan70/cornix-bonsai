@@ -165,3 +165,56 @@ severityの判定規則はADR 0010のままです。Karabinerへ落とせない�
 到達性は`analyzeLayerGraph`を共有します。Vial側の`reachability/trapped-layer`は
 見ません。Karabinerではlayer 0のmanipulatorが変数の状態に関わらず常に効くため、
 `TG(n)`を置いたキーが上のlayerで潰されていない限り出口は必ずあります。
+
+## 適用の境界
+
+`src/core/mac-keymap/`はfilesystemに触りません。`karabiner.json`のread / backup / writeは
+`src/karabiner/node.ts`が担います。`~/.config/karabiner/karabiner.json`は**workspaceの外**に
+あり、`NodeWorkspaceStore`はpathを`root`からの相対で解決するため使えません。
+
+ADR 0008の状態機械（`src/core/apply/plan.ts`）は**再利用しません**。あちらは実機への
+往復するwriteを扱い「部分的に書けた状態」からの復旧を型で表しますが、こちらは1ファイルの
+atomic置換なのでその状態が原理的に生じません（ADR 0022）。
+
+backupは**読んだテキストをそのまま**書き戻します。再serializeするとKarabiner独自の整形が
+落ち、復元しても元のファイルと同じになりません。置き場所は
+`cornix/backups/karabiner-<時刻>.json`です。
+
+書き込みは同じディレクトリのtempへ書いてから`rename`します。Karabinerは設定ファイルの親
+ディレクトリをwatchして自動reloadするため、途中まで書けたファイルを見せません。`rename`は
+同じfilesystemでなければatomicにならないので、tempを置き換え先と同じディレクトリに作ります。
+
+<!-- @code src/core/mac-keymap/apply.ts#planMacApply -->
+
+## planMacApply
+
+`karabiner.json`の内容とdesired stateから適用計画を組みます。writeは行いません。
+
+Cornixが所有するのは`profiles[]`のうち名前が一致する**profile 1個だけ**です。`global`と
+他のprofileには触りません。所有profileが無ければ末尾へ足します。
+
+所有profileが持っていた`selected`などのfieldは残します。生成するprofileは`selected`を
+持たないため、丸ごと置き換えると選択状態を落とします。選択されていない場合は
+`mac-keymap/profile-not-selected`（warning）を出し、`karabiner_cli --select-profile`を
+案内します。profileの切り替えはユーザーの操作です（ADR 0022）。
+
+`fingerprint`は人間の確認と適用を結びつける同一性の指紋です。表示用ではありません。
+CLIの`cornix mac apply`は`--confirm <fingerprint>`が一致したときだけ書き込みます。
+
+<!-- @code src/core/mac-keymap/apply.ts#diffOwnedProfile -->
+
+## diffOwnedProfile
+
+所有profileのmanipulatorを**構造で**突き合わせます。位置はruleのdescriptionと`from`の
+`key_code`、同じキーの中の順番で指します。
+
+**テキストでは比較しません。** `karabiner_cli --format-json`が独自整形でファイルを
+書き換えるため、テキスト比較では毎回「変更あり」になります（D-007で実証済み）。ここで
+比較するのはparse済みの値で、objectのkey順は正規化してから突き合わせます。
+
+<!-- @code src/core/mac-keymap/apply.ts#verifyMacApply -->
+
+## verifyMacApply
+
+適用後に読み直したconfigが期待どおりかを構造で確かめます。所有profileが存在し、
+`diffOwnedProfile`の差分が空であることが成功の条件です。

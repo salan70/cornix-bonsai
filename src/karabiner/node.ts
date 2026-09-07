@@ -1,0 +1,113 @@
+/**
+ * `karabiner.json` を読み書きする Node adapter。
+ *
+ * `~/.config/karabiner/karabiner.json` は **workspace の外**にある。`NodeWorkspaceStore` は
+ * path を `root` からの相対で解決するため使えない。`node:fs/promises` を直接叩く
+ * （`cli/main.ts` の `render` / `export vil` に前例がある）。
+ *
+ * `src/core/mac-keymap/` は filesystem に触らない。この module が唯一の境界になる。
+ *
+ */
+
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
+import { promisify } from "node:util";
+import type { KarabinerConfig } from "../core/mac-keymap/karabiner.ts";
+
+const execFileAsync = promisify(execFile);
+
+/** Karabiner-Elements が入れる CLI。lint はここからしか呼べない。 */
+export const KARABINER_CLI =
+  "/Library/Application Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli";
+
+/** Karabiner が読む設定ファイルの既定の場所。 */
+export function defaultKarabinerConfigPath(): string {
+  return join(homedir(), ".config", "karabiner", "karabiner.json");
+}
+
+/**
+ * `karabiner.json` を読む。テキストも一緒に返す。
+ *
+ * backup は**読んだテキストをそのまま**書き戻す。再 serialize すると Karabiner 独自の
+ * 整形が落ち、復元しても元のファイルと同じにならない（ADR 0022）。
+ */
+export async function readKarabinerConfig(
+  path: string,
+): Promise<{ readonly config: KarabinerConfig; readonly text: string }> {
+  const text = await readFile(path, "utf8");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    throw new Error(`${path} を JSON として読めない: ${message(error)}`);
+  }
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    !Array.isArray((parsed as KarabinerConfig).profiles)
+  ) {
+    throw new Error(`${path} に profiles が無い`);
+  }
+  return { config: parsed as KarabinerConfig, text };
+}
+
+/**
+ * temp へ書いてから rename で置き換える。
+ *
+ * Karabiner は設定ファイルの親ディレクトリを watch して自動 reload するため、
+ * 途中まで書けたファイルを見せない。rename は同じ filesystem でなければ atomic に
+ * ならないので、temp は**置き換え先と同じディレクトリ**に作る。
+ */
+export async function writeFileAtomic(path: string, text: string): Promise<void> {
+  const directory = await mkdtemp(join(dirname(path), ".cornix-"));
+  const temporary = join(directory, "karabiner.json");
+  try {
+    await writeFile(temporary, text, "utf8");
+    await rename(temporary, path);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+/**
+ * complex_modifications の asset を `karabiner_cli` で lint する。
+ *
+ * `karabiner_cli` は **エラーがあっても exit code 0 を返す**。判定は出力が `: ok` で
+ * 終わるかどうかで行う。Karabiner が入っていない環境では `undefined` を返す。
+ * CI の macOS runner には入っていない（ADR 0022）。
+ */
+export async function lintComplexModifications(
+  path: string,
+): Promise<{ readonly ok: boolean; readonly output: string } | undefined> {
+  try {
+    const { stdout, stderr } = await execFileAsync(KARABINER_CLI, [
+      "--lint-complex-modifications",
+      path,
+    ]);
+    const output = `${stdout}${stderr}`.trim();
+    return { ok: output.endsWith(": ok"), output };
+  } catch (error) {
+    if (isMissingBinary(error)) return undefined;
+    const output = errorOutput(error);
+    return { ok: false, output };
+  }
+}
+
+function isMissingBinary(error: unknown): boolean {
+  return (
+    typeof error === "object" && error !== null && (error as { code?: string }).code === "ENOENT"
+  );
+}
+
+function errorOutput(error: unknown): string {
+  if (typeof error !== "object" || error === null) return String(error);
+  const { stdout, stderr } = error as { stdout?: string; stderr?: string };
+  const output = `${stdout ?? ""}${stderr ?? ""}`.trim();
+  return output === "" ? message(error) : output;
+}
+
+function message(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
