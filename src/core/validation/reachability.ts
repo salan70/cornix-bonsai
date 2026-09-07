@@ -15,7 +15,7 @@ import { classifyKeycode, isMomentaryLayerAction } from "./keycode-vocabulary.ts
 import { createDiagnostic, type Diagnostic } from "./types.ts";
 
 /** layer 間の遷移。 */
-interface LayerEdge {
+export interface LayerEdge {
   readonly from: number;
   readonly to: number;
   /** 押している間だけ有効か（`MO` / `LT` / `LM`）。 */
@@ -31,27 +31,21 @@ export interface ReachabilityResult {
 }
 
 /**
- * layer グラフを組んで到達性を求める。
+ * layer 番号 → その layer に置かれた keycode の列から到達性を求める。
  *
- * @doc docs/specs/validation.md#analyzereachability
+ * `VilDocument` を取らない。到達性は keycode だけで決まるので、matrix を持つ device に
+ * 限る理由が無い。MacBook 内蔵キーボードの疎な map（ADR 0022）からも同じ解析を使う。
+ *
+ * @doc docs/specs/validation.md#analyzelayergraph
  */
-export function analyzeReachability(document: VilDocument): ReachabilityResult {
+export function analyzeLayerGraph(
+  layers: ReadonlyMap<number, readonly string[]>,
+): ReachabilityResult {
   const edges: LayerEdge[] = [];
   const emptyLayers: number[] = [];
 
-  document.layout.forEach((layer, from) => {
+  for (const [from, keycodes] of [...layers.entries()].sort(([a], [b]) => a - b)) {
     let assigned = false;
-    const keycodes: string[] = [];
-    for (const row of layer) {
-      for (const entry of row) {
-        if (isAbsent(entry)) continue;
-        keycodes.push(entry);
-      }
-    }
-    for (const encoder of document.encoderLayout[from] ?? []) {
-      keycodes.push(...encoder);
-    }
-
     for (const keycode of keycodes) {
       const lexeme = classifyKeycode(keycode);
       if (lexeme.kind !== "none" && lexeme.kind !== "transparent") assigned = true;
@@ -59,9 +53,8 @@ export function analyzeReachability(document: VilDocument): ReachabilityResult {
       if (lexeme.layer === from) continue;
       edges.push({ from, to: lexeme.layer, momentary: isMomentaryLayerAction(lexeme.action) });
     }
-
     if (!assigned) emptyLayers.push(from);
-  });
+  }
 
   const reachable = new Set<number>([0]);
   const queue = [0];
@@ -76,6 +69,29 @@ export function analyzeReachability(document: VilDocument): ReachabilityResult {
   }
 
   return { reachable, edges, emptyLayers };
+}
+
+/**
+ * layer グラフを組んで到達性を求める。
+ *
+ * @doc docs/specs/validation.md#analyzereachability
+ */
+export function analyzeReachability(document: VilDocument): ReachabilityResult {
+  const layers = new Map<number, readonly string[]>();
+  document.layout.forEach((layer, index) => {
+    const keycodes: string[] = [];
+    for (const row of layer) {
+      for (const entry of row) {
+        if (isAbsent(entry)) continue;
+        keycodes.push(entry);
+      }
+    }
+    for (const encoder of document.encoderLayout[index] ?? []) {
+      keycodes.push(...encoder);
+    }
+    layers.set(index, keycodes);
+  });
+  return analyzeLayerGraph(layers);
 }
 
 /**

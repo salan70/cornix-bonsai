@@ -142,3 +142,26 @@ Browser UIとCLIの`cornix mac generate`はこの形を`cornix/generated/`へ書
 `karabiner.json`の`profiles[]`へ差し込むprofile 1個です。Cornixが所有する唯一の範囲で、
 `selected`も`simple_modifications`も持たせません。profileの切り替えはユーザーの操作です
 （ADR 0022）。
+
+<!-- @code src/core/mac-keymap/validate.ts#validateMacKeymap -->
+
+## validateMacKeymap
+
+desired stateの検証の入口です。`validation/validate.ts`の`validateKeymap`は`VilDocument`と
+`KeyboardDefinition`を前提にするため使えません。合成の入口をMac側に別途置きます（ADR 0022）。
+
+severityの判定規則はADR 0010のままです。Karabinerへ落とせないことは**機能そのものが
+無くなる**のでerror、書いたとおりには入るが効かないだけのものはinformationにします。
+
+| code                                     | severity    | 事実                                            |
+| ---------------------------------------- | ----------- | ----------------------------------------------- |
+| `mac-keymap/unknown-position`            | error       | Karabinerの`key_code`に無い位置。lintを通らない |
+| `mac-keymap/unsupported-keycode`         | error       | 対応する`key_code`が無い、または落とせない構文  |
+| `mac-keymap/unsupported-mod-tap`         | error       | mod-tapのmodifierかtap側を落とせない            |
+| `mac-keymap/unsupported-layer-tap-inner` | error       | `LT`のtap側を落とせない                         |
+| `mac-keymap/unknown-layer`               | warning     | 書かれていないlayerを指す`MO` / `LT` / `TG`     |
+| `mac-keymap/unreachable-layer`           | information | layer 0から辿り着くkeycodeが無い                |
+
+到達性は`analyzeLayerGraph`を共有します。Vial側の`reachability/trapped-layer`は
+見ません。Karabinerではlayer 0のmanipulatorが変数の状態に関わらず常に効くため、
+`TG(n)`を置いたキーが上のlayerで潰されていない限り出口は必ずあります。

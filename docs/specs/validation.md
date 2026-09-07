@@ -128,6 +128,14 @@ definition依存の解決（`USERnn`）は`createKeycodeTable`、definitionに�
 **必ず実機の申告値を渡します**（ADR 0003）。範囲外参照をwarningにするのは、Vial側の
 `restore_layout`が無言で`KC_NO`へ落とすためです。落ちるのは1件単位なので座標は動きません。
 
+<!-- @code src/core/validation/reachability.ts#analyzeLayerGraph -->
+
+## analyzeLayerGraph
+
+layer番号からその layer に置かれた keycode の列を引くmapを受け取り、到達性を求めます。`VilDocument`を
+取りません。到達性は座標ではなくkeycodeだけで決まるので、matrixを持つdeviceに限る理由が
+ありません。MacBook内蔵キーボードの疎なmap（ADR 0022）もここへ渡します。
+
 <!-- @code src/core/validation/reachability.ts#analyzeReachability -->
 
 ## analyzeReachability
@@ -139,6 +147,9 @@ definitionを引数に取りません。layerの到達性は座標ではなくke
 
 **この解析は保守的に不完全です。** combo・tap dance・key override・alt repeat key経由の
 layer遷移を見ていません。したがって結果をerrorにはできません。
+
+`VilDocument`の`layout`と`encoderLayout`を layer ごとのkeycodeの列へ均してから
+`analyzeLayerGraph`へ渡す薄いwrapperです。
 
 <!-- @code src/core/validation/reachability.ts#toReachabilityDiagnostics -->
 
