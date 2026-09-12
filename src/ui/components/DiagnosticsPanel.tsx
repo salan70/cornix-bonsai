@@ -144,6 +144,8 @@ function subjectLabel(subject: DiagnosticSubject | undefined): string {
 
 export function diagnosticSelection(subject: DiagnosticSubject): {
   readonly layer?: number;
+  /** Macのlayer番号空間はVialと別なので、飛び先も別のfieldで返す（ADR 0025）。 */
+  readonly macLayer?: number;
   readonly selection?: Selection;
 } {
   switch (subject.kind) {
@@ -159,6 +161,11 @@ export function diagnosticSelection(subject: DiagnosticSubject): {
       };
     case "layer":
       return { layer: subject.layer };
+    case "macKey":
+      return {
+        macLayer: subject.layer,
+        selection: { kind: "macKey", keyCode: subject.keyCode },
+      };
     default:
       return {};
   }

@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import type { createKeycodeTable } from "../../core/keycode/table.ts";
+import type { DiagnosticSubject } from "../../core/validation/types.ts";
 import { boardMetrics, boardSize, keyBox } from "../../render/geometry.ts";
 import type { WorkspaceLabels } from "../../workspace/labels.ts";
 import { keycodeClass, keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
@@ -42,6 +43,7 @@ export function MacKeymapTab({
   onEdit,
   onAddLayer,
   onFocusEditor,
+  diagnosticSubjects = [],
   panel,
 }: {
   readonly mac: MacWorkspaceState;
@@ -59,6 +61,7 @@ export function MacKeymapTab({
   readonly onEdit: (layer: number, keyCode: string, value: string) => void;
   readonly onAddLayer: (layer: number) => void;
   readonly onFocusEditor: () => void;
+  readonly diagnosticSubjects?: readonly DiagnosticSubject[];
   readonly panel: React.JSX.Element;
 }): React.JSX.Element {
   const entries = mac.kind === "ready" ? macBoardEntries(mac.document, layer) : [];
@@ -161,6 +164,12 @@ export function MacKeymapTab({
             {entries.map((entry) => {
               const box = keyBox(entry.physical, metrics, scale);
               const selected = selectedKeyCode === entry.keyCode;
+              const diagnostic = diagnosticSubjects.some(
+                (subject) =>
+                  subject.kind === "macKey" &&
+                  subject.layer === layer &&
+                  subject.keyCode === entry.keyCode,
+              );
               const display =
                 entry.keycode === undefined
                   ? undefined
@@ -170,7 +179,7 @@ export function MacKeymapTab({
                   ref={selected ? selectedButtonRef : undefined}
                   className={`key ${
                     entry.keycode === undefined ? "is-passthrough" : keycodeClass(entry.keycode)
-                  } ${selected ? "is-selected" : ""}`}
+                  } ${selected ? "is-selected" : ""} ${diagnostic ? "is-diag-warn" : ""}`}
                   style={{
                     left: `${box.left}px`,
                     top: `${box.top}px`,

@@ -191,6 +191,12 @@ keycodeの選択は同じ`KeycodePicker`を使い、`applyPick`の合成と`setM
 raw keycode入力（空文字は素通しへ戻す）と「割り当てを外す」操作を持つ。keycode表示は
 Vialと同じlabel関数を使うが、layer名はVialのlayer番号空間のものなので剥がして渡す。
 
+診断は`validateMacKeymap`の結果をVial側と分けて持つ。盤面のバッジ・診断panel
+（`DiagnosticsPanel`を共有）・status barの件数はすべてMacの診断で描き、status barは
+表示中のtabに応じてVial / Macのsummaryを切り替える（どちらのdocumentのerrorかを
+混ぜない）。診断から該当キーへの移動は`diagnosticSelection`が`macLayer`を別fieldで
+返し、Vialのlayerを動かさない。差分件数とApply導線はVial専用のまま変えない。
+
 実機への適用はCLI（`cornix mac apply`）のみで、タブ内にその旨を明示する。UI上で
 「実機Applyできるのはknown deviceだけ」という非対称を導線で示す（ADR 0022）。
 

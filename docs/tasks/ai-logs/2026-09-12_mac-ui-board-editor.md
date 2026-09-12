@@ -87,3 +87,15 @@ CLI専用のままで、UIは編集・validation・書き出しまで。
   「割り当てを外す」。`KC_NO`（イベント破棄）と素通しを別操作として見せる
 - `saveMac`は`setMacAssignment`等の純関数の結果を3本目のsaveQueueへ流す。
   keycode表示のlabelsはlayer名を剥がして渡す（Vialのlayer名の誤適用防止）
+
+## Step 7: 診断統合
+
+- `macValidation`（`validateMacKeymap`の`useMemo`派生値。stateに持たない）を追加し、
+  盤面バッジ（`is-diag-warn`）・`DiagnosticsPanel`（共有）・status bar件数へ流す
+- status barのsummaryは表示中のtabでVial / Macを切り替える。合算しないのは
+  「どちらのdocumentのerrorか」が読めなくなるため。差分件数とApplyはVial専用のまま
+- `diagnosticSelection`へ`case "macKey"`を追加。飛び先のlayerは`macLayer`として
+  別fieldで返し、Vialの`layer` stateを動かさない
+- test補足: `diagnosticSelection`は`DiagnosticsPanel.tsx`（JSX）内にあり、
+  `node --test`はJSXを扱えないため直接のunit testは置けない。関数を.tsへ移す
+  リファクタはスコープ外とし、typecheck（switchの網羅）とE2E手動確認で担保する

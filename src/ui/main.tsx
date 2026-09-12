@@ -18,6 +18,7 @@ import {
 import type { WriteTarget } from "../core/apply/targets.ts";
 import { evaluateApplyGate } from "../core/validation/gate.ts";
 import { validateApplyKeymap, validateKeymap } from "../core/validation/validate.ts";
+import { validateMacKeymap } from "../core/mac-keymap/validate.ts";
 import { createDiagnostic, type Severity } from "../core/validation/types.ts";
 import { parseDefinition } from "../core/definition/parse.ts";
 import { canonicalDefinitionText } from "../core/definition/identity.ts";
@@ -232,6 +233,10 @@ function App(): React.JSX.Element {
       workspace === undefined
         ? undefined
         : buildKeymapView(workspace.document, workspace.definition),
+    [workspace],
+  );
+  const macValidation = useMemo(
+    () => (workspace?.mac.kind === "ready" ? validateMacKeymap(workspace.mac.document) : undefined),
     [workspace],
   );
   // Vialのlayer名をMacのlayer番号空間へ誤適用しないため、layer名だけ剥がす。
@@ -724,6 +729,7 @@ function App(): React.JSX.Element {
   function selectDiagnostic(subject: Parameters<typeof diagnosticSelection>[0]): void {
     const next = diagnosticSelection(subject);
     if (next.layer !== undefined) setLayer(next.layer);
+    if (next.macLayer !== undefined) setMacLayer(next.macLayer);
     setSelection(next.selection);
     setDiagnosticsOpen(false);
   }
@@ -989,12 +995,24 @@ function App(): React.JSX.Element {
               onPickTarget={setPickTarget}
               onEdit={editMacKey}
               onAddLayer={addMacLayerChip}
+              diagnosticSubjects={
+                macValidation === undefined
+                  ? []
+                  : macValidation.diagnostics.map((diagnostic) => diagnostic.subject)
+              }
               onFocusEditor={() => {
                 editorRef.current?.focus();
                 editorRef.current?.select();
               }}
               panel={
-                workspace.mac.kind === "ready" ? (
+                diagnosticsOpen ? (
+                  <DiagnosticsPanel
+                    diagnostics={macValidation?.diagnostics ?? []}
+                    filter={diagnosticFilter}
+                    onClose={() => setDiagnosticsOpen(false)}
+                    onSelect={selectDiagnostic}
+                  />
+                ) : workspace.mac.kind === "ready" ? (
                   <MacKeyPanel
                     document={workspace.mac.document}
                     layer={macLayer}
@@ -1023,7 +1041,13 @@ function App(): React.JSX.Element {
         </main>
       )}
       <StatusBar
-        summary={validation?.summary ?? { error: 0, warning: 0, information: 0 }}
+        summary={
+          (tab === "Mac" ? macValidation?.summary : validation?.summary) ?? {
+            error: 0,
+            warning: 0,
+            information: 0,
+          }
+        }
         changedCount={changed.length}
         status={progress ?? status}
         canApply={changed.length > 0 && deviceRead !== undefined}
