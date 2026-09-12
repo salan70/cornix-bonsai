@@ -5,6 +5,7 @@ import { test } from "node:test";
 
 import { keyCenter, parseDefinition, toPhysicalLayout } from "../core/definition/parse.ts";
 import type { PhysicalKey } from "../core/definition/types.ts";
+import type { KeyShape } from "./geometry.ts";
 import { boardMetrics, boardSize, fitUnit, keyBox } from "./geometry.ts";
 
 const FIXTURES = join(import.meta.dirname, "../../fixtures/cornix-lp");
@@ -134,4 +135,28 @@ test("fitUnit の倍率なら盤面は available に収まる", () => {
     ok(size.width <= available.width, `幅がはみ出す: ${size.width} > ${available.width}`);
     ok(size.height <= available.height, `高さがはみ出す: ${size.height} > ${available.height}`);
   }
+});
+
+test("matrix を持たない KeyShape だけでも盤面を組める", () => {
+  // Mac 盤面（row/col が無い）が構造的部分型として通ることを固定する。
+  const wide: KeyShape = {
+    x: 1,
+    y: 0,
+    width: 1.5,
+    height: 1,
+    rotationAngle: 0,
+    rotationX: 0,
+    rotationY: 0,
+  };
+  const keys: readonly KeyShape[] = [
+    { x: 0, y: 0, width: 1, height: 1, rotationAngle: 0, rotationX: 0, rotationY: 0 },
+    wide,
+  ];
+  const metrics = boardMetrics(keys);
+  strictEqual(metrics.width, 2.5);
+  strictEqual(metrics.height, 1);
+
+  const box = keyBox(wide, metrics, SCALE);
+  strictEqual(box.left, SCALE.unit);
+  strictEqual(box.width, 1.5 * SCALE.unit - SCALE.gap);
 });

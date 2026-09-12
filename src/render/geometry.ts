@@ -1,5 +1,22 @@
 import { rotatePoint } from "../core/definition/parse.ts";
-import type { PhysicalKey } from "../core/definition/types.ts";
+
+/**
+ * 盤面描画が読むキーの幾何情報。単位はKLEの`u`。
+ *
+ * `PhysicalKey`（Vial matrix 由来）と Mac 盤面（matrix を持たない）の両方が
+ * 構造的部分型としてこの形を満たす。geometry は matrix の概念に依存しない。
+ *
+ * @doc docs/specs/ui.md#keymap-editor
+ */
+export interface KeyShape {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly rotationAngle: number;
+  readonly rotationX: number;
+  readonly rotationY: number;
+}
 
 /** 盤面の外接矩形。単位はKLEの`u`。 */
 export interface BoardMetrics {
@@ -31,7 +48,7 @@ export interface KeyBox {
  *
  * @doc docs/specs/ui.md#keymap-editor
  */
-export function boardMetrics(keys: readonly PhysicalKey[]): BoardMetrics {
+export function boardMetrics(keys: readonly KeyShape[]): BoardMetrics {
   if (keys.length === 0) return { minX: 0, minY: 0, width: 0, height: 0 };
 
   let minX = Number.POSITIVE_INFINITY;
@@ -59,7 +76,7 @@ export function boardMetrics(keys: readonly PhysicalKey[]): BoardMetrics {
  *
  * @doc docs/specs/ui.md#keymap-editor
  */
-export function keyBox(key: PhysicalKey, metrics: BoardMetrics, scale: BoardScale): KeyBox {
+export function keyBox(key: KeyShape, metrics: BoardMetrics, scale: BoardScale): KeyBox {
   return {
     left: (key.x - metrics.minX) * scale.unit,
     top: (key.y - metrics.minY) * scale.unit,
@@ -108,7 +125,7 @@ export function boardSize(
   return { width: metrics.width * scale.unit, height: metrics.height * scale.unit };
 }
 
-function corners(key: PhysicalKey): readonly (readonly [number, number])[] {
+function corners(key: KeyShape): readonly (readonly [number, number])[] {
   const points: readonly (readonly [number, number])[] = [
     [key.x, key.y],
     [key.x + key.width, key.y],

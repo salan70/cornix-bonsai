@@ -96,6 +96,7 @@ status barのエラー・警告・情報件数は押下でき、診断panelを�
 常設し、Applyのgateと診断のseverityをUI表示上で混同しない。
 
 <!-- @code src/ui/components/index.ts#KeymapTab -->
+<!-- @code src/render/geometry.ts#KeyShape -->
 <!-- @code src/render/geometry.ts#keyBox -->
 <!-- @code src/render/geometry.ts#boardMetrics -->
 <!-- @code src/render/geometry.ts#fitUnit -->
@@ -105,6 +106,8 @@ status barのエラー・警告・情報件数は押下でき、診断panelを�
 
 Keymapはdefinition由来の物理座標をHTML/CSSの絶対配置へ投影する。座標からpxへの投影は
 `src/render/geometry.ts`が唯一の定義元で、盤面とOverview、SVG / PDF exportが同じ関数を消費する。
+geometryが読むのは`KeyShape`（x / y / width / height / rotation）だけで、matrixの概念に依存しない。
+`PhysicalKey`（Vial matrix由来）もmatrixを持たない盤面（Mac内蔵キーボード）も構造的部分型として同じ関数へ渡す。
 `transform-origin`は要素自身のbox基準で解決されるため、回転中心は盤面座標ではなくキーからの
 相対値で渡す。盤面の外接矩形は回転後の四隅から求め、回転したキーがはみ出さない大きさにする。
 
