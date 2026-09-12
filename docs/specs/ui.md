@@ -63,9 +63,9 @@ digest不一致で落ちる。
 UIは読み込み失敗を例外の文字列のまま出さず、`keymap.yaml`が無い場合・旧bindingの場合・
 それ以外を区別して、それぞれの復旧操作を提示する。
 
-## 4 tab
+## 5 tab
 
-常設header、`Keymap` / `Overview` / `Behaviors` / `References`の4 tab、status barを置く。
+常設header、`Keymap` / `Overview` / `Behaviors` / `Mac` / `References`の5 tab、status barを置く。
 tab navigationの右端には利用者ガイドへの外部linkを置き、新しいtabで操作・安全・復旧手順を開く。
 Keymapはdefinitionの座標をHTML/CSSの絶対配置へ投影し、encoderを専用帯へ分ける。選択中の
 key / encoderのraw keycodeをside panelで編集し、盤面は方向キー、Enter、Escで操作できる。
@@ -157,6 +157,27 @@ pickerは選択中の編集対象が何か（key / encoder / Macの盤面位置�
 `selectedKeycode`を受け取り、選ばれたkeycodeを生のまま通知するだけで、`applyPick`での合成と
 保存先の分岐は呼び出し側（各タブ）の責務にする。編集対象の型に依存しないことで、同じpickerを
 CornixのKeymapタブとMacタブが共有する（ADR 0025）。
+
+<!-- @code src/ui/components/index.ts#MacKeymapTab -->
+<!-- @code src/ui/mac-workspace.ts#probeMacKeymap -->
+
+## Mac tab
+
+MacBook内蔵キーボード（`mac-keyboard.yaml`）の編集タブ。workspaceの必須ファイルでは
+ないため、タブは常設し、ファイルの状態をタブ内の3状態に閉じ込める（ADR 0025）。
+
+- `ready` — `layout`宣言に応じた物理盤面（`macPhysicalLayout`）を描画し、割り当てを編集する
+- `missing` — 空状態と「mac-keyboard.yamlを作成」ボタン。作成する初期状態は既定layoutと
+  空のlayer 0だけを持つ
+- `error` — parse失敗の理由と再読込の案内
+
+読み込みは`probeMacKeymap`が担い、parse失敗を`error`に閉じ込めて例外を外へ出さない。
+Macの不調でVial編集を止めないためで、`keymap.yaml`が無い場合のworkspace全体の
+`missing-keymap`とは扱いが違う。保存はVial側と同じ`createSaveQueue`の3本目で、
+`mac-keyboard.yaml`の競合tokenを独立に持つ。
+
+実機への適用はCLI（`cornix mac apply`）のみで、タブ内にその旨を明示する。UI上で
+「実機Applyできるのはknown deviceだけ」という非対称を導線で示す（ADR 0022）。
 
 <!-- @code src/ui/keycode-labels.ts#keycodeDisplay -->
 <!-- @code src/core/keycode/shifted.ts#shiftedOf -->

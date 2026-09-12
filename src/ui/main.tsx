@@ -49,6 +49,7 @@ import { CORNIX_LP_V112_SETTINGS } from "../workspace/settings.ts";
 import { createSaveQueue, type SaveQueue } from "../workspace/save-queue.ts";
 import type { WorkspaceConflictToken } from "../workspace/types.ts";
 import { BrowserWorkspaceStore, pickWorkspace, restoreWorkspace } from "./browser-workspace.ts";
+import { initialMacKeymapYaml, probeMacKeymap, type MacWorkspaceState } from "./mac-workspace.ts";
 import { pickVilText } from "./browser-files.ts";
 import {
   parseBrowserVil,
@@ -73,6 +74,7 @@ import { ApplyDialog } from "./components/ApplyDialog.tsx";
 import { Behaviors } from "./components/Behaviors.tsx";
 import { diagnosticSelection, DiagnosticsPanel } from "./components/DiagnosticsPanel.tsx";
 import { KeymapTab } from "./components/KeymapTab.tsx";
+import { MacKeymapTab } from "./components/MacKeymapTab.tsx";
 import { KeyPanel } from "./components/KeyPanel.tsx";
 import { Overview } from "./components/Overview.tsx";
 import { References } from "./components/References.tsx";
@@ -95,6 +97,8 @@ interface WorkspaceModel {
   readonly acknowledged: readonly string[];
   readonly token: WorkspaceConflictToken | undefined;
   readonly labelsToken: WorkspaceConflictToken | undefined;
+  /** Macタブの状態。壊れていてもworkspace全体を止めない（ADR 0025）。 */
+  readonly mac: MacWorkspaceState;
 }
 
 type WorkspaceProbe =
@@ -136,6 +140,7 @@ function App(): React.JSX.Element {
   const applyCancellation = useRef(false);
   const saveQueue = useRef<SaveQueue | undefined>(undefined);
   const labelsSaveQueue = useRef<SaveQueue | undefined>(undefined);
+  const macSaveQueue = useRef<SaveQueue | undefined>(undefined);
 
   useEffect(() => {
     const applyCurrentTheme = (systemDark: boolean): void => {
@@ -165,6 +170,16 @@ function App(): React.JSX.Element {
       onSaved: () => setStatus("cornix/labels.yamlへ保存した"),
       onError: (error) => setStatus(message(error)),
     });
+    macSaveQueue.current =
+      model.mac.kind === "ready"
+        ? createSaveQueue({
+            store: model.store,
+            path: WORKSPACE_LAYOUT.macKeymap,
+            token: model.mac.token,
+            onSaved: () => setStatus("mac-keyboard.yamlへ保存した"),
+            onError: (error) => setStatus(message(error)),
+          })
+        : undefined;
     setWorkspace(model);
     setAcknowledged(model.acknowledged);
   }
@@ -180,6 +195,7 @@ function App(): React.JSX.Element {
     setWorkspace(undefined);
     saveQueue.current = undefined;
     labelsSaveQueue.current = undefined;
+    macSaveQueue.current = undefined;
     setIssue({ ...probe, store });
     setStatus(issueSummary(probe));
   }
@@ -779,6 +795,16 @@ function App(): React.JSX.Element {
     });
   }
 
+  async function createMacKeymap(): Promise<void> {
+    if (workspace === undefined) return;
+    try {
+      await workspace.store.writeText(WORKSPACE_LAYOUT.macKeymap, initialMacKeymapYaml());
+      await adoptStore(workspace.store, "mac-keyboard.yamlを作成した");
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
   return (
     <div className="app-shell">
       <AppHeader
@@ -798,7 +824,7 @@ function App(): React.JSX.Element {
         canReload={workspace !== undefined}
       />
       <nav className="tabs" aria-label="main tabs">
-        {(["Keymap", "Overview", "Behaviors", "References"] as const).map((name) => (
+        {(["Keymap", "Overview", "Behaviors", "Mac", "References"] as const).map((name) => (
           <button
             className={tab === name ? "is-active" : ""}
             onClick={() => setTab(name)}
@@ -907,6 +933,13 @@ function App(): React.JSX.Element {
               onSetting={editSetting}
             />
           ) : null}
+          {tab === "Mac" ? (
+            <MacKeymapTab
+              mac={workspace.mac}
+              busy={progress !== undefined}
+              onCreate={() => void createMacKeymap()}
+            />
+          ) : null}
           {tab === "References" ? (
             <References
               diagnostics={validation?.diagnostics ?? []}
@@ -991,6 +1024,7 @@ async function probeStore(store: BrowserWorkspaceStore): Promise<WorkspaceProbe>
         ),
         token: (await store.stat(WORKSPACE_LAYOUT.keymap)) ?? undefined,
         labelsToken: (await store.stat(WORKSPACE_LAYOUT.labels)) ?? undefined,
+        mac: await probeMacKeymap(store),
       },
     };
   } catch (error) {

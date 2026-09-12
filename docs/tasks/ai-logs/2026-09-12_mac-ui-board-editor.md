@@ -56,3 +56,16 @@ CLI専用のままで、UIは編集・validation・書き出しまで。
   （pickTargetの表示都合であり、編集対象の型に依存しない）
 - 挙動不変。手動確認: Keymapタブでキー / encoderを選択→pick→保存、Tap / Hold切替、
   未選択時の全無効化
+
+## Step 5: workspace統合とMacタブ骨格
+
+- `src/ui/mac-workspace.ts` — `MacWorkspaceState`（ready / missing / error）と
+  `probeMacKeymap`。parse失敗を`error`に閉じ込め、Macの不調でworkspace全体
+  （Vial編集）を止めない。`initialMacKeymapYaml`は作成導線の初期状態
+  （既定layout + 空layer 0）
+- `WorkspaceModel.mac`を追加し、`probeStore`のready分岐で読む。`keymap.yaml`必須は不変
+- `macSaveQueue`（3本目の`createSaveQueue`、競合token独立）を`adoptWorkspace`で構築
+- `Tab`へ`"Mac"`を追加（Keymap / Overview / Behaviors / Mac / References）。
+  `MacKeymapTab`はmissing（作成ボタン）/ error（理由 + 再読込案内）/ ready
+  （このstepでは概要のみ。盤面はStep 6）を描く
+- specs/ui.mdの「4 tab」を「5 tab」へ改訂し、`#mac-tab`節を追加
