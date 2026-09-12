@@ -45,6 +45,16 @@ repos:
         files: \.ts$
         pass_filenames: false
 
+  # コミットメッセージ — 裸の @token を拒否（GitHub でメンション化されるため）
+  # 判定の詳細は tools/check-commit-msg.sh を参照。
+  - repo: local
+    hooks:
+      - id: no-bare-mentions
+        name: no bare mentions in commit message
+        entry: tools/check-commit-msg.sh
+        language: system
+        stages: [commit-msg]
+
   # DocBridge — コードと docs/specs/ のリンク検証
   # 全リポジトリ対象のため pass_filenames: false。実測 0.5 秒未満（500ファイル規模）。
   # バージョンは .docbridge-version が単一の定義元。

@@ -8,7 +8,7 @@ default:
 
 # pre-commit / pre-push フックを導入する（初回のみ）
 setup:
-    pre-commit install --hook-type pre-commit --hook-type pre-push
+    pre-commit install --hook-type pre-commit --hook-type pre-push --hook-type commit-msg
 
 # ツールチェーンのバージョンを表示する
 versions:
