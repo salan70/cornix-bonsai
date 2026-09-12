@@ -1,8 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
-import { createKeycodeTable } from "../../core/keycode/table.ts";
+import type { createKeycodeTable } from "../../core/keycode/table.ts";
 import { keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
 import { observeFitContainer } from "../fit-text-bus.ts";
-import type { Selection } from "../types.ts";
 import {
   EXTRA_ROW,
   ISO_JIS_ROWS,
@@ -11,37 +10,37 @@ import {
   type PickerEntry,
   type PickerRow,
 } from "../keycode-catalog.ts";
-import { applyPick, canPick, structuredValues, type PickTarget } from "../keycode-compose.ts";
-import type { buildKeymapView } from "../../core/model/keymap-view.ts";
+import { canPick, structuredValues, type PickTarget } from "../keycode-compose.ts";
 import type { WorkspaceLabels } from "../../workspace/labels.ts";
 import { PickTargetButtons } from "./PickTargetButtons.tsx";
 
-/** @doc docs/specs/ui.md#keycode-picker */
+/**
+ * keycode の選択盤。選択中の編集対象が何か（key / encoder / Mac の盤面位置）は知らず、
+ * 現在値 `selectedKeycode` と生の pick 通知だけで完結する。合成（`applyPick`）と
+ * 保存先の解決は呼び出し側の責務（ADR 0025）。
+ *
+ * @doc docs/specs/ui.md#keycode-picker
+ */
 export function KeycodePicker({
-  view,
-  definition,
-  layer,
-  selection,
+  table,
   labels,
   pickTarget,
   onPickTarget,
-  onEditKey,
-  onEditEncoder,
+  selectedKeycode,
+  disabled,
+  onPick: onPickRaw,
 }: {
-  readonly view: ReturnType<typeof buildKeymapView>;
-  readonly definition: Parameters<typeof createKeycodeTable>[0];
-  readonly layer: number;
-  readonly selection: Selection | undefined;
+  readonly table: ReturnType<typeof createKeycodeTable>;
   readonly labels: WorkspaceLabels;
   readonly pickTarget: PickTarget;
   readonly onPickTarget: (target: PickTarget) => void;
-  readonly onEditKey: (value: string) => void;
-  readonly onEditEncoder: (value: string) => void;
+  /** 選択中の編集対象の現在値。未割り当て（Mac の素通し）は `undefined` のまま渡す。 */
+  readonly selectedKeycode: string | undefined;
+  /** 編集対象が選択されていないときに全 cell を無効化する。 */
+  readonly disabled: boolean;
+  readonly onPick: (picked: string) => void;
 }): React.JSX.Element {
-  const table = createKeycodeTable(definition, view.capacities);
-  const input = selectedInput(view, layer, selection);
-  const selectedValue = input === undefined ? undefined : targetValue(input.keycode, pickTarget);
-  const disabled = input === undefined;
+  const selectedValue = targetValue(selectedKeycode, pickTarget);
   const containerRef = useRef<HTMLElement>(null);
 
   useLayoutEffect(() => {
@@ -51,10 +50,8 @@ export function KeycodePicker({
   }, []);
 
   function onPick(picked: string): void {
-    if (input === undefined || !canPick(pickTarget, picked)) return;
-    const next = applyPick(input.keycode, pickTarget, picked);
-    if (selection?.kind === "encoder") onEditEncoder(next);
-    else onEditKey(next);
+    if (disabled || !canPick(pickTarget, picked)) return;
+    onPickRaw(picked);
   }
 
   return (
@@ -64,7 +61,7 @@ export function KeycodePicker({
         <PickTargetButtons
           pickTarget={pickTarget}
           onPickTarget={onPickTarget}
-          value={(target) => targetValue(input?.keycode, target)}
+          value={(target) => targetValue(selectedKeycode, target)}
           labels={labels}
           disabled={disabled}
         />
@@ -205,30 +202,6 @@ function PickerEntryButton({
       </button>
     </span>
   );
-}
-
-function selectedInput(
-  view: ReturnType<typeof buildKeymapView>,
-  layer: number,
-  selection: Selection | undefined,
-): (typeof view.keys)[number] | (typeof view.encoders)[number] | undefined {
-  if (selection?.kind === "key") {
-    return view.keys.find(
-      (key) =>
-        key.position.layer === layer &&
-        key.position.row === selection.row &&
-        key.position.col === selection.col,
-    );
-  }
-  if (selection?.kind === "encoder") {
-    return view.encoders.find(
-      (encoder) =>
-        encoder.layer === layer &&
-        encoder.index === selection.index &&
-        encoder.direction === selection.direction,
-    );
-  }
-  return undefined;
 }
 
 function targetValue(keycode: string | undefined, target: PickTarget): string | undefined {

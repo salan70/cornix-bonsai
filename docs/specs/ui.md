@@ -150,8 +150,13 @@ base keycodeはshift済み記号を上段へ併記し、`KC_KP_7`のようなnum
 
 適用先はキー全体・Tap・Holdで切り替え、現在値を各ボタンへ併記する。各ボタンは表示名やraw式の長さで
 寸法を変えず、収まらない値はellipsisとtitleで確認できる。Holdではmodifier keycodeだけを有効にし、
-選択した値はVial形式の`X_T(kc)`へ組み立てる。キーまたはencoderが未選択ならgridとストリップを含む
+選択した値はVial形式の`X_T(kc)`へ組み立てる。編集対象が未選択ならgridとストリップを含む
 picker全体を無効化する。
+
+pickerは選択中の編集対象が何か（key / encoder / Macの盤面位置）を知らない。現在値の
+`selectedKeycode`を受け取り、選ばれたkeycodeを生のまま通知するだけで、`applyPick`での合成と
+保存先の分岐は呼び出し側（各タブ）の責務にする。編集対象の型に依存しないことで、同じpickerを
+CornixのKeymapタブとMacタブが共有する（ADR 0025）。
 
 <!-- @code src/ui/keycode-labels.ts#keycodeDisplay -->
 <!-- @code src/core/keycode/shifted.ts#shiftedOf -->

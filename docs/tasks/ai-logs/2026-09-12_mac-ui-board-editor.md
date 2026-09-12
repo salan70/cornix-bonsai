@@ -44,3 +44,15 @@ CLI専用のままで、UIは編集・validation・書き出しまで。
   削除（素通し）と`KC_NO`（イベント破棄）は別セマンティクスなので削除専用関数を持つ。
   空になったlayerは残す（layer chipが消える驚きを避ける）
 - test: 不変性・layer自動生成・同一document返却（no-op時）・空layerのround-trip
+
+## Step 4: KeycodePickerの選択解決切り離し（挙動不変）
+
+- `KeycodePicker`のpropsを`table` / `selectedKeycode` / `disabled` / `onPick(picked)`ベースへ
+  変更し、`selectedInput`（view + selectionからの編集対象解決）と`applyPick`での合成・
+  保存先分岐を`KeymapTab`側へ移した
+- pickerはVialのview / Selectionに依存しなくなり、Macタブが同じpickerを使える。
+  未割り当て（Macの素通し）は`selectedKeycode: undefined`のまま渡す設計
+- `canPick`によるcell無効化と`targetValue`（Tap / Hold現在値）はpicker内に残す
+  （pickTargetの表示都合であり、編集対象の型に依存しない）
+- 挙動不変。手動確認: Keymapタブでキー / encoderを選択→pick→保存、Tap / Hold切替、
+  未選択時の全無効化

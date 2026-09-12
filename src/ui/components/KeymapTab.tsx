@@ -7,7 +7,7 @@ import { layerLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
 import type { Selection } from "../types.ts";
 import { keycodeClass, keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
 import { KeycodePicker } from "./KeycodePicker.tsx";
-import type { PickTarget } from "../keycode-compose.ts";
+import { applyPick, type PickTarget } from "../keycode-compose.ts";
 import { moveKey } from "../key-navigation.ts";
 import { KEYMAP_BOARD_SCALE, useBoardScale } from "../use-board-scale.ts";
 import { Chip } from "./ui/index.ts";
@@ -45,6 +45,7 @@ export function KeymapTab({
   readonly diagnosticSubjects?: readonly DiagnosticSubject[];
 }): React.JSX.Element {
   const table = createKeycodeTable(definition, view.capacities);
+  const pickerInput = selectedInput(view, layer, selection);
   const selectedButtonRef = useRef<HTMLButtonElement>(null);
   const layerCount = view.capacities.layerCount;
   const assignedLayers = new Set([
@@ -220,15 +221,18 @@ export function KeymapTab({
             ))}
         </div>
         <KeycodePicker
-          view={view}
-          definition={definition}
-          layer={layer}
-          selection={selection}
+          table={table}
           labels={labels}
           pickTarget={pickTarget}
           onPickTarget={onPickTarget}
-          onEditKey={onEditKey}
-          onEditEncoder={onEditEncoder}
+          selectedKeycode={pickerInput?.keycode}
+          disabled={pickerInput === undefined}
+          onPick={(picked) => {
+            if (pickerInput === undefined) return;
+            const next = applyPick(pickerInput.keycode, pickTarget, picked);
+            if (selection?.kind === "encoder") onEditEncoder(next);
+            else onEditKey(next);
+          }}
         />
         <div className="u-text-sm u-muted u-push-end">
           方向キーで隣のキーへ選択が移り、Enter で右の編集 panel へ focus、Esc で盤面へ戻る。
@@ -246,4 +250,29 @@ function capTitle(
   const head =
     display.role === undefined ? display.primary : `${display.primary} / ${display.role}`;
   return `${head}  (${keycode})`;
+}
+
+/** picker が編集する対象を selection から解決する。合成と保存先の分岐もここが持つ。 */
+function selectedInput(
+  view: ReturnType<typeof buildKeymapView>,
+  layer: number,
+  selection: Selection | undefined,
+): (typeof view.keys)[number] | (typeof view.encoders)[number] | undefined {
+  if (selection?.kind === "key") {
+    return view.keys.find(
+      (key) =>
+        key.position.layer === layer &&
+        key.position.row === selection.row &&
+        key.position.col === selection.col,
+    );
+  }
+  if (selection?.kind === "encoder") {
+    return view.encoders.find(
+      (encoder) =>
+        encoder.layer === layer &&
+        encoder.index === selection.index &&
+        encoder.direction === selection.direction,
+    );
+  }
+  return undefined;
 }
