@@ -84,7 +84,7 @@ export function KeymapTab({
       return;
     }
     if (!event.key.startsWith("Arrow")) return;
-    const next = moveKey(view, key, event.key);
+    const next = moveKey(layerKeys, key, event.key);
     if (next === undefined) return;
     event.preventDefault();
     selectKey(next);

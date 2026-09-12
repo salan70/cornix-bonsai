@@ -160,6 +160,8 @@ CornixのKeymapタブとMacタブが共有する（ADR 0025）。
 
 <!-- @code src/ui/components/index.ts#MacKeymapTab -->
 <!-- @code src/ui/mac-workspace.ts#probeMacKeymap -->
+<!-- @code src/ui/mac-board.ts#macBoardEntries -->
+<!-- @code src/ui/mac-keycap-labels.ts#macKeycapLabel -->
 
 ## Mac tab
 
@@ -175,6 +177,19 @@ MacBook内蔵キーボード（`mac-keyboard.yaml`）の編集タブ。workspace
 Macの不調でVial編集を止めないためで、`keymap.yaml`が無い場合のworkspace全体の
 `missing-keymap`とは扱いが違う。保存はVial側と同じ`createSaveQueue`の3本目で、
 `mac-keyboard.yaml`の競合tokenを独立に持つ。
+
+盤面はCornixと同じgeometry（`KeyShape`）で描く。entryは`macBoardEntries`が物理配列を
+正として組み、割り当ての無いキーは素通しとして物理キャップ名（`macKeycapLabel`。同じ
+`key_code`でも刻印は配列で変わる）をfaint表示する。選択は`Selection`の
+`{kind: "macKey", keyCode}`で、layer番号空間はVialと別に持つ（layer chipも疎な番号を
+昇順に並べ、`+`で末尾+1を作る）。方向キー移動はVial盤面と同じ幾何ベースの`moveKey`を
+共有する。
+
+keycodeの選択は同じ`KeycodePicker`を使い、`applyPick`の合成と`setMacAssignment`での
+保存はタブ側が持つ。Karabinerへ落とせないkeycodeはpickerでdisabledにせず、
+`validateMacKeymap`の診断へ委ねる（ADR 0025）。side panelは`MacKeyPanel`で、
+raw keycode入力（空文字は素通しへ戻す）と「割り当てを外す」操作を持つ。keycode表示は
+Vialと同じlabel関数を使うが、layer名はVialのlayer番号空間のものなので剥がして渡す。
 
 実機への適用はCLI（`cornix mac apply`）のみで、タブ内にその旨を明示する。UI上で
 「実機Applyできるのはknown deviceだけ」という非対称を導線で示す（ADR 0022）。

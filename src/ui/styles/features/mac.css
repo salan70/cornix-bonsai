@@ -1,0 +1,13 @@
+@layer features {
+  /* Mac盤面: 割り当ての無いキーは素通し。物理キャップ名をfaintに出す。 */
+  .key.is-passthrough {
+    color: var(--key-muted);
+    background: transparent;
+    border-color: var(--border);
+  }
+  .mac-tab {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+}

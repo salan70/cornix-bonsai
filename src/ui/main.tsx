@@ -2,6 +2,10 @@ import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { diffDocuments, type DiffEntry } from "../core/diff/diff.ts";
 import { setEncoderAssignment, setKeyAssignment } from "../core/model/edit.ts";
+import { addMacLayer, clearMacAssignment, setMacAssignment } from "../core/mac-keymap/edit.ts";
+import { serializeMacKeymapYaml } from "../core/mac-keymap/serialize.ts";
+import type { MacKeymapDocument } from "../core/mac-keymap/types.ts";
+import { createKeycodeTable } from "../core/keycode/table.ts";
 import { buildKeymapView } from "../core/model/keymap-view.ts";
 import {
   abortApply,
@@ -75,6 +79,7 @@ import { Behaviors } from "./components/Behaviors.tsx";
 import { diagnosticSelection, DiagnosticsPanel } from "./components/DiagnosticsPanel.tsx";
 import { KeymapTab } from "./components/KeymapTab.tsx";
 import { MacKeymapTab } from "./components/MacKeymapTab.tsx";
+import { MacKeyPanel } from "./components/MacKeyPanel.tsx";
 import { KeyPanel } from "./components/KeyPanel.tsx";
 import { Overview } from "./components/Overview.tsx";
 import { References } from "./components/References.tsx";
@@ -121,6 +126,7 @@ function App(): React.JSX.Element {
   const [issue, setIssue] = useState<WorkspaceIssue | undefined>();
   const [tab, setTab] = useState<Tab>("Keymap");
   const [layer, setLayer] = useState(0);
+  const [macLayer, setMacLayer] = useState(0);
   const [selection, setSelection] = useState<Selection | undefined>();
   const [pickTarget, setPickTarget] = useState<PickTarget>("whole");
   const [device, setDevice] = useState<WebHidConnection | undefined>();
@@ -226,6 +232,11 @@ function App(): React.JSX.Element {
       workspace === undefined
         ? undefined
         : buildKeymapView(workspace.document, workspace.definition),
+    [workspace],
+  );
+  // Vialのlayer名をMacのlayer番号空間へ誤適用しないため、layer名だけ剥がす。
+  const macLabels = useMemo<WorkspaceLabels>(
+    () => ({ layers: new Map(), keycodes: workspace?.labels.keycodes ?? new Map() }),
     [workspace],
   );
   const changed = useMemo(() => {
@@ -795,6 +806,36 @@ function App(): React.JSX.Element {
     });
   }
 
+  function saveMac(document: MacKeymapDocument): void {
+    if (workspace === undefined || workspace.mac.kind !== "ready") return;
+    setWorkspace({ ...workspace, mac: { ...workspace.mac, document } });
+    try {
+      macSaveQueue.current?.enqueue(serializeMacKeymapYaml(document));
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
+  function editMacKey(targetLayer: number, keyCode: string, value: string): void {
+    if (workspace === undefined || workspace.mac.kind !== "ready") return;
+    try {
+      saveMac(setMacAssignment(workspace.mac.document, targetLayer, keyCode, value));
+    } catch (error) {
+      setStatus(message(error));
+    }
+  }
+
+  function clearMacKey(targetLayer: number, keyCode: string): void {
+    if (workspace === undefined || workspace.mac.kind !== "ready") return;
+    saveMac(clearMacAssignment(workspace.mac.document, targetLayer, keyCode));
+  }
+
+  function addMacLayerChip(targetLayer: number): void {
+    if (workspace === undefined || workspace.mac.kind !== "ready") return;
+    saveMac(addMacLayer(workspace.mac.document, targetLayer));
+    setMacLayer(targetLayer);
+  }
+
   async function createMacKeymap(): Promise<void> {
     if (workspace === undefined) return;
     try {
@@ -933,11 +974,43 @@ function App(): React.JSX.Element {
               onSetting={editSetting}
             />
           ) : null}
-          {tab === "Mac" ? (
+          {tab === "Mac" && view !== undefined ? (
             <MacKeymapTab
               mac={workspace.mac}
               busy={progress !== undefined}
               onCreate={() => void createMacKeymap()}
+              layer={macLayer}
+              setLayer={setMacLayer}
+              selection={selection}
+              setSelection={setSelection}
+              table={createKeycodeTable(workspace.definition, view.capacities)}
+              labels={macLabels}
+              pickTarget={pickTarget}
+              onPickTarget={setPickTarget}
+              onEdit={editMacKey}
+              onAddLayer={addMacLayerChip}
+              onFocusEditor={() => {
+                editorRef.current?.focus();
+                editorRef.current?.select();
+              }}
+              panel={
+                workspace.mac.kind === "ready" ? (
+                  <MacKeyPanel
+                    document={workspace.mac.document}
+                    layer={macLayer}
+                    selection={selection}
+                    labels={macLabels}
+                    table={createKeycodeTable(workspace.definition, view.capacities)}
+                    editorRef={editorRef}
+                    pickTarget={pickTarget}
+                    onPickTarget={setPickTarget}
+                    onEdit={editMacKey}
+                    onClear={clearMacKey}
+                  />
+                ) : (
+                  <></>
+                )
+              }
             />
           ) : null}
           {tab === "References" ? (

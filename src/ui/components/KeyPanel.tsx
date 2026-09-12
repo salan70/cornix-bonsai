@@ -81,7 +81,9 @@ export function KeyPanel({
               layer {layer} /{" "}
               {selection?.kind === "encoder"
                 ? `encoder ${selection.index}`
-                : `row ${selection?.row} / col ${selection?.col}`}
+                : selection?.kind === "key"
+                  ? `row ${selection.row} / col ${selection.col}`
+                  : ""}
             </span>
           )}
         </div>
@@ -142,7 +144,9 @@ export function KeyPanel({
                 layers[{layer}]{" "}
                 {selection?.kind === "encoder"
                   ? `encoder ${selection.index}`
-                  : `row ${selection?.row} col ${selection?.col}`}
+                  : selection?.kind === "key"
+                    ? `row ${selection.row} col ${selection.col}`
+                    : ""}
               </span>
             </div>
             <div className="kv">

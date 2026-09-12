@@ -19,6 +19,7 @@
 
 @import "./features/chrome.css";
 @import "./features/keymap.css";
+@import "./features/mac.css";
 @import "./features/picker.css";
 @import "./features/overview.css";
 @import "./features/apply.css";

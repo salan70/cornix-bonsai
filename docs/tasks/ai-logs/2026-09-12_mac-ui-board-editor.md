@@ -69,3 +69,21 @@ CLI専用のままで、UIは編集・validation・書き出しまで。
   `MacKeymapTab`はmissing（作成ボタン）/ error（理由 + 再読込案内）/ ready
   （このstepでは概要のみ。盤面はStep 6）を描く
 - specs/ui.mdの「4 tab」を「5 tab」へ改訂し、`#mac-tab`節を追加
+
+## Step 6: 盤面編集本体
+
+- `MacKeymapTab`のready状態を実装。盤面はCornixと同じgeometry（`boardMetrics` / `keyBox` /
+  `useBoardScale`）で描画し、割り当ての無いキーは素通しとして物理キャップ名をfaint表示
+  （`.key.is-passthrough`、`features/mac.css`）
+- `src/ui/mac-board.ts` — 盤面entry構築の純関数（`macBoardEntries` / `macLayerNumbers` /
+  `nextMacLayer`）。物理配列を正とし、YAMLにだけある位置はvalidationへ委ねる
+- `src/ui/mac-keycap-labels.ts` — from側キャップ表示名。同じ`key_code`でも刻印は配列で
+  変わる（JISの`equal_sign`は`^`）ため配列別の表を持つ。両盤面の網羅をtestで固定
+- `moveKey`を幾何ベース（`KeyShape`の`physical`を持つ任意の配列）へ一般化し両盤面で共有。
+  盤面entryでの移動をtestで固定（staggerによりjの直下はn）
+- `Selection`へ`{kind: "macKey", keyCode}`を追加。Macのlayer番号空間はVialと別なので
+  `macLayer` stateを分離
+- `MacKeyPanel` — from位置表示・動作select・raw keycode入力（空文字=素通し）・
+  「割り当てを外す」。`KC_NO`（イベント破棄）と素通しを別操作として見せる
+- `saveMac`は`setMacAssignment`等の純関数の結果を3本目のsaveQueueへ流す。
+  keycode表示のlabelsはlayer名を剥がして渡す（Vialのlayer名の誤適用防止）
