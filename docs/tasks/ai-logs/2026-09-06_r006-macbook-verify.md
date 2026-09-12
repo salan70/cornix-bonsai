@@ -9,14 +9,14 @@
 
 ### 環境（Fact）
 
-| 項目 | 値 |
-| --- | --- |
-| macOS | 26.5.2 (Build 25F84) |
-| arch | arm64 (Apple M4) |
-| model | Mac16,13 (MacBook Air) |
-| Karabiner-Elements | 15.3.0 |
-| DriverKit extension | activated enabled |
-| core service (`karabiner_console_user_server`) | 起動中 |
+| 項目                                           | 値                     |
+| ---------------------------------------------- | ---------------------- |
+| macOS                                          | 26.5.2 (Build 25F84)   |
+| arch                                           | arm64 (Apple M4)       |
+| model                                          | Mac16,13 (MacBook Air) |
+| Karabiner-Elements                             | 15.3.0                 |
+| DriverKit extension                            | activated enabled      |
+| core service (`karabiner_console_user_server`) | 起動中                 |
 
 ### 内蔵キーボードの識別（Open Question 1 の観測）
 
