@@ -20,3 +20,18 @@ CLI専用のままで、UIは編集・validation・書き出しまで。
 - Mac盤面はmatrix（row / col）を持たないため、`PhysicalKey`へ偽のrow / colを振る案は
   ADR 0022が退けたmaterializeと同型として不採用
 - test: 既存geometry.test.tsの全維持 + matrixを持たないKeyShape直渡しの固定test
+
+## Step 2: JIS / ANSI物理盤面データ（ADR 0025）
+
+- `src/core/mac-keymap/physical-layout.ts` — `MacPhysicalKey`と`macPhysicalLayout(layout)`。
+  位置識別子はKarabinerの`key_code`名、matrixのrow / colは持たない
+- 判断の本体はADR 0025（手書きデータのCore所有・PhysicalKey不採用・test固定・
+  pickerのvalidation委任・書き出しのin-memory化）
+- 盤面はJIS / ANSIとも幅14.5u。function行は高さ0.65u、矢印は0.5u、JISの縦長Returnは
+  1u x 2uの矩形近似。Touch ID / 電源は`key_code`が無いため置かない
+- 座標の根拠の区別:
+  - Fact: キーの存在集合（2026-09-06実機確認 + HID usage定義 = `LAYOUT_MISSING_POSITIONS`）
+  - Inference: 座標・幅・高さ（Apple公開の製品画像からの読み取り。実機JISでの目視照合は
+    未実施 → ADR 0025のOpen Question）
+- test: `KARABINER_POSITIONS`整合・重複なし・`LAYOUT_MISSING_POSITIONS`不侵入・
+  矩形の重なりなし（AABB + ε）・fixture全from位置の被覆・外形14.5u x 5.65u

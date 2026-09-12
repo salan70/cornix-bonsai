@@ -108,6 +108,24 @@ MacBookの`fn`を足したものです。
 （`international*` / `non_us_*`、HID usageの定義上ANSIに対応キーが無い）を区別して持ち、
 `jis`側は実機Factが無いため空です（ADR 0024）。
 
+<!-- @code src/core/mac-keymap/physical-layout.ts#MacPhysicalKey -->
+<!-- @code src/core/mac-keymap/physical-layout.ts#macPhysicalLayout -->
+
+## Physical layout
+
+Browser UIの盤面描画用に、MacBook内蔵キーボードの物理盤面を`macPhysicalLayout(layout)`が
+返します。definition（KLE）由来ではない手書きデータで、Coreが所有します（ADR 0025）。
+
+`MacPhysicalKey`の位置識別子はKarabinerの`key_code`名（`fn`含む）で、matrixの
+row / colは持ちません。rotationは常に0で、`src/render/geometry.ts`の`KeyShape`を
+構造的部分型として満たすため、盤面描画はCornix側と同じgeometryを通ります。
+
+手書きデータの正しさはtestの不変条件で固定します: 全キーが`KARABINER_POSITIONS`に
+属する・重複なし・`LAYOUT_MISSING_POSITIONS`のキーを置かない・矩形が重ならない・
+fixtureの全from位置を被覆する。座標と幅はApple公開の製品画像からの読み取り
+（Inference）です。Touch ID / 電源は`key_code`が無いため盤面に置かず、JISの縦長Returnは
+矩形で近似します。
+
 <!-- @code src/core/mac-keymap/generate.ts#generateKarabinerRules -->
 
 ## generateKarabinerRules
