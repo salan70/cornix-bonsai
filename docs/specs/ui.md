@@ -271,6 +271,7 @@ SVG/PDFのexportボタンはKeymapで選択中のlayerを`cornix/generated/keyma
 <!-- @code src/ui/browser-export.ts#renderBrowserSvg -->
 <!-- @code src/ui/browser-export.ts#renderBrowserPdf -->
 <!-- @code src/ui/browser-export.ts#generateBrowserKarabiner -->
+<!-- @code src/ui/browser-export.ts#generateBrowserKarabinerFromDocument -->
 
 ## Browser import / export
 
@@ -279,11 +280,13 @@ desired stateへ保存する。UIDや容量が実機と異なる場合は通常�
 VIL、SVG、PDFの書出はworkspaceのGit管理外である`cornix/generated/`へ保存する。SVG/PDFはrendererへ
 選択中のlayerを渡し、CLIと同じ座標・表示名規則を使う。いずれも実機へのwriteを開始しない。
 
-`Mac書出`は`mac-keyboard.yaml`を読んでKarabinerのcomplex_modifications assetを
-`cornix/generated/karabiner-complex-modifications.json`へ保存する。errorが1件でもあれば
-書き出さず、status barへ件数と内容を出す。**適用はしない。** `karabiner.json`へ触るのは
-CLIの`cornix mac apply`だけで、Browser UIからの適用経路は用意しない（ADR 0022）。
-この非対称はstatus barの文言で明示する。
+Karabinerのcomplex_modifications assetの書き出しはMacタブの
+「Karabiner assetを書き出す」ボタンが担い、`cornix/generated/karabiner-complex-modifications.json`へ
+保存する。生成元はディスクの`mac-keyboard.yaml`ではなく**編集中のin-memory document**で、
+保存キューに未flushの編集がある瞬間のstale readを構造的に避ける（ADR 0025）。
+errorが1件でもあれば書き出さず、status barへ件数と内容を出す。**適用はしない。**
+`karabiner.json`へ触るのはCLIの`cornix mac apply`だけで、Browser UIからの適用経路は
+用意しない（ADR 0022）。この非対称はstatus barの文言とタブ内の常設文言で明示する。
 
 <!-- @code src/ui/components/index.ts#Behaviors -->
 <!-- @code src/ui/components/index.ts#References -->

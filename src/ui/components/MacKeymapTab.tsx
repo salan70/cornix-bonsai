@@ -43,6 +43,7 @@ export function MacKeymapTab({
   onEdit,
   onAddLayer,
   onFocusEditor,
+  onExportKarabiner,
   diagnosticSubjects = [],
   panel,
 }: {
@@ -61,6 +62,7 @@ export function MacKeymapTab({
   readonly onEdit: (layer: number, keyCode: string, value: string) => void;
   readonly onAddLayer: (layer: number) => void;
   readonly onFocusEditor: () => void;
+  readonly onExportKarabiner: () => void;
   readonly diagnosticSubjects?: readonly DiagnosticSubject[];
   readonly panel: React.JSX.Element;
 }): React.JSX.Element {
@@ -219,8 +221,11 @@ export function MacKeymapTab({
             onEdit(layer, selectedKeyCode, applyPick(current ?? "KC_NO", pickTarget, picked));
           }}
         />
-        <div className="u-text-sm u-muted u-push-end">
-          書かれていないキーは素通し。実機への適用はCLI（cornix mac apply）のみ。
+        <div className="mac-export-row u-push-end">
+          <span className="u-text-sm u-muted">
+            書かれていないキーは素通し。実機への適用はCLI（cornix mac apply）のみ。
+          </span>
+          <Button onClick={onExportKarabiner}>Karabiner assetを書き出す</Button>
         </div>
       </div>
       {panel}

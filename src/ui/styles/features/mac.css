@@ -10,4 +10,10 @@
     flex-direction: column;
     gap: var(--space-4);
   }
+  .mac-export-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
 }

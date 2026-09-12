@@ -61,7 +61,7 @@ import {
   renderBrowserPdf,
   renderBrowserSvg,
   serializeBrowserVil,
-  generateBrowserKarabiner,
+  generateBrowserKarabinerFromDocument,
 } from "./browser-export.ts";
 import type { Selection, Tab } from "./types.ts";
 import type { PickTarget } from "./keycode-compose.ts";
@@ -331,21 +331,19 @@ function App(): React.JSX.Element {
   }
 
   /**
-   * `mac-keyboard.yaml` から Karabiner の asset を書き出す。
+   * 編集中の Mac desired state から Karabiner の asset を書き出す。
    *
-   * 適用は行わない。Browser UI は `cornix/generated/` への書き出しまでで、
-   * `karabiner.json` へ触るのは CLI だけ（ADR 0022）。
+   * ディスクを再読せず in-memory の document から生成する。保存キューに未 flush の
+   * 編集がある瞬間の stale read を構造的に避ける（ADR 0025）。適用は行わない。
+   * Browser UI は `cornix/generated/` への書き出しまでで、`karabiner.json` へ触るのは
+   * CLI だけ（ADR 0022）。
    */
   async function exportKarabiner(): Promise<void> {
-    const store = workspace?.store ?? issue?.store;
-    if (store === undefined) return;
+    if (workspace === undefined || workspace.mac.kind !== "ready") return;
     try {
-      const text = await store.readText(WORKSPACE_LAYOUT.macKeymap);
-      if (text === undefined) {
-        setStatus(`${WORKSPACE_LAYOUT.macKeymap}が見つからない`);
-        return;
-      }
-      const { asset, diagnostics, summary } = generateBrowserKarabiner(text);
+      const { asset, diagnostics, summary } = generateBrowserKarabinerFromDocument(
+        workspace.mac.document,
+      );
       if (asset === undefined) {
         setStatus(
           `${WORKSPACE_LAYOUT.macKeymap}にerrorが${summary.error}件ある: ${diagnostics
@@ -356,7 +354,7 @@ function App(): React.JSX.Element {
         return;
       }
       const path = generatedPath("karabiner-complex-modifications.json");
-      await store.writeText(path, asset);
+      await workspace.store.writeText(path, asset);
       const rest =
         diagnostics.length === 0
           ? ""
@@ -860,7 +858,6 @@ function App(): React.JSX.Element {
         onOpenWorkspace={() => void openWorkspace()}
         onImportVil={() => void importVil()}
         onExportVil={() => void exportVil()}
-        onExportKarabiner={() => void exportKarabiner()}
         onReload={() => void reload()}
         onRestoreBackup={() => void restoreBackup()}
         onConnect={() => void connect()}
@@ -995,6 +992,7 @@ function App(): React.JSX.Element {
               onPickTarget={setPickTarget}
               onEdit={editMacKey}
               onAddLayer={addMacLayerChip}
+              onExportKarabiner={() => void exportKarabiner()}
               diagnosticSubjects={
                 macValidation === undefined
                   ? []

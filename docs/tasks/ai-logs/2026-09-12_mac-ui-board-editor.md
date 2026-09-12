@@ -99,3 +99,26 @@ CLI専用のままで、UIは編集・validation・書き出しまで。
 - test補足: `diagnosticSelection`は`DiagnosticsPanel.tsx`（JSX）内にあり、
   `node --test`はJSXを扱えないため直接のunit testは置けない。関数を.tsへ移す
   リファクタはスコープ外とし、typecheck（switchの網羅）とE2E手動確認で担保する
+
+## Step 8: 書出導線の移動
+
+- `Mac書出`ボタンをAppHeaderから削除し、Macタブ内の「Karabiner assetを書き出す」へ移した
+- 生成元をディスクの`mac-keyboard.yaml`再読からin-memoryの`MacKeymapDocument`へ変更
+  （`generateBrowserKarabinerFromDocument`）。保存キュー未flushの編集を取りこぼす
+  stale readを構造的に排除（ADR 0025）。text入力版はparseを委譲する形に整理
+- errorがあれば書き出さない防壁とstatus文言は現行踏襲
+- docs: specs/ui.mdの`Browser import / export`を改訂、user-guide/web-ui.mdへMacタブの
+  利用手順を追加、user-guide/cli.mdの`Mac書出`参照を更新
+
+## E2E手動確認（残作業）
+
+dev server（`just dev`）で以下を確認する。未実施。
+
+1. `fixtures/mac-keyboard/desired.yaml`を含むworkspaceでJIS盤面と4 layerの割り当て表示
+2. キー選択→picker / panelで編集→`mac-keyboard.yaml`への保存
+3. 不正keycode（例: TD(0)）で診断errorが盤面バッジ・panel・status barに出る
+4. タブ内書出で`cornix/generated/karabiner-complex-modifications.json`が生成され
+   `cornix mac diff`と整合する
+5. `mac-keyboard.yaml`が無いworkspaceでの作成導線
+6. `layout: ansi`でUS盤面が描画される
+7. 盤面座標の実機JIS MacBookとの目視照合（Fact化。ADR 0025のOpen Question）

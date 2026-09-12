@@ -4,8 +4,10 @@ import { strictEqual, match } from "node:assert/strict";
 import { test } from "node:test";
 import { parseDefinition } from "../core/definition/parse.ts";
 import { EMPTY_LABELS } from "../workspace/labels.ts";
+import { parseMacKeymapYaml } from "../core/mac-keymap/parse.ts";
 import {
   generateBrowserKarabiner,
+  generateBrowserKarabinerFromDocument,
   parseBrowserVil,
   renderBrowserPdf,
   renderBrowserSvg,
@@ -47,4 +49,15 @@ test("Karabinerのassetはlintに渡せる形で返る", () => {
   const parsed = JSON.parse(asset ?? "") as { title: string; rules: unknown[] };
   strictEqual(parsed.title, "Cornix Bonsai");
   strictEqual(parsed.rules.length, 4);
+});
+
+test("in-memory documentからのasset書き出しはtext入力と同じ結果になる", () => {
+  const text = readFileSync(
+    join(import.meta.dirname, "../../fixtures/mac-keyboard/desired.yaml"),
+    "utf8",
+  );
+  const fromText = generateBrowserKarabiner(text);
+  const fromDocument = generateBrowserKarabinerFromDocument(parseMacKeymapYaml(text));
+  strictEqual(fromDocument.asset, fromText.asset);
+  strictEqual(fromDocument.summary.error, 0);
 });

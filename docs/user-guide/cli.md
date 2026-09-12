@@ -142,7 +142,8 @@ just cornix mac generate --workspace /path/to/workspace
 `karabiner_cli --lint-complex-modifications`も通します。Karabinerへ落とせないkeycodeが1つでも
 あれば書き出さず、終了コード1を返します。黙って捨てることはありません。
 
-Web UIの`Mac書出`ボタンも同じファイルを書き出します。Web UIから適用はできません。
+Web UIのMacタブ（「Karabiner assetを書き出す」）も同じファイルを書き出します。
+Web UIから適用はできません。
 
 ### 差分を見る
 

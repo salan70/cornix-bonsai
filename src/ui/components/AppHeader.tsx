@@ -10,7 +10,6 @@ export function AppHeader({
   onOpenWorkspace,
   onImportVil,
   onExportVil,
-  onExportKarabiner,
   onReload,
   onRestoreBackup,
   onConnect,
@@ -25,7 +24,6 @@ export function AppHeader({
   readonly onOpenWorkspace: () => void;
   readonly onImportVil: () => void;
   readonly onExportVil: () => void;
-  readonly onExportKarabiner: () => void;
   readonly onReload: () => void;
   readonly onRestoreBackup: () => void;
   readonly onConnect: () => void;
@@ -72,9 +70,6 @@ export function AppHeader({
           </Button>
           <Button onClick={onExportVil} disabled={!canReload}>
             VIL書出
-          </Button>
-          <Button onClick={onExportKarabiner} disabled={!canReload}>
-            Mac書出
           </Button>
           <Button onClick={onReload} disabled={!canReload}>
             再読込

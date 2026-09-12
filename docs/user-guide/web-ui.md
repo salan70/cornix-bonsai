@@ -65,6 +65,28 @@ Behaviorsでは、Tap Dance、Combo、Settingsを直接編集します。入力�
 - 不正な値は保存されず、画面下部のstatusへ理由が表示されます。
 - Tap DanceやComboで表示名があるkeycodeは、raw値と区別できる形で表示されます。
 
+## Mac（MacBook内蔵キーボード）
+
+Macタブでは、workspaceの`mac-keyboard.yaml`（MacBook内蔵キーボードのdesired state）を
+物理盤面で編集します。
+
+- `mac-keyboard.yaml`が無い場合は「mac-keyboard.yamlを作成」で初期状態（JIS・空のlayer 0）を
+  作成できます。配列がUSの場合はファイルの`layout:`を`ansi`へ変更してください。
+- 盤面は`layout`宣言（JIS / ANSI）に応じて切り替わります。割り当ての無いキーは薄い表示で、
+  押した入力がそのまま通る「素通し」を意味します。
+- キーを選んでpickerまたはside panelで割り当てを編集します。編集は自動で保存されます。
+  「割り当てを外す」で素通しへ戻せます（`KC_NO`は入力を捨てる別の割り当てです）。
+- layer chipで疎なlayerを切り替え、`+`で新しいlayerを追加します。layer番号はCornix側の
+  layerとは別の空間です。
+- Karabinerで表現できない割り当ては診断（エラー）になります。エラーがあるとassetは
+  書き出されません。
+- 「Karabiner assetを書き出す」は編集中の内容から
+  `cornix/generated/karabiner-complex-modifications.json`を生成します。
+
+**Web UIから実機（karabiner.json）への適用はできません。** 適用は
+[CLIのMacBook内蔵キーボード](./cli.md#macbook内蔵キーボード)の手順
+（`cornix mac diff`→`cornix mac apply`）で行います。
+
 ## References
 
 Referencesでは、次の情報を確認できます。

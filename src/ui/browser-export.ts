@@ -1,6 +1,7 @@
 import type { KeyboardDefinition } from "../core/definition/types.ts";
 import { generateKarabinerAsset } from "../core/mac-keymap/generate.ts";
 import { parseMacKeymapYaml } from "../core/mac-keymap/parse.ts";
+import type { MacKeymapDocument } from "../core/mac-keymap/types.ts";
 import { validateMacKeymap } from "../core/mac-keymap/validate.ts";
 import type { Diagnostic, DiagnosticSummary } from "../core/validation/types.ts";
 import { parseVil } from "../core/vil/parse.ts";
@@ -61,7 +62,23 @@ export function generateBrowserKarabiner(text: string): {
   readonly diagnostics: readonly Diagnostic[];
   readonly summary: DiagnosticSummary;
 } {
-  const document = parseMacKeymapYaml(text);
+  return generateBrowserKarabinerFromDocument(parseMacKeymapYaml(text));
+}
+
+/**
+ * UI 状態の `MacKeymapDocument` から直接 asset を組み立てる。
+ *
+ * 盤面編集が載った後の書き出しはこちらが正。ディスクを再読すると保存キューに
+ * 未 flush の編集がある瞬間に古い内容を書き出しうるため、in-memory の document
+ * から生成する（ADR 0025）。
+ *
+ * @doc docs/specs/ui.md#browser-import-export
+ */
+export function generateBrowserKarabinerFromDocument(document: MacKeymapDocument): {
+  readonly asset: string | undefined;
+  readonly diagnostics: readonly Diagnostic[];
+  readonly summary: DiagnosticSummary;
+} {
   const { diagnostics, summary } = validateMacKeymap(document);
   if (summary.error > 0) return { asset: undefined, diagnostics, summary };
   const { asset } = generateKarabinerAsset(document);
