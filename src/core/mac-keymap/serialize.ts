@@ -15,7 +15,13 @@ import { MAC_KEYMAP_SCHEMA, type MacKeymapDocument } from "./types.ts";
 
 /** @doc docs/specs/mac-keymap.md#serializemackeymapyaml */
 export function serializeMacKeymapYaml(document: MacKeymapDocument): string {
-  const lines = [`schema: ${MAC_KEYMAP_SCHEMA}`, `profile: ${quote(document.profile)}`, "layers:"];
+  // layout は省略時の既定があっても常に書く。正規形は明示（ADR 0024）。
+  const lines = [
+    `schema: ${MAC_KEYMAP_SCHEMA}`,
+    `layout: ${document.layout}`,
+    `profile: ${quote(document.profile)}`,
+    "layers:",
+  ];
   for (const [layer, assignments] of [...document.layers.entries()].sort(([a], [b]) => a - b)) {
     lines.push(`  ${layer}:`);
     for (const [keyCode, keycode] of [...assignments.entries()].sort(([a], [b]) =>

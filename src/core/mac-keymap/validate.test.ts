@@ -3,14 +3,18 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { parseMacKeymapYaml } from "./parse.ts";
-import type { MacKeymapDocument } from "./types.ts";
+import type { MacKeyboardLayout, MacKeymapDocument } from "./types.ts";
 import { validateMacKeymap } from "./validate.ts";
 
 const FIXTURES = join(import.meta.dirname, "../../../fixtures/mac-keyboard");
 const DESIRED = parseMacKeymapYaml(readFileSync(join(FIXTURES, "desired.yaml"), "utf8"));
 
-function documentOf(layers: readonly Record<string, string>[]): MacKeymapDocument {
+function documentOf(
+  layers: readonly Record<string, string>[],
+  layout: MacKeyboardLayout = "jis",
+): MacKeymapDocument {
   return {
+    layout,
     profile: "Cornix Bonsai",
     layers: new Map(
       layers.map((assignments, layer) => [layer, new Map(Object.entries(assignments))]),
@@ -34,6 +38,40 @@ test("Karabiner に無い key_code は error になる", () => {
 
 test("QMK に対応の無い fn は位置として書ける", () => {
   deepStrictEqual(validateMacKeymap(documentOf([{ fn: "KC_A" }])).diagnostics, []);
+});
+
+test("ansi に無い japanese_kana への割り当ては warning になる", () => {
+  // rule は lint を通り load もされるが、キーが無いので決して発火しない（ADR 0024）。
+  const result = validateMacKeymap(documentOf([{ japanese_kana: "KC_A" }], "ansi"));
+  strictEqual(result.diagnostics.length, 1);
+  strictEqual(result.diagnostics[0]?.code, "mac-keymap/position-not-on-layout");
+  strictEqual(result.diagnostics[0]?.severity, "warning");
+  deepStrictEqual(result.diagnostics[0]?.subject, {
+    kind: "macKey",
+    layer: 0,
+    keyCode: "japanese_kana",
+  });
+});
+
+test("同じ割り当てでも jis なら診断を出さない", () => {
+  deepStrictEqual(
+    validateMacKeymap(documentOf([{ japanese_kana: "KC_A" }], "jis")).diagnostics,
+    [],
+  );
+});
+
+test("ansi に無い international3 への割り当ても warning になる", () => {
+  // Inference 側の集合（HID usage の定義上 ANSI に対応キーが無い）も同じ規則で見る。
+  const result = validateMacKeymap(documentOf([{ international3: "KC_A" }], "ansi"));
+  strictEqual(result.diagnostics[0]?.code, "mac-keymap/position-not-on-layout");
+  strictEqual(result.summary.warning, 1);
+});
+
+test("Karabiner に無い key_code は ansi でも unknown-position の error だけになる", () => {
+  // LAYOUT_MISSING_POSITIONS は KARABINER_POSITIONS の部分集合なので二重報告しない。
+  const result = validateMacKeymap(documentOf([{ not_a_key: "KC_A" }], "ansi"));
+  strictEqual(result.diagnostics.length, 1);
+  strictEqual(result.diagnostics[0]?.code, "mac-keymap/unknown-position");
 });
 
 test("書かれていない layer を指す MO は warning になる", () => {

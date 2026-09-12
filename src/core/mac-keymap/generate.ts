@@ -99,7 +99,8 @@ export function generateCornixProfile(document: MacKeymapDocument): {
     profile: {
       name: document.profile,
       complex_modifications: { rules },
-      virtual_hid_keyboard: { keyboard_type_v2: "ansi" },
+      // MacKeyboardLayout の値は Karabiner の keyboard_type_v2 の語彙と一致する（ADR 0024）。
+      virtual_hid_keyboard: { keyboard_type_v2: document.layout },
     },
     diagnostics,
   };

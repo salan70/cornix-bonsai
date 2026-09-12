@@ -12,6 +12,7 @@
  */
 
 import { canonicalKeycode } from "../validation/keycode-vocabulary.ts";
+import type { MacKeyboardLayout } from "./types.ts";
 
 /** `from`〜`to` の連番を `KC_<prefix>n` → `<karabiner>n` の対に展開する。 */
 function numbered(
@@ -157,6 +158,36 @@ export const KARABINER_KEY_CODES: ReadonlyMap<string, string> = new Map<string, 
 export const KARABINER_POSITIONS: ReadonlySet<string> = new Set<string>([
   ...KARABINER_KEY_CODES.values(),
   "fn",
+]);
+
+/**
+ * 物理配列に存在しない位置。`KARABINER_POSITIONS` の部分集合（ADR 0024）。
+ *
+ * ansi の根拠は 2 種で、区別して保守する。
+ * - Fact: `japanese_kana` / `japanese_eisuu` は US 配列 MacBook に無い（2026-09-06 実機確認）
+ * - Inference: `international*` / `non_us_*` は HID usage の定義上 JIS / ISO 配列専用で、
+ *   ANSI 物理配列に対応キーが無い
+ *
+ * jis 側は「JIS 機に無い ANSI 固有キー」の実機 Fact が無いため空。Fact が得られたら
+ * ここへ足すだけで検証が効く。
+ */
+export const LAYOUT_MISSING_POSITIONS: ReadonlyMap<
+  MacKeyboardLayout,
+  ReadonlySet<string>
+> = new Map<MacKeyboardLayout, ReadonlySet<string>>([
+  [
+    "ansi",
+    new Set<string>([
+      // Fact
+      "japanese_kana",
+      "japanese_eisuu",
+      // Inference
+      ...INTERNATIONAL.map(([, keyCode]) => keyCode),
+      "non_us_pound",
+      "non_us_backslash",
+    ]),
+  ],
+  ["jis", new Set<string>()],
 ]);
 
 /**

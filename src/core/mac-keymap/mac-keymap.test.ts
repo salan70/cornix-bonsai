@@ -21,6 +21,7 @@ function layersOf(document: MacKeymapDocument): Record<number, Record<string, st
 test("desired.yaml を読むと疎な map になる", () => {
   const document = parseMacKeymapYaml(readFixture("desired.yaml"));
   strictEqual(document.profile, "Cornix Bonsai");
+  strictEqual(document.layout, "jis");
   // 割り当ての無いキーは書かない。全キーを並べない（ADR 0022）。
   deepStrictEqual(layersOf(document), {
     0: {
@@ -56,6 +57,7 @@ test("desired.yaml は mac-keyboard.yaml を経由して round-trip する", () 
 
 test("serialize は layer 昇順・key_code 名昇順で並べる", () => {
   const text = serializeMacKeymapYaml({
+    layout: "jis",
     profile: "Cornix Bonsai",
     layers: new Map([
       [2, new Map([["z", "KC_Z"]])],
@@ -72,6 +74,7 @@ test("serialize は layer 昇順・key_code 名昇順で並べる", () => {
     text,
     [
       "schema: cornix-bonsai/mac-keymap@1",
+      "layout: jis",
       'profile: "Cornix Bonsai"',
       "layers:",
       "  0:",
@@ -81,6 +84,39 @@ test("serialize は layer 昇順・key_code 名昇順で並べる", () => {
       '    "z": "KC_Z"',
       "",
     ].join("\n"),
+  );
+});
+
+test("layout を省略すると jis になる", () => {
+  // 既存の mac-keyboard.yaml（layout 行なし）を壊さないための既定（ADR 0024）。
+  const document = parseMacKeymapYaml(
+    ["schema: cornix-bonsai/mac-keymap@1", 'profile: "x"', "layers:", "  0:"].join("\n"),
+  );
+  strictEqual(document.layout, "jis");
+});
+
+test("layout: ansi の document も round-trip する", () => {
+  const document = parseMacKeymapYaml(
+    [
+      "schema: cornix-bonsai/mac-keymap@1",
+      "layout: ansi",
+      'profile: "x"',
+      "layers:",
+      "  0:",
+      '    "a": "KC_A"',
+    ].join("\n"),
+  );
+  strictEqual(document.layout, "ansi");
+  deepStrictEqual(parseMacKeymapYaml(serializeMacKeymapYaml(document)), document);
+});
+
+test("未対応の layout は読まずに落ちる", () => {
+  throws(
+    () =>
+      parseMacKeymapYaml(
+        ["schema: cornix-bonsai/mac-keymap@1", "layout: iso", 'profile: "x"', "layers:"].join("\n"),
+      ),
+    MacKeymapParseError,
   );
 });
 

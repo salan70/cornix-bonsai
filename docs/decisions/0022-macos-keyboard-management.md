@@ -191,3 +191,4 @@ Karabiner-Elementsに寄せるか、同等品を自作するかになる。
   順序の制御はCLIがprofileを所有して書くことでのみ成立する（所有境界の決定を補強する）
 - US配列のMacBookには`japanese_kana` / `japanese_eisuu`の物理キーが存在しない。
   desired stateのfromキーは対象マシンの物理配列に依存するため、#21でvalidationの扱いを検討する
+  → ADR 0024（#23）で解消。`layout`宣言と`mac-keymap/position-not-on-layout`（warning）を導入した

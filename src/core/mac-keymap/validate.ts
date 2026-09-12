@@ -4,9 +4,10 @@
  * `validation/validate.ts` の `validateKeymap` は `VilDocument` と `KeyboardDefinition` を
  * 前提にするため使えない。合成の入口を Mac 側に別途置く（ADR 0022）。
  *
- * severity の判定規則は ADR 0010 のまま。Karabiner へ落とせないことは
- * **機能そのものが無くなる**ので error、書いたとおりには入るが効かないだけのものは
- * information にする。
+ * severity の判定規則は ADR 0010 のまま。Karabiner へ落とせず**機能そのものが無くなる**
+ * ものは error、割り当てが 1 件単位で静かに失われるもの（宣言した配列に無い from キーは
+ * 決して発火しない）は warning、情報が保持されていて判断をユーザーへ委ねられるもの
+ * （unreachable-layer）は information にする（ADR 0024）。
  *
  */
 
@@ -19,7 +20,7 @@ import {
 } from "../validation/types.ts";
 import { classifyKeycode } from "../validation/keycode-vocabulary.ts";
 import { generateKarabinerRules } from "./generate.ts";
-import { KARABINER_POSITIONS } from "./key-codes.ts";
+import { KARABINER_POSITIONS, LAYOUT_MISSING_POSITIONS } from "./key-codes.ts";
 import type { MacKeymapDocument } from "./types.ts";
 
 /** 検証の結果。 */
@@ -36,6 +37,7 @@ export interface MacValidationResult {
 export function validateMacKeymap(document: MacKeymapDocument): MacValidationResult {
   const diagnostics: Diagnostic[] = [
     ...unknownPositions(document),
+    ...positionsNotOnLayout(document),
     ...unknownLayers(document),
     // 表現可能性は生成器が判定する。落とせないものは manipulator を出さずに error を積む。
     ...generateKarabinerRules(document).diagnostics,
@@ -57,6 +59,33 @@ function unknownPositions(document: MacKeymapDocument): readonly Diagnostic[] {
           { kind: "macKey", layer, keyCode },
           `${keyCode} は Karabiner の key_code に無い`,
           { keyCode },
+        ),
+      );
+    }
+  }
+  return diagnostics;
+}
+
+/**
+ * 宣言した物理配列に存在しない位置。rule は lint を通り load もされるが、そのキーが
+ * 押せないため manipulator が決して発火しない。割り当てが 1 件単位で静かに失われるので
+ * warning（ADR 0024）。`KARABINER_POSITIONS` に無いものは `unknown-position` が error で
+ * 報告済みなので見ない（`LAYOUT_MISSING_POSITIONS` は部分集合）。
+ */
+function positionsNotOnLayout(document: MacKeymapDocument): readonly Diagnostic[] {
+  const missing = LAYOUT_MISSING_POSITIONS.get(document.layout);
+  if (missing === undefined || missing.size === 0) return [];
+  const diagnostics: Diagnostic[] = [];
+  for (const [layer, assignments] of [...document.layers.entries()].sort(([a], [b]) => a - b)) {
+    for (const keyCode of [...assignments.keys()].sort()) {
+      if (!missing.has(keyCode)) continue;
+      diagnostics.push(
+        createDiagnostic(
+          "mac-keymap/position-not-on-layout",
+          "warning",
+          { kind: "macKey", layer, keyCode },
+          `${keyCode} は ${document.layout} 配列の内蔵キーボードに無い`,
+          { keyCode, layout: document.layout },
         ),
       );
     }

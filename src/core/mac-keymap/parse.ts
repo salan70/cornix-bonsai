@@ -9,13 +9,20 @@
  *
  */
 
-import { MAC_KEYMAP_SCHEMA, MacKeymapParseError, type MacKeymapDocument } from "./types.ts";
+import {
+  DEFAULT_MAC_LAYOUT,
+  MAC_KEYMAP_SCHEMA,
+  MacKeymapParseError,
+  type MacKeyboardLayout,
+  type MacKeymapDocument,
+} from "./types.ts";
 
 const LAYER_PATTERN = /^ {2}([0-9]+):$/;
 const ASSIGNMENT_PATTERN = /^ {4}("(?:\\.|[^"\\])*"):(?:\s+)(.*)$/;
 
 /** @doc docs/specs/mac-keymap.md#parsemackeymapyaml */
 export function parseMacKeymapYaml(text: string): MacKeymapDocument {
+  let layout: MacKeyboardLayout | undefined;
   let profile: string | undefined;
   let sawLayers = false;
   let current: Map<string, string> | undefined;
@@ -31,6 +38,14 @@ export function parseMacKeymapYaml(text: string): MacKeymapDocument {
       if (schema !== MAC_KEYMAP_SCHEMA) {
         throw new MacKeymapParseError(`mac-keyboard.yaml の schema が未対応: ${schema}`);
       }
+      continue;
+    }
+    if (line.startsWith("layout:")) {
+      const value = line.slice("layout:".length).trim();
+      if (value !== "ansi" && value !== "jis") {
+        throw new MacKeymapParseError(`mac-keyboard.yaml の layout が未対応: ${value}`);
+      }
+      layout = value;
       continue;
     }
     if (line.startsWith("profile:")) {
@@ -70,7 +85,7 @@ export function parseMacKeymapYaml(text: string): MacKeymapDocument {
 
   if (profile === undefined) throw new MacKeymapParseError("mac-keyboard.yaml に profile が無い");
   if (!sawLayers) throw new MacKeymapParseError("mac-keyboard.yaml に layers が無い");
-  return { profile, layers };
+  return { layout: layout ?? DEFAULT_MAC_LAYOUT, profile, layers };
 }
 
 function unquote(value: string, lineNumber: number): string {

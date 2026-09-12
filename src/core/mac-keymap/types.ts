@@ -11,6 +11,15 @@
 export const MAC_KEYMAP_SCHEMA = "cornix-bonsai/mac-keymap@1";
 
 /**
+ * 対象マシンの内蔵キーボードの物理配列。値は Karabiner の `keyboard_type_v2` と同じ語彙
+ * （ADR 0024）。ANSI / JIS 以外は扱わない（#23 の対象外）。
+ */
+export type MacKeyboardLayout = "ansi" | "jis";
+
+/** YAML で `layout` を省略したときの既定。既存 fixture と実運用が JIS 前提（ADR 0024）。 */
+export const DEFAULT_MAC_LAYOUT: MacKeyboardLayout = "jis";
+
+/**
  * Cornix Bonsai が所有する Karabiner profile の名前。
  *
  * `karabiner.json` の `profiles[]` のうち、この名前の 1 個だけを書き換える。
@@ -32,6 +41,8 @@ export type MacLayerAssignments = ReadonlyMap<string, string>;
  * @doc docs/specs/mac-keymap.md#mackeymapdocument
  */
 export interface MacKeymapDocument {
+  /** 対象マシンの物理配列。YAML で省略された場合は parse が `DEFAULT_MAC_LAYOUT` を埋める。 */
+  readonly layout: MacKeyboardLayout;
   /** 所有する Karabiner profile の名前。通常は `CORNIX_PROFILE_NAME`。 */
   readonly profile: string;
   /** layer 番号 → 割り当て。layer 番号も疎で、連続している必要は無い。 */

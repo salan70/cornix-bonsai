@@ -30,6 +30,11 @@ desired stateの内容です。schema識別子は`cornix-bonsai/mac-keymap@1`で
 `profile`はCornixが所有するKarabiner profileの名前です。`karabiner.json`の`profiles[]`の
 うちこの名前の1個だけを書き換え、`global`と他のprofile、`selected`には触りません。
 
+`layout`は対象マシンの内蔵キーボードの物理配列（`ansi` / `jis`）です。fromキーの妥当性が
+物理配列に依存するため（US配列に`japanese_kana`は無い）、keymapの前提条件として宣言します
+（ADR 0024）。YAMLでは省略でき、省略時は`jis`です。型の上では必須で、既定値を埋めるのは
+parseだけの責務です。
+
 <!-- @code src/core/mac-keymap/serialize.ts#serializeMacKeymapYaml -->
 
 ## serializeMacKeymapYaml
@@ -38,6 +43,7 @@ desired stateの内容です。schema識別子は`cornix-bonsai/mac-keymap@1`で
 
 ```text
 schema: cornix-bonsai/mac-keymap@1
+layout: jis
 profile: "Cornix Bonsai"
 layers:
   0:
@@ -54,6 +60,8 @@ layers:
 並び順はlayer昇順・`key_code`名昇順で固定します。生成器がmanipulatorを並べる規則と
 同じにして、手で並べ替えてもdiffが動かないようにします。
 
+`layout`行は省略時の既定があっても**常に**書き出します。正規形は明示です（ADR 0024）。
+
 <!-- @code src/core/mac-keymap/parse.ts#parseMacKeymapYaml -->
 
 ## parseMacKeymapYaml
@@ -65,6 +73,7 @@ layers:
 受け付ける形はインデントの深さで決まります。2がlayer番号、4が割り当てです。
 値は`JSON.stringify` / `JSON.parse`で引用します。schemaが一致しない、layer番号が重複する、
 同じlayerで`key_code`が重複する、`profile`が無い場合はすべて落とします。
+`layout`は省略なら`jis`、`ansi` / `jis`以外の値なら落とします（ADR 0024）。
 
 `parse(serialize(x))`が`x`と等しくなることを`fixtures/mac-keyboard/desired.yaml`で検証します。
 
@@ -92,6 +101,12 @@ Karabinerは生成器が落とせなければ機能そのものが無くなる�
 
 位置として書ける`key_code`名は`KARABINER_POSITIONS`です。表の値に、QMK側へ対応の無い
 MacBookの`fn`を足したものです。
+
+語彙として正当でも、宣言した物理配列に存在しない位置は`LAYOUT_MISSING_POSITIONS`
+（`KARABINER_POSITIONS`の部分集合）で判定し、`mac-keymap/position-not-on-layout`（warning）に
+します。`ansi`側の集合はFact（`japanese_kana` / `japanese_eisuu`、実機確認）とInference
+（`international*` / `non_us_*`、HID usageの定義上ANSIに対応キーが無い）を区別して持ち、
+`jis`側は実機Factが無いため空です（ADR 0024）。
 
 <!-- @code src/core/mac-keymap/generate.ts#generateKarabinerRules -->
 
@@ -143,6 +158,9 @@ Browser UIとCLIの`cornix mac generate`はこの形を`cornix/generated/`へ書
 `selected`も`simple_modifications`も持たせません。profileの切り替えはユーザーの操作です
 （ADR 0022）。
 
+`virtual_hid_keyboard.keyboard_type_v2`はdocumentの`layout`から導出します。
+`MacKeyboardLayout`の値はKarabinerの語彙と一致するため写像表を持ちません（ADR 0024）。
+
 <!-- @code src/core/mac-keymap/validate.ts#validateMacKeymap -->
 
 ## validateMacKeymap
@@ -150,8 +168,9 @@ Browser UIとCLIの`cornix mac generate`はこの形を`cornix/generated/`へ書
 desired stateの検証の入口です。`validation/validate.ts`の`validateKeymap`は`VilDocument`と
 `KeyboardDefinition`を前提にするため使えません。合成の入口をMac側に別途置きます（ADR 0022）。
 
-severityの判定規則はADR 0010のままです。Karabinerへ落とせないことは**機能そのものが
-無くなる**のでerror、書いたとおりには入るが効かないだけのものはinformationにします。
+severityの判定規則はADR 0010のままです。Karabinerへ落とせず**機能そのものが無くなる**
+ものはerror、割り当てが1件単位で静かに失われるものはwarning、情報が保持されていて判断を
+ユーザーへ委ねられるものはinformationにします（ADR 0024）。
 
 | code                                     | severity    | 事実                                            |
 | ---------------------------------------- | ----------- | ----------------------------------------------- |
@@ -159,6 +178,7 @@ severityの判定規則はADR 0010のままです。Karabinerへ落とせない�
 | `mac-keymap/unsupported-keycode`         | error       | 対応する`key_code`が無い、または落とせない構文  |
 | `mac-keymap/unsupported-mod-tap`         | error       | mod-tapのmodifierかtap側を落とせない            |
 | `mac-keymap/unsupported-layer-tap-inner` | error       | `LT`のtap側を落とせない                         |
+| `mac-keymap/position-not-on-layout`      | warning     | 宣言した配列に無いfromキー。決して発火しない    |
 | `mac-keymap/unknown-layer`               | warning     | 書かれていないlayerを指す`MO` / `LT` / `TG`     |
 | `mac-keymap/unreachable-layer`           | information | layer 0から辿り着くkeycodeが無い                |
 

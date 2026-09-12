@@ -15,13 +15,17 @@ import {
 } from "./generate.ts";
 import type { KarabinerManipulator } from "./karabiner.ts";
 import { parseMacKeymapYaml } from "./parse.ts";
-import type { MacKeymapDocument } from "./types.ts";
+import type { MacKeyboardLayout, MacKeymapDocument } from "./types.ts";
 
 const FIXTURES = join(import.meta.dirname, "../../../fixtures/mac-keyboard");
 const DESIRED = parseMacKeymapYaml(readFileSync(join(FIXTURES, "desired.yaml"), "utf8"));
 
-function documentOf(layers: readonly Record<string, string>[]): MacKeymapDocument {
+function documentOf(
+  layers: readonly Record<string, string>[],
+  layout: MacKeyboardLayout = "jis",
+): MacKeymapDocument {
   return {
+    layout,
     profile: "Cornix Bonsai",
     layers: new Map(
       layers.map((assignments, layer) => [layer, new Map(Object.entries(assignments))]),
@@ -189,5 +193,11 @@ test("profile は selected も simple_modifications も持たない", () => {
   strictEqual(profile.name, "Cornix Bonsai");
   strictEqual("selected" in profile, false);
   strictEqual("simple_modifications" in profile, false);
+  // DESIRED（fixture）は layout: jis なので keyboard_type_v2 も jis になる（ADR 0024）。
+  deepStrictEqual(profile.virtual_hid_keyboard, { keyboard_type_v2: "jis" });
+});
+
+test("keyboard_type_v2 は document の layout から導出する", () => {
+  const { profile } = generateCornixProfile(documentOf([{ a: "KC_A" }], "ansi"));
   deepStrictEqual(profile.virtual_hid_keyboard, { keyboard_type_v2: "ansi" });
 });
