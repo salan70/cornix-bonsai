@@ -108,6 +108,21 @@ MacBookの`fn`を足したものです。
 （`international*` / `non_us_*`、HID usageの定義上ANSIに対応キーが無い）を区別して持ち、
 `jis`側は実機Factが無いため空です（ADR 0024）。
 
+<!-- @code src/core/mac-keymap/edit.ts#setMacAssignment -->
+<!-- @code src/core/mac-keymap/edit.ts#clearMacAssignment -->
+<!-- @code src/core/mac-keymap/edit.ts#addMacLayer -->
+
+## Mac edit
+
+意味単位の編集操作です。`semantic-model.md`の`setKeyAssignment`と同じ思想で、keycodeは
+正規化せず渡された表記のまま置き、妥当性の判定は`validateMacKeymap`に委ねます（ADR 0025）。
+すべてcopy-on-writeの純関数で、元のdocumentを変更しません。
+
+Vial側と違いlayersは疎なmapなので「範囲外」という概念が無く、`setMacAssignment`は
+無いlayerへの書き込みでlayerを作ります。`clearMacAssignment`は割り当てを外して素通しへ
+戻します。`KC_NO`（イベントを捨てる）と削除（素通し）は別セマンティクスです（ADR 0022）。
+空になったlayerは残します。「割り当てを外したらlayerが消える」という驚きを避けるためです。
+
 <!-- @code src/core/mac-keymap/physical-layout.ts#MacPhysicalKey -->
 <!-- @code src/core/mac-keymap/physical-layout.ts#macPhysicalLayout -->
 

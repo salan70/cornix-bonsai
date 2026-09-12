@@ -35,3 +35,12 @@ CLI専用のままで、UIは編集・validation・書き出しまで。
     未実施 → ADR 0025のOpen Question）
 - test: `KARABINER_POSITIONS`整合・重複なし・`LAYOUT_MISSING_POSITIONS`不侵入・
   矩形の重なりなし（AABB + ε）・fixture全from位置の被覆・外形14.5u x 5.65u
+
+## Step 3: Core編集関数
+
+- `src/core/mac-keymap/edit.ts` — `setMacAssignment` / `clearMacAssignment` / `addMacLayer`。
+  `src/core/model/edit.ts`と同じ思想（表記のまま置く、妥当性はvalidationへ委任）
+- 疎なmapゆえの違い: 「範囲外」が無く、無いlayerへの書き込みはlayerを作る。
+  削除（素通し）と`KC_NO`（イベント破棄）は別セマンティクスなので削除専用関数を持つ。
+  空になったlayerは残す（layer chipが消える驚きを避ける）
+- test: 不変性・layer自動生成・同一document返却（no-op時）・空layerのround-trip
