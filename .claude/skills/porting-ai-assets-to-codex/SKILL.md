@@ -40,6 +40,12 @@ Claude 用 AI assets を元に、Codex 用 AI assets を symlink なしで作成
 | `ask_user_input` 前提 | 通常の会話確認、または利用可能な Codex 入力手段 |
 | Task tool / Claude subagent 表現 | Codex のサブエージェント可用性に応じた表現 |
 
+## Codex での注意
+
+- ユーザーが明示的に subagent / parallel agent を求めた場合のみ Codex サブエージェントを使う。
+- ファイル編集は apply_patch を優先する。
+- 承認 UI や権限昇格は Codex の実行環境に従う。
+
 ## 検証
 
 ```bash
