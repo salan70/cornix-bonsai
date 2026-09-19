@@ -119,8 +119,15 @@ MacBookの`fn`を足したものです。
 語彙として正当でも、宣言した物理配列に存在しない位置は`LAYOUT_MISSING_POSITIONS`
 （`KARABINER_POSITIONS`の部分集合）で判定し、`mac-keymap/position-not-on-layout`（warning）に
 します。`ansi`側の集合はFact（`japanese_kana` / `japanese_eisuu`、実機確認）とInference
-（`international*` / `non_us_*`、HID usageの定義上ANSIに対応キーが無い）を区別して持ち、
-`jis`側は実機Factが無いため空です（ADR 0024）。
+（`international*` / `non_us_*`、HID usageの定義上ANSIに対応キーが無い）を区別して持ちます。
+`jis`側は`grave_accent_and_tilde` / `right_option`で、MacBookのJIS盤面に無いことからの
+Inferenceです（ADR 0024・0025）。
+
+**この集合は盤面の差を覆っていなければなりません。** 片方の盤面にあってもう片方に無い
+位置が漏れると、その割り当てが無診断で静かに失われます。`physical-layout.test.ts`が
+両方向で検証します。両方の盤面に無い位置（`keypad_*` / `f13`〜`f24` / メディアキーなど）は
+入れません。物理キーが`fn`の状態で別のusageを送るため、盤面に無いことが「発火しない」の
+根拠になりません。
 
 <!-- @code src/core/mac-keymap/edit.ts#setMacAssignment -->
 <!-- @code src/core/mac-keymap/edit.ts#clearMacAssignment -->
@@ -150,7 +157,8 @@ row / colは持ちません。rotationは常に0で、`src/render/geometry.ts`�
 構造的部分型として満たすため、盤面描画はCornix側と同じgeometryを通ります。
 
 手書きデータの正しさはtestの不変条件で固定します: 全キーが`KARABINER_POSITIONS`に
-属する・重複なし・`LAYOUT_MISSING_POSITIONS`のキーを置かない・矩形が重ならない・
+属する・重複なし・`LAYOUT_MISSING_POSITIONS`のキーを置かない・**片方の盤面にしかない位置が
+もう片方の`LAYOUT_MISSING_POSITIONS`に入っている**・矩形が重ならない・
 fixtureの全from位置を被覆する。座標と幅はApple公開の製品画像からの読み取り
 （Inference）です。Touch ID / 電源は`key_code`が無いため盤面に置かず、JISの縦長Returnは
 矩形で近似します。

@@ -168,8 +168,18 @@ export const KARABINER_POSITIONS: ReadonlySet<string> = new Set<string>([
  * - Inference: `international*` / `non_us_*` は HID usage の定義上 JIS / ISO 配列専用で、
  *   ANSI 物理配列に対応キーが無い
  *
- * jis 側は「JIS 機に無い ANSI 固有キー」の実機 Fact が無いため空。Fact が得られたら
- * ここへ足すだけで検証が効く。
+ * jis の根拠は 1 種。
+ * - Inference: `grave_accent_and_tilde` / `right_option` は MacBook の JIS 盤面
+ *   （`physical-layout.ts`）に無い。盤面自体が Apple 公開画像からの読み取りで、
+ *   実機 Fact ではない（ADR 0025 の Open Question）
+ *
+ * **この集合は盤面の差を覆っていなければならない。** 片方の盤面にあって
+ * もう片方に無い位置が漏れると、その割り当てが無診断で静かに失われる。
+ * `physical-layout.test.ts` が両方向で検証する。
+ *
+ * なお両方の盤面に無い位置（`keypad_*` / `f13`〜`f24` / メディアキーなど）はここへ
+ * 入れない。物理キーが fn の状態で別 usage を送るため、盤面に無いことが
+ * 「発火しない」の根拠にならない。
  */
 export const LAYOUT_MISSING_POSITIONS: ReadonlyMap<
   MacKeyboardLayout,
@@ -187,7 +197,14 @@ export const LAYOUT_MISSING_POSITIONS: ReadonlyMap<
       "non_us_backslash",
     ]),
   ],
-  ["jis", new Set<string>()],
+  [
+    "jis",
+    new Set<string>([
+      // Inference
+      "grave_accent_and_tilde",
+      "right_option",
+    ]),
+  ],
 ]);
 
 /**

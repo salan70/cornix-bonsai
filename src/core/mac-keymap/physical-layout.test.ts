@@ -41,6 +41,21 @@ test("その配列に存在しない位置（LAYOUT_MISSING_POSITIONS）を盤�
   }
 });
 
+test("片方の盤面にしかない位置は、もう片方の LAYOUT_MISSING_POSITIONS に入っている", () => {
+  // 漏れると、その割り当てが無診断で静かに失われる。実際 jis 側が空集合のまま放置され、
+  // grave_accent_and_tilde / right_option への割り当てが検出されなかった。
+  for (const layout of LAYOUTS) {
+    const other = layout === "jis" ? "ansi" : "jis";
+    const here = new Set(macPhysicalLayout(layout).map((key) => key.keyCode));
+    const missing = LAYOUT_MISSING_POSITIONS.get(layout);
+    ok(missing !== undefined);
+    for (const { keyCode } of macPhysicalLayout(other)) {
+      if (here.has(keyCode)) continue;
+      ok(missing.has(keyCode), `${other} にあって ${layout} に無い ${keyCode} が未登録`);
+    }
+  }
+});
+
 test("矩形は重ならない", () => {
   // 手書き座標の typo 検出器。接するのは正常なので ε だけ食い込みを許す。
   const EPSILON = 1e-9;

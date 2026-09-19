@@ -79,6 +79,12 @@ JIS前提のfixture（`fixtures/mac-keyboard/desired.yaml`）と既に矛盾し�
 
 ## Open Question
 
-- JIS配列のMacBookに存在しないANSI固有キー（例: `grave_accent_and_tilde`の有無）は
+- ~~JIS配列のMacBookに存在しないANSI固有キー（例: `grave_accent_and_tilde`の有無）は
   実機Factが無いため、`jis`側の集合は空にしてある。Factが得られたら
-  `LAYOUT_MISSING_POSITIONS`へのデータ追加だけで対応できる
+  `LAYOUT_MISSING_POSITIONS`へのデータ追加だけで対応できる~~
+
+  2026-09-19に解決。ADR 0025でJIS / ANSIの盤面データが入ったため、盤面の差
+  （`grave_accent_and_tilde` / `right_option`）から`jis`側の集合を埋めた。根拠は実機Factでは
+  なく盤面からのInferenceで、盤面自体の実機照合はADR 0025のOpen Questionに残る。
+  空集合のまま放置していた間、この2キーへの割り当ては無診断で失われていた。
+  漏れを再発させないよう、盤面の差を両方向で検証する不変条件testを足した

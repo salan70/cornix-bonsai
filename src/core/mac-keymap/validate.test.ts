@@ -104,3 +104,20 @@ test("devices が空なら適用先が無いので error", () => {
   const diagnostic = result.diagnostics.find((d) => d.code === "mac-keymap/no-target-device");
   strictEqual(diagnostic?.severity, "error");
 });
+
+test("JIS 盤面に無い ANSI 固有キーへの割り当ては warning", () => {
+  const result = validateMacKeymap(
+    documentOf([{ grave_accent_and_tilde: "KC_ESCAPE", right_option: "KC_A" }], "jis"),
+  );
+  const codes = result.diagnostics
+    .filter((d) => d.code === "mac-keymap/position-not-on-layout")
+    .map((d) => (d.subject.kind === "macKey" ? d.subject.keyCode : ""))
+    .sort();
+  deepStrictEqual(codes, ["grave_accent_and_tilde", "right_option"]);
+  strictEqual(
+    result.diagnostics.every(
+      (d) => d.code !== "mac-keymap/position-not-on-layout" || d.severity === "warning",
+    ),
+    true,
+  );
+});
