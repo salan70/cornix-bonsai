@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { parseMacKeymapYaml } from "./parse.ts";
 import { serializeMacKeymapYaml } from "./serialize.ts";
-import { MacKeymapParseError, type MacKeymapDocument } from "./types.ts";
+import { DEFAULT_MAC_DEVICES, MacKeymapParseError, type MacKeymapDocument } from "./types.ts";
 
 const FIXTURES = join(import.meta.dirname, "../../../fixtures/mac-keyboard");
 const readFixture = (name: string) => readFileSync(join(FIXTURES, name), "utf8");
@@ -58,6 +58,7 @@ test("desired.yaml は mac-keyboard.yaml を経由して round-trip する", () 
 test("serialize は layer 昇順・key_code 名昇順で並べる", () => {
   const text = serializeMacKeymapYaml({
     layout: "jis",
+    devices: DEFAULT_MAC_DEVICES,
     profile: "Cornix Bonsai",
     layers: new Map([
       [2, new Map([["z", "KC_Z"]])],
@@ -75,6 +76,8 @@ test("serialize は layer 昇順・key_code 名昇順で並べる", () => {
     [
       "schema: cornix-bonsai/mac-keymap@1",
       "layout: jis",
+      "devices:",
+      "  - { built_in: true }",
       'profile: "Cornix Bonsai"',
       "layers:",
       "  0:",
@@ -179,4 +182,57 @@ test("profile が無ければ落ちる", () => {
     () => parseMacKeymapYaml("schema: cornix-bonsai/mac-keymap@1\nlayers:\n"),
     MacKeymapParseError,
   );
+});
+
+test("devices を省略した設定は内蔵キーボードだけを対象にする", () => {
+  const document = parseMacKeymapYaml(
+    [
+      "schema: cornix-bonsai/mac-keymap@1",
+      "layout: jis",
+      'profile: "Cornix Bonsai"',
+      "layers:",
+      "  0:",
+      '    "a": "KC_A"',
+    ].join("\n"),
+  );
+  deepStrictEqual(document.devices, DEFAULT_MAC_DEVICES);
+});
+
+test("内蔵と外付けを並べた devices が round-trip する", () => {
+  const document: MacKeymapDocument = {
+    layout: "ansi",
+    devices: [{ builtIn: true }, { vendorId: 1452, productId: 630 }],
+    profile: "Cornix Bonsai",
+    layers: new Map([[0, new Map([["a", "KC_A"]])]]),
+  };
+  const text = serializeMacKeymapYaml(document);
+  strictEqual(
+    text.includes("devices:\n  - { built_in: true }\n  - { vendor_id: 1452, product_id: 630 }\n"),
+    true,
+  );
+  deepStrictEqual(parseMacKeymapYaml(text), document);
+});
+
+test("devices を 2 回書いた設定は落ちる", () => {
+  const text = [
+    "schema: cornix-bonsai/mac-keymap@1",
+    "devices:",
+    "  - { built_in: true }",
+    "devices:",
+    "  - { built_in: true }",
+    'profile: "Cornix Bonsai"',
+    "layers:",
+  ].join("\n");
+  throws(() => parseMacKeymapYaml(text), MacKeymapParseError);
+});
+
+test("解釈できない devices の行は落ちる", () => {
+  const text = [
+    "schema: cornix-bonsai/mac-keymap@1",
+    "devices:",
+    "  - { vendor_id: 1452 }",
+    'profile: "Cornix Bonsai"',
+    "layers:",
+  ].join("\n");
+  throws(() => parseMacKeymapYaml(text), MacKeymapParseError);
 });

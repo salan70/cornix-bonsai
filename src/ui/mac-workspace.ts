@@ -10,6 +10,7 @@ import { parseMacKeymapYaml } from "../core/mac-keymap/parse.ts";
 import { serializeMacKeymapYaml } from "../core/mac-keymap/serialize.ts";
 import {
   CORNIX_PROFILE_NAME,
+  DEFAULT_MAC_DEVICES,
   DEFAULT_MAC_LAYOUT,
   type MacKeymapDocument,
 } from "../core/mac-keymap/types.ts";
@@ -50,10 +51,11 @@ export async function probeMacKeymap(
   }
 }
 
-/** 作成導線が書く初期状態。既定 layout と空の layer 0 だけを持つ。 */
+/** 作成導線が書く初期状態。既定 layout・既定 device と空の layer 0 だけを持つ。 */
 export function initialMacKeymapYaml(): string {
   const document: MacKeymapDocument = {
     layout: DEFAULT_MAC_LAYOUT,
+    devices: DEFAULT_MAC_DEVICES,
     profile: CORNIX_PROFILE_NAME,
     layers: new Map([[0, new Map()]]),
   };

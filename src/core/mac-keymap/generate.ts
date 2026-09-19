@@ -21,16 +21,28 @@ import type {
   KarabinerProfile,
   KarabinerRule,
 } from "./karabiner.ts";
-import type { MacKeymapDocument } from "./types.ts";
+import type { MacDeviceIdentifier, MacKeymapDocument } from "./types.ts";
 
 /** layer 変数の名前空間。Karabiner の変数は global なので接頭辞で隔離する。 */
 const LAYER_VARIABLE_PREFIX = "cornix_layer_";
 
-/** 内蔵キーボードだけを対象にする条件。ADR 0022 の device スコープ。 */
-const BUILT_IN_ONLY: KarabinerCondition = {
-  type: "device_if",
-  identifiers: [{ is_built_in_keyboard: true }],
-};
+/**
+ * 適用先デバイスの条件。`identifiers` は OR なので 1 条件で複数デバイスを指せる。
+ *
+ * 内蔵限定を固定していたのを document の宣言から組むようにした（ADR 0026）。内蔵の
+ * ANSI 機と外付けの US キーボードへ同じ設定を効かせるのに必要で、Karabiner の語彙への
+ * 写像はここだけが持つ。
+ */
+function deviceCondition(devices: readonly MacDeviceIdentifier[]): KarabinerCondition {
+  return {
+    type: "device_if",
+    identifiers: devices.map((device) =>
+      "builtIn" in device
+        ? { is_built_in_keyboard: true }
+        : { vendor_id: device.vendorId, product_id: device.productId },
+    ),
+  };
+}
 
 /** 生成結果。manipulator が出ない理由は必ず diagnostic か「素通しで正しい」のどちらか。 */
 export interface GeneratedRules {
@@ -51,6 +63,7 @@ export function generateKarabinerRules(document: MacKeymapDocument): GeneratedRu
   const rules: KarabinerRule[] = [];
   const base = document.layers.get(0);
   const layers = [...document.layers.keys()].sort((a, b) => b - a);
+  const device = deviceCondition(document.devices);
 
   for (const layer of layers) {
     const assignments = document.layers.get(layer);
@@ -61,7 +74,7 @@ export function generateKarabinerRules(document: MacKeymapDocument): GeneratedRu
       if (keycode === undefined) continue;
       // layer 0 と同値なら出さない。出しても素通しと同じ結果にしかならない。
       if (layer > 0 && base?.get(keyCode) === keycode) continue;
-      manipulators.push(...manipulatorsForKey(keyCode, keycode, layer, diagnostics));
+      manipulators.push(...manipulatorsForKey(keyCode, keycode, layer, device, diagnostics));
     }
     if (manipulators.length === 0) continue;
     rules.push({ description: `${document.profile} layer ${layer}`, manipulators });
@@ -110,11 +123,11 @@ function layerVariable(layer: number): string {
   return `${LAYER_VARIABLE_PREFIX}${layer}`;
 }
 
-/** layer n を条件に加える。layer 0 は無条件。 */
-function conditionsFor(layer: number): readonly KarabinerCondition[] {
+/** layer n を条件に加える。layer 0 は device 条件だけ。 */
+function conditionsFor(layer: number, device: KarabinerCondition): readonly KarabinerCondition[] {
   return layer === 0
-    ? [BUILT_IN_ONLY]
-    : [BUILT_IN_ONLY, { type: "variable_if", name: layerVariable(layer), value: 1 }];
+    ? [device]
+    : [device, { type: "variable_if", name: layerVariable(layer), value: 1 }];
 }
 
 /** どの layer の manipulator も修飾キーは素通しさせる。 */
@@ -146,10 +159,11 @@ function manipulatorsForKey(
   keyCode: string,
   keycode: string,
   layer: number,
+  device: KarabinerCondition,
   diagnostics: Diagnostic[],
 ): readonly KarabinerManipulator[] {
   const lexeme = classifyKeycode(keycode);
-  const conditions = conditionsFor(layer);
+  const conditions = conditionsFor(layer, device);
   const from = fromKey(keyCode);
 
   switch (lexeme.kind) {

@@ -36,6 +36,7 @@ export interface MacValidationResult {
  */
 export function validateMacKeymap(document: MacKeymapDocument): MacValidationResult {
   const diagnostics: Diagnostic[] = [
+    ...emptyDevices(document),
     ...unknownPositions(document),
     ...positionsNotOnLayout(document),
     ...unknownLayers(document),
@@ -44,6 +45,24 @@ export function validateMacKeymap(document: MacKeymapDocument): MacValidationRes
     ...unreachableLayers(document),
   ];
   return { diagnostics, summary: summarize(diagnostics) };
+}
+
+/**
+ * 適用先デバイスが 1 つも無い設定。
+ *
+ * `device_if` の identifiers が空だと、どの manipulator もマッチしない。書いた割り当てが
+ * 1 件残らず効かなくなるので error（ADR 0010 の「機能そのものが無くなる」）。
+ */
+function emptyDevices(document: MacKeymapDocument): readonly Diagnostic[] {
+  if (document.devices.length > 0) return [];
+  return [
+    createDiagnostic(
+      "mac-keymap/no-target-device",
+      "error",
+      { kind: "document" },
+      "devices が空なので、どのキーボードにも適用されない",
+    ),
+  ];
 }
 
 /** Karabiner の `key_code` として存在しない位置。lint を通らないので error。 */

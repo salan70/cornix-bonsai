@@ -11,14 +11,16 @@
  *
  */
 
-import { MAC_KEYMAP_SCHEMA, type MacKeymapDocument } from "./types.ts";
+import { MAC_KEYMAP_SCHEMA, type MacDeviceIdentifier, type MacKeymapDocument } from "./types.ts";
 
 /** @doc docs/specs/mac-keymap.md#serializemackeymapyaml */
 export function serializeMacKeymapYaml(document: MacKeymapDocument): string {
-  // layout は省略時の既定があっても常に書く。正規形は明示（ADR 0024）。
+  // layout と devices は省略時の既定があっても常に書く。正規形は明示（ADR 0024・0026）。
   const lines = [
     `schema: ${MAC_KEYMAP_SCHEMA}`,
     `layout: ${document.layout}`,
+    "devices:",
+    ...document.devices.map((device) => `  - ${deviceFlow(device)}`),
     `profile: ${quote(document.profile)}`,
     "layers:",
   ];
@@ -31,6 +33,18 @@ export function serializeMacKeymapYaml(document: MacKeymapDocument): string {
     }
   }
   return `${lines.join("\n")}\n`;
+}
+
+/**
+ * device 1 個を 1 行の flow mapping にする。
+ *
+ * 疎な map を 1 行ずつ置くこの file の方針に合わせ、block mapping へは展開しない。
+ * parser が受ける形もこの 2 形だけ（ADR 0026）。
+ */
+function deviceFlow(device: MacDeviceIdentifier): string {
+  return "builtIn" in device
+    ? "{ built_in: true }"
+    : `{ vendor_id: ${device.vendorId}, product_id: ${device.productId} }`;
 }
 
 function quote(value: string): string {

@@ -21,6 +21,7 @@ Karabinerは書かれていないキーを素通しするため、**割り当て
 layer番号も`key_code`名も疎で、連続している必要はありません。
 
 <!-- @code src/core/mac-keymap/types.ts#MacKeymapDocument -->
+<!-- @code src/core/mac-keymap/types.ts#MacDeviceIdentifier -->
 
 ## MacKeymapDocument
 
@@ -30,10 +31,16 @@ desired stateの内容です。schema識別子は`cornix-bonsai/mac-keymap@1`で
 `profile`はCornixが所有するKarabiner profileの名前です。`karabiner.json`の`profiles[]`の
 うちこの名前の1個だけを書き換え、`global`と他のprofile、`selected`には触りません。
 
-`layout`は対象マシンの内蔵キーボードの物理配列（`ansi` / `jis`）です。fromキーの妥当性が
-物理配列に依存するため（US配列に`japanese_kana`は無い）、keymapの前提条件として宣言します
-（ADR 0024）。YAMLでは省略でき、省略時は`jis`です。型の上では必須で、既定値を埋めるのは
-parseだけの責務です。
+`layout`は対象の物理配列（`ansi` / `jis`）です。fromキーの妥当性が物理配列に依存するため
+（US配列に`japanese_kana`は無い）、keymapの前提条件として宣言します（ADR 0024）。YAMLでは
+省略でき、省略時は`jis`です。型の上では必須で、既定値を埋めるのはparseだけの責務です。
+
+`devices`はこの設定を適用するデバイスです。設定の単位は「内蔵キーボード」ではなく
+**物理配列**で、同じ配列の内蔵キーボードと外付けキーボードへ同じ設定を効かせます
+（ADR 0026）。値はKarabinerの`device_if`の identifiers と同じ語彙で、内蔵は
+`{ builtIn: true }`、外付けは`{ vendorId, productId }`です。内蔵キーボードはvendor /
+product idを申告しないため`is_built_in_keyboard`でしか指せません。`layout`と同じく
+YAMLでは省略でき、省略時は内蔵キーボードだけ（`DEFAULT_MAC_DEVICES`）です。
 
 <!-- @code src/core/mac-keymap/serialize.ts#serializeMacKeymapYaml -->
 
@@ -44,6 +51,9 @@ parseだけの責務です。
 ```text
 schema: cornix-bonsai/mac-keymap@1
 layout: jis
+devices:
+  - { built_in: true }
+  - { vendor_id: 1452, product_id: 630 }
 profile: "Cornix Bonsai"
 layers:
   0:
@@ -60,7 +70,9 @@ layers:
 並び順はlayer昇順・`key_code`名昇順で固定します。生成器がmanipulatorを並べる規則と
 同じにして、手で並べ替えてもdiffが動かないようにします。
 
-`layout`行は省略時の既定があっても**常に**書き出します。正規形は明示です（ADR 0024）。
+`layout`行と`devices`は省略時の既定があっても**常に**書き出します。正規形は明示です
+（ADR 0024・0026）。`devices`の各項目は1行のflow mappingで置きます。疎なmapを1行ずつ
+置くこのファイルの方針に合わせたもので、block mappingへは展開しません。
 
 <!-- @code src/core/mac-keymap/parse.ts#parseMacKeymapYaml -->
 
@@ -74,6 +86,8 @@ layers:
 値は`JSON.stringify` / `JSON.parse`で引用します。schemaが一致しない、layer番号が重複する、
 同じlayerで`key_code`が重複する、`profile`が無い場合はすべて落とします。
 `layout`は省略なら`jis`、`ansi` / `jis`以外の値なら落とします（ADR 0024）。
+`devices`が受け付けるのは`- { built_in: true }`と`- { vendor_id: N, product_id: N }`を
+2スペース字下げした2形だけで、省略なら内蔵キーボードだけ、2回書けば落とします（ADR 0026）。
 
 `parse(serialize(x))`が`x`と等しくなることを`fixtures/mac-keyboard/desired.yaml`で検証します。
 
@@ -167,7 +181,9 @@ ADR 0023です。`classifyKeycode`が返す`KeycodeLexeme`から直接写しま�
 - **manipulatorを出さないのは2つだけです。** `KC_TRNS`と、layer 0と同値のキー。
   Karabinerは書かれていないキーを素通しするため、出さないことがそのまま正しい挙動です
 - mod-tapの`to`には`lazy`を付けます。付けないとhold側のmodifierが単独で発火します
-- 全manipulatorの`conditions[0]`は`device_if`の`is_built_in_keyboard`です
+- 全manipulatorの`conditions[0]`は`device_if`で、identifiersは`document.devices`から組みます。
+  identifiersはORなので1条件で複数デバイスを指せます。内部表現からKarabinerの語彙への写像は
+  `generate.ts`の`deviceCondition`だけが持ちます（ADR 0026）
 - `from`には`modifiers: { optional: ["any"] }`を付け、修飾キーを素通しさせます
 - manipulatorが1つも出ないlayerはruleごと省略します
 
@@ -207,6 +223,7 @@ severityの判定規則はADR 0010のままです。Karabinerへ落とせず**�
 
 | code                                     | severity    | 事実                                            |
 | ---------------------------------------- | ----------- | ----------------------------------------------- |
+| `mac-keymap/no-target-device`            | error       | `devices`が空。どのキーボードにも適用されない   |
 | `mac-keymap/unknown-position`            | error       | Karabinerの`key_code`に無い位置。lintを通らない |
 | `mac-keymap/unsupported-keycode`         | error       | 対応する`key_code`が無い、または落とせない構文  |
 | `mac-keymap/unsupported-mod-tap`         | error       | mod-tapのmodifierかtap側を落とせない            |

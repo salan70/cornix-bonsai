@@ -15,7 +15,7 @@ import {
 } from "./generate.ts";
 import type { KarabinerManipulator } from "./karabiner.ts";
 import { parseMacKeymapYaml } from "./parse.ts";
-import type { MacKeyboardLayout, MacKeymapDocument } from "./types.ts";
+import { DEFAULT_MAC_DEVICES, type MacKeyboardLayout, type MacKeymapDocument } from "./types.ts";
 
 const FIXTURES = join(import.meta.dirname, "../../../fixtures/mac-keyboard");
 const DESIRED = parseMacKeymapYaml(readFileSync(join(FIXTURES, "desired.yaml"), "utf8"));
@@ -26,6 +26,7 @@ function documentOf(
 ): MacKeymapDocument {
   return {
     layout,
+    devices: DEFAULT_MAC_DEVICES,
     profile: "Cornix Bonsai",
     layers: new Map(
       layers.map((assignments, layer) => [layer, new Map(Object.entries(assignments))]),
@@ -200,4 +201,38 @@ test("profile は selected も simple_modifications も持たない", () => {
 test("keyboard_type_v2 は document の layout から導出する", () => {
   const { profile } = generateCornixProfile(documentOf([{ a: "KC_A" }], "ansi"));
   deepStrictEqual(profile.virtual_hid_keyboard, { keyboard_type_v2: "ansi" });
+});
+
+test("device_if の identifiers は document の devices から組む", () => {
+  const document: MacKeymapDocument = {
+    layout: "ansi",
+    devices: [{ builtIn: true }, { vendorId: 1452, productId: 630 }],
+    profile: "Cornix Bonsai",
+    layers: new Map([[0, new Map([["caps_lock", "KC_ESCAPE"]])]]),
+  };
+  const { rules } = generateKarabinerRules(document);
+  deepStrictEqual(rules[0]?.manipulators[0]?.conditions, [
+    {
+      type: "device_if",
+      identifiers: [{ is_built_in_keyboard: true }, { vendor_id: 1452, product_id: 630 }],
+    },
+  ]);
+});
+
+test("layer 1 以上でも device 条件は先頭に残る", () => {
+  const document: MacKeymapDocument = {
+    layout: "ansi",
+    devices: [{ vendorId: 1452, productId: 630 }],
+    profile: "Cornix Bonsai",
+    layers: new Map([
+      [0, new Map([["caps_lock", "MO(1)"]])],
+      [1, new Map([["h", "KC_LEFT"]])],
+    ]),
+  };
+  const { rules } = generateKarabinerRules(document);
+  const layerOne = rules.find((rule) => rule.description.endsWith("layer 1"));
+  deepStrictEqual(layerOne?.manipulators[0]?.conditions, [
+    { type: "device_if", identifiers: [{ vendor_id: 1452, product_id: 630 }] },
+    { type: "variable_if", name: "cornix_layer_1", value: 1 },
+  ]);
 });

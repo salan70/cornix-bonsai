@@ -11,8 +11,8 @@
 export const MAC_KEYMAP_SCHEMA = "cornix-bonsai/mac-keymap@1";
 
 /**
- * 対象マシンの内蔵キーボードの物理配列。値は Karabiner の `keyboard_type_v2` と同じ語彙
- * （ADR 0024）。ANSI / JIS 以外は扱わない（#23 の対象外）。
+ * このドキュメントが対象にするキーボードの物理配列。値は Karabiner の `keyboard_type_v2`
+ * と同じ語彙（ADR 0024）。ANSI / JIS 以外は扱わない（#23 の対象外）。
  */
 export type MacKeyboardLayout = "ansi" | "jis";
 
@@ -28,6 +28,28 @@ export const DEFAULT_MAC_LAYOUT: MacKeyboardLayout = "jis";
 export const CORNIX_PROFILE_NAME = "Cornix Bonsai";
 
 /**
+ * この設定を適用するデバイス 1 個の識別子。
+ *
+ * Karabiner の `device_if` の identifiers と同じ語彙で、写像は `generate.ts` の
+ * 3 行だけが持つ。内蔵キーボードは vendor / product id を申告しないため
+ * `is_built_in_keyboard` でしか指せない（2026-09-19 に
+ * `karabiner_grabber_devices.json` で確認）。
+ *
+ * @doc docs/specs/mac-keymap.md#mackeymapdocument
+ */
+export type MacDeviceIdentifier =
+  | { readonly builtIn: true }
+  | { readonly vendorId: number; readonly productId: number };
+
+/**
+ * YAML で `devices` を省略したときの既定。
+ *
+ * ADR 0026 より前の設定は内蔵キーボードだけを対象にしていた。省略時の既定をそれに
+ * 合わせることで、既存の `mac-keyboard.yaml` の意味を変えない。
+ */
+export const DEFAULT_MAC_DEVICES: readonly MacDeviceIdentifier[] = [{ builtIn: true }];
+
+/**
  * layer 1 枚の割り当て。key は Karabiner の `key_code` 名、値は QMK 表記。
  *
  * **疎な map** である。Karabiner は書かれていないキーを素通しするため、割り当ての無い
@@ -41,8 +63,13 @@ export type MacLayerAssignments = ReadonlyMap<string, string>;
  * @doc docs/specs/mac-keymap.md#mackeymapdocument
  */
 export interface MacKeymapDocument {
-  /** 対象マシンの物理配列。YAML で省略された場合は parse が `DEFAULT_MAC_LAYOUT` を埋める。 */
+  /** 対象の物理配列。YAML で省略された場合は parse が `DEFAULT_MAC_LAYOUT` を埋める。 */
   readonly layout: MacKeyboardLayout;
+  /**
+   * この設定を適用するデバイス。YAML で省略された場合は parse が
+   * `DEFAULT_MAC_DEVICES` を埋める（ADR 0026）。
+   */
+  readonly devices: readonly MacDeviceIdentifier[];
   /** 所有する Karabiner profile の名前。通常は `CORNIX_PROFILE_NAME`。 */
   readonly profile: string;
   /** layer 番号 → 割り当て。layer 番号も疎で、連続している必要は無い。 */

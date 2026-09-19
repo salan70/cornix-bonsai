@@ -4,11 +4,12 @@ import { test } from "node:test";
 import { addMacLayer, clearMacAssignment, MacKeymapEditError, setMacAssignment } from "./edit.ts";
 import { parseMacKeymapYaml } from "./parse.ts";
 import { serializeMacKeymapYaml } from "./serialize.ts";
-import type { MacKeymapDocument } from "./types.ts";
+import { DEFAULT_MAC_DEVICES, type MacKeymapDocument } from "./types.ts";
 
 function baseDocument(): MacKeymapDocument {
   return {
     layout: "jis",
+    devices: DEFAULT_MAC_DEVICES,
     profile: "Cornix Bonsai",
     layers: new Map([[0, new Map([["caps_lock", "LCTL_T(KC_ESC)"]])]]),
   };

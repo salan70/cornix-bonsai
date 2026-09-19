@@ -6,24 +6,30 @@
  * 読めないことを大きな声で言うほうが安全なため（ADR 0009 と同じ理由）。
  *
  * 受け付ける形はインデントの深さで決まる。2 が layer 番号、4 が割り当て。
+ * `devices` は serializer が出す flow mapping の 2 形だけを受ける（ADR 0026）。
  *
  */
 
 import {
+  DEFAULT_MAC_DEVICES,
   DEFAULT_MAC_LAYOUT,
   MAC_KEYMAP_SCHEMA,
   MacKeymapParseError,
+  type MacDeviceIdentifier,
   type MacKeyboardLayout,
   type MacKeymapDocument,
 } from "./types.ts";
 
 const LAYER_PATTERN = /^ {2}([0-9]+):$/;
 const ASSIGNMENT_PATTERN = /^ {4}("(?:\\.|[^"\\])*"):(?:\s+)(.*)$/;
+const BUILT_IN_DEVICE_PATTERN = /^ {2}- \{ built_in: true \}$/;
+const EXTERNAL_DEVICE_PATTERN = /^ {2}- \{ vendor_id: ([0-9]+), product_id: ([0-9]+) \}$/;
 
 /** @doc docs/specs/mac-keymap.md#parsemackeymapyaml */
 export function parseMacKeymapYaml(text: string): MacKeymapDocument {
   let layout: MacKeyboardLayout | undefined;
   let profile: string | undefined;
+  let devices: MacDeviceIdentifier[] | undefined;
   let sawLayers = false;
   let current: Map<string, string> | undefined;
   const layers = new Map<number, ReadonlyMap<string, string>>();
@@ -53,9 +59,27 @@ export function parseMacKeymapYaml(text: string): MacKeymapDocument {
       if (profile === "") throw new MacKeymapParseError("profile 名が空");
       continue;
     }
+    if (line === "devices:") {
+      if (devices !== undefined) throw new MacKeymapParseError("devices が重複している");
+      devices = [];
+      continue;
+    }
     if (line === "layers:") {
       sawLayers = true;
       continue;
+    }
+
+    // devices の項目は layers より前にしか現れない。layers 開始後は割り当てとして読む。
+    if (!sawLayers && devices !== undefined) {
+      if (BUILT_IN_DEVICE_PATTERN.test(line)) {
+        devices.push({ builtIn: true });
+        continue;
+      }
+      const external = EXTERNAL_DEVICE_PATTERN.exec(line);
+      if (external?.[1] !== undefined && external[2] !== undefined) {
+        devices.push({ vendorId: Number(external[1]), productId: Number(external[2]) });
+        continue;
+      }
     }
 
     if (!sawLayers) throw new MacKeymapParseError(`${lineNumber} 行目を解釈できない: ${rawLine}`);
@@ -85,7 +109,12 @@ export function parseMacKeymapYaml(text: string): MacKeymapDocument {
 
   if (profile === undefined) throw new MacKeymapParseError("mac-keyboard.yaml に profile が無い");
   if (!sawLayers) throw new MacKeymapParseError("mac-keyboard.yaml に layers が無い");
-  return { layout: layout ?? DEFAULT_MAC_LAYOUT, profile, layers };
+  return {
+    layout: layout ?? DEFAULT_MAC_LAYOUT,
+    devices: devices ?? DEFAULT_MAC_DEVICES,
+    profile,
+    layers,
+  };
 }
 
 function unquote(value: string, lineNumber: number): string {

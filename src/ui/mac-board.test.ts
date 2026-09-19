@@ -2,13 +2,14 @@ import { ok, strictEqual } from "node:assert/strict";
 import { test } from "node:test";
 
 import { macPhysicalLayout } from "../core/mac-keymap/physical-layout.ts";
-import type { MacKeymapDocument } from "../core/mac-keymap/types.ts";
+import { DEFAULT_MAC_DEVICES, type MacKeymapDocument } from "../core/mac-keymap/types.ts";
 import { moveKey } from "./key-navigation.ts";
 import { macBoardEntries, macLayerNumbers, nextMacLayer } from "./mac-board.ts";
 
 function document(): MacKeymapDocument {
   return {
     layout: "jis",
+    devices: DEFAULT_MAC_DEVICES,
     profile: "Cornix Bonsai",
     layers: new Map([
       [0, new Map([["caps_lock", "LCTL_T(KC_ESC)"]])],

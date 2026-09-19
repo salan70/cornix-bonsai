@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { parseMacKeymapYaml } from "./parse.ts";
-import type { MacKeyboardLayout, MacKeymapDocument } from "./types.ts";
+import { DEFAULT_MAC_DEVICES, type MacKeyboardLayout, type MacKeymapDocument } from "./types.ts";
 import { validateMacKeymap } from "./validate.ts";
 
 const FIXTURES = join(import.meta.dirname, "../../../fixtures/mac-keyboard");
@@ -15,6 +15,7 @@ function documentOf(
 ): MacKeymapDocument {
   return {
     layout,
+    devices: DEFAULT_MAC_DEVICES,
     profile: "Cornix Bonsai",
     layers: new Map(
       layers.map((assignments, layer) => [layer, new Map(Object.entries(assignments))]),
@@ -91,4 +92,15 @@ test("落とせない keycode は表現可能性の error として出る", () =
   const result = validateMacKeymap(documentOf([{ a: "TD(0)" }]));
   strictEqual(result.diagnostics[0]?.code, "mac-keymap/unsupported-keycode");
   strictEqual(result.summary.error, 1);
+});
+
+test("devices が空なら適用先が無いので error", () => {
+  const result = validateMacKeymap({
+    layout: "jis",
+    devices: [],
+    profile: "Cornix Bonsai",
+    layers: new Map([[0, new Map([["a", "KC_A"]])]]),
+  });
+  const diagnostic = result.diagnostics.find((d) => d.code === "mac-keymap/no-target-device");
+  strictEqual(diagnostic?.severity, "error");
 });
