@@ -1,126 +1,93 @@
-# Web UIの使い方
+# Web UI の使い方
 
-Web UIは、利用者が選んだローカルdirectoryをworkspaceとして扱います。`keymap.yaml`やbackupを
-外部サービスへ送ることなく、ブラウザから直接読み書きします。
+Web UI は、ローカルの workspace をブラウザから直接読み書きするツールです。
+設定やバックアップを外部サーバへ送信することはありません。
 
 Web UI: <https://salan70.github.io/cornix-bonsai/>
 
-対応環境と初回手順は[利用者ガイド](./README.md)を参照してください。
+## ヘッダー操作一覧
 
-## Headerとnavigationの操作
+| ボタン               | 動作                                         |
+| -------------------- | -------------------------------------------- |
+| `接続`               | WebHID で Cornix LP へ接続します。           |
+| `切断`               | 現在の接続セッションを終了します。           |
+| `実機から再読み込み` | 実機の設定を読み込み、差分を計算します。     |
+| `Workspace`          | 開く workspace ディレクトリを切り替えます。  |
+| `VIL読込`            | `.vil` ファイルを現在の設定へ取り込みます。  |
+| `VIL書出`            | 現在の設定を `.vil` 形式で書き出します。     |
+| `再読込`             | ディスク上の設定ファイルを再度読み込みます。 |
+| `backup から復元`    | 直前のバックアップを画面へ読み戻します。     |
+| `利用者ガイド`       | 本ドキュメントを別タブで開きます。           |
+| `テーマ`             | ライト、ダーク、システム連動を切り替えます。 |
 
-| 表示                 | 動作                                                             |
-| -------------------- | ---------------------------------------------------------------- |
-| `接続`               | WebHIDのdevice選択画面を開き、Cornix LPへ接続する                |
-| `切断`               | 現在のdevice sessionを閉じ、取得済みの実機状態を破棄する         |
-| `実機から再読み込み` | 実機をfull readし、workspaceのdesired stateとの差分を計算する    |
-| `Workspace`          | 別のworkspace directoryを選ぶ                                    |
-| `VIL読込`            | `.vil`を現在のworkspaceのdesired stateへ取り込む                 |
-| `VIL書出`            | `cornix/generated/keymap.vil`へ書き出す                          |
-| `再読込`             | filesystem上の`keymap.yaml`と付随ファイルを読み直す              |
-| `backup から復元`    | 最新backupをdesired stateへ読み込み、通常の確認・Apply手順へ戻す |
-| `利用者ガイド`       | GitHub上のこのガイドを新しいtabで開く                            |
-| `テーマ`             | システム・ライト・ダークから表示テーマを選ぶ                     |
+`接続` だけでは実機設定を読み込みません。
+差分を確認するには、接続後に `実機から再読み込み` を実行してください。
 
-`接続`だけではfull readを行いません。実機との差分を確認するには、接続後に
-`実機から再読み込み`を実行してください。
+## 画面別の機能と操作
 
-## Keymap
+### Keymap タブ
 
-Keymapでは、layerごとの物理キーとencoderを編集します。
+レイヤーごとの物理キーやエンコーダーの割り当てを編集します。
 
-1. 盤面上のキーまたはencoderを選びます。
-2. 編集panelで、キー全体・Tap・Holdのどこを変更するか選びます。
-3. keycode pickerから値を選ぶか、詳細のraw keycodeを編集します。
-4. statusに`keymap.yamlへ保存した`と表示されることを確認します。
+1. 盤面上のキーまたはエンコーダーをクリックして選択します。
+2. 編集パネルで、キー全体、Tap 時、Hold 時のいずれかを選びます。
+3. keycode picker から選択するか、raw keycode を入力します。
+4. 画面下部に `keymap.yamlへ保存した` と表示されることを確認します。
 
-盤面は方向キーで選択を移動でき、Enterで編集panelへ移動し、Escで戻れます。pickerで表現できない
-custom keycodeなどはraw keycode入力を使います。
+キーボードの矢印キーで選択移動、Enter で編集パネル移動、Esc で戻れます。
+raw keycode には任意の表示名を設定できます。
+表示名は画面表示用であり、実機への書き込み内容には影響しません。
 
-### 表示名
+### Overview タブ
 
-編集panelの`表示名（任意）`では、同じraw keycode式にworkspace共通の名前を付けられます。名前は
-`cornix/labels.yaml`へ保存され、空欄にすると削除されます。
+レイヤー間の参照関係や Tap Dance の利用状況を俯瞰します。
 
-表示名は画面とSVG/PDFを読みやすくするためのmetadataです。`keymap.yaml`、validation、実機差分、
-Apply対象には影響しません。
+- レイヤー操作キーへカーソルを合わせると、遷移先との関係線を表示します。
+- レイヤー名をクリックすると、任意の表示名を編集できます。
+- `参照なし layerを表示` で、通常隠れている未参照レイヤーを確認できます。
+- 画面から SVG または PDF 形式のレイヤー図面を書き出せます。
 
-## Overview
+### Behaviors タブ
 
-Overviewでは、参照されているlayerとTap Danceをまとめて確認できます。
+Tap Dance、Combo、各種詳細設定を直接編集します。
 
-- layer操作の参照元へpointerを合わせるかfocusすると、参照先との関係を表示します。
-- layer名を選ぶと、workspace用の表示名を編集できます。
-- `参照なし layerを表示`で、通常は省略されるlayerも確認できます。
-- `SVG で書き出す`と`PDF で書き出す`は、Keymapで選択中のlayerを書き出します。
+- 入力内容は変更のたびに自動保存されます。
+- Tap Dance の timeout や設定値は 0〜65535 の整数値です。
+- 不正な値を入力した場合は保存されず、画面下部に理由が表示されます。
 
-出力先は`cornix/generated/keymap-layer-<layer>.svg`または
-`cornix/generated/keymap-layer-<layer>.pdf`です。
+### Mac タブ（MacBook 内蔵キーボード）
 
-## Behaviors
+MacBook 内蔵キーボードの設定（`mac-keyboard.yaml`）を編集します。
 
-Behaviorsでは、Tap Dance、Combo、Settingsを直接編集します。入力は変更のたびにworkspaceへ保存されます。
+- 盤面は配列設定（JIS または ANSI）に応じて切り替わります。
+- 薄い表示のキーは、入力をそのまま通す「素通し」状態です。
+- Karabiner で表現できない割り当てはエラー診断となり、保存できません。
+- `Karabiner assetを書き出す` で定義 JSON を生成します。
 
-- Tap DanceのtimeoutとSettingsは0〜65535の整数です。
-- 不正な値は保存されず、画面下部のstatusへ理由が表示されます。
-- Tap DanceやComboで表示名があるkeycodeは、raw値と区別できる形で表示されます。
+Web UI から実機（Karabiner）への直接適用はできません。
+適用は [CLI の mac コマンド](./cli.md#macbook-内蔵キーボード管理mac) を使用してください。
 
-## Mac（MacBook内蔵キーボード）
+### References タブ
 
-Macタブでは、workspaceの`mac-keyboard.yaml`（MacBook内蔵キーボードのdesired state）を
-物理盤面で編集します。
+キーマップ全体の参照整合性を確認します。
 
-- `mac-keyboard.yaml`が無い場合は「mac-keyboard.yamlを作成」で初期状態（JIS・空のlayer 0）を
-  作成できます。配列がUSの場合はファイルの`layout:`を`ansi`へ変更してください。
-- 盤面は`layout`宣言（JIS / ANSI）に応じて切り替わります。割り当ての無いキーは薄い表示で、
-  押した入力がそのまま通る「素通し」を意味します。
-- キーを選んでpickerまたはside panelで割り当てを編集します。編集は自動で保存されます。
-  「割り当てを外す」で素通しへ戻せます（`KC_NO`は入力を捨てる別の割り当てです）。
-- layer chipで疎なlayerを切り替え、`+`で新しいlayerを追加します。layer番号はCornix側の
-  layerとは別の空間です。
-- Karabinerで表現できない割り当ては診断（エラー）になります。エラーがあるとassetは
-  書き出されません。
-- 「Karabiner assetを書き出す」は編集中の内容から
-  `cornix/generated/karabiner-complex-modifications.json`を生成します。
+- 各レイヤーや Macro、Tap Dance の参照元件数を確認できます。
+- 未使用の定義や、到達不能な孤立レイヤーを一覧表示します。
 
-**Web UIから実機（karabiner.json）への適用はできません。** 適用は
-[CLIのMacBook内蔵キーボード](./cli.md#macbook内蔵キーボード)の手順
-（`cornix mac diff`→`cornix mac apply`）で行います。
+## 診断と差分の確認
 
-## References
+画面下部のステータスバーには、診断結果と実機差分が常に表示されます。
 
-Referencesでは、次の情報を確認できます。
+- **エラー**: Apply を中止します。設定の修正が必要です。
+- **警告**: 内容ごとの確認が必要です。設定が変わると再確認が求められます。
+- **実機差分**: 最後の読み取り結果と workspace の差分件数を示します。
 
-- Tap DanceとMacroの使用箇所数
-- 未使用のTap DanceとMacro
-- Base layerから到達できないlayer
-- workspace全体の診断
+## 外部エディタとの併用
 
-到達不能の表示は解析結果です。Applyを止めるかどうかは、診断severityとApply時の確認内容で決まります。
+Web UI は外部エディタによるファイルの変更を検知します。
+競合が検知された場合、外部の変更を上書きしません。
 
-## 診断と差分
-
-画面下部には、エラー・警告・情報、実機との差分件数、保存statusが常に表示されます。
-
-- 診断件数を選ぶと、該当severityで絞った診断panelを開きます。
-- エラーはApplyを止めます。
-- 警告は内容ごとの確認が必要です。確認済みの根拠が変わると再確認を求めます。
-- 実機との差分は、最後のfull readとworkspaceのdesired stateを比較した結果です。
-
-実機へ反映するときは[Safe Applyと復旧](./safe-apply.md)を先に確認してください。
-
-## VILの入出力
-
-`VIL読込`は、選択した`.vil`を現在のworkspaceのdesired stateへ取り込みます。実機へ直接writeせず、
-`keymap.yaml`へ保存した後にvalidationと差分確認へ進みます。別のキーボードの`.vil`を読み込んだ場合は、
-UIDやdefinitionの不一致によってApplyが停止します。
-
-`VIL書出`は、現在のdesired stateを`cornix/generated/keymap.vil`へ保存します。
-
-## 外部エディタと併用する
-
-Web UIは、読み込み後にfilesystem上のファイルが変更されていないか保存前に確認します。外部エディタの
-変更を検出した場合は上書きせず、statusへ競合を表示します。
-
-外部の変更を採用する場合は、外部エディタで保存を完了してから`再読込`を実行してください。Web UI側に
-未保存の意図がある場合は、再読込の前に内容を退避してください。
+1. 外部エディタ側の変更を保存します。
+2. Web UI で作業中だった未保存の内容を退避します。
+3. ヘッダーの `再読込` を押し、ディスク上の最新状態を取り込みます。
+4. 必要な変更を改めて Web UI で編集します。

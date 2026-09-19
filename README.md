@@ -1,75 +1,69 @@
 # Cornix Bonsai
 
-Cornix LP向けのキーマップ編集ツール 💚
+Cornix LP 向けのローカルファーストなキーマップ編集ツールです。
+ブラウザ、CLI、Git、AI から設定の読み取り、編集、検証、可視化、版管理を行えます。
 
-Cornix Bonsaiは、Cornix LPのキーマップをブラウザ・CLI・Git・AIエージェントから
-読み取り、編集、検証、可視化、バージョン管理するためのローカルファーストなツールです。
-
-## 今すぐ使う
+## 今すぐ使う（Web UI）
 
 Web UI: <https://salan70.github.io/cornix-bonsai/>
 
-確認済み環境はmacOSとChrome / Chromiumです。WebHIDに対応しないSafariとFirefoxでは
-実機接続を利用できません。既存のworkspaceを開く手順と、実機readからworkspaceを作る手順は
-[クイックスタート](./docs/user-guide/README.md#クイックスタート)を参照してください。
+- **動作環境**: macOS 上の Chrome または Chromium。
+- **非対応環境**: Safari と Firefox は WebHID に非対応のため実機接続不可。
+- **クイックスタート**: [利用者ガイドの導入手順](./docs/user-guide/README.md#クイックスタート) を参照。
 
-実機からのreadはキーボードを変更しません。実機を変更するのは、人間が差分を確認して
-「実機へ Apply」を実行した場合だけです。
+実機の読み取り（read）は設定を変更しません。
+実機が変更されるのは、人間が差分を確認して明示的に Apply を実行したときだけです。
 
 ## 利用者向けドキュメント
 
-- [利用者ガイド](./docs/user-guide/README.md)
-- [Web UIの使い方](./docs/user-guide/web-ui.md)
-- [CLIの使い方](./docs/user-guide/cli.md)
-- [Safe Applyと復旧](./docs/user-guide/safe-apply.md)
-- [workspaceと用語](./docs/user-guide/workspace-and-terms.md)
-- [トラブルシューティング](./docs/user-guide/troubleshooting.md)
+| ドキュメント                                                   | 内容                                                   |
+| -------------------------------------------------------------- | ------------------------------------------------------ |
+| [利用者ガイド](./docs/user-guide/README.md)                    | 全体概要、対応環境、クイックスタート                   |
+| [Web UI の使い方](./docs/user-guide/web-ui.md)                 | 画面構成、各タブの操作、VIL 入出力                     |
+| [CLI の使い方](./docs/user-guide/cli.md)                       | 検証、到達性解析、差分確認、Mac 内蔵キーボード管理     |
+| [Safe Apply と復旧](./docs/user-guide/safe-apply.md)           | 実機書き込み手順、エラーと警告の基準、バックアップ復元 |
+| [workspace と用語](./docs/user-guide/workspace-and-terms.md)   | ファイル配置、Git 管理対象、重要用語の一覧             |
+| [トラブルシューティング](./docs/user-guide/troubleshooting.md) | 接続失敗、保存不可、権限エラーなどの対処手順           |
 
-## 開発環境から起動する
+## 開発環境と運用コマンド
 
-依存関係とツールチェーンはNix環境で固定しています。初回のsetupではpre-commit / pre-push
-hookも導入します。
+依存関係とツールチェーンは Nix flake で固定しています。
+コマンドは `just` を唯一の定義元とします。
 
-```bash
-nix develop
-just setup
-just test
-just typecheck
-just dev
-```
-
-production buildをローカルで確認する場合は、別のterminalで次を実行してから
-<http://localhost:4173/cornix-bonsai/>をChromium系browserで開きます。
+### 初回セットアップと起動
 
 ```bash
-just build
-just preview
+git clone https://github.com/salan70/cornix-bonsai.git
+cd cornix-bonsai
+direnv allow     # direnv 未設定の場合は nix develop
+just setup       # pre-commit / pre-push フックの導入
+just dev         # ローカル開発サーバーの起動
 ```
 
-cloneした環境でCLIを使う方法は[CLIの使い方](./docs/user-guide/cli.md)を参照してください。
+### 日常の検証・運用コマンド
 
-## 現在の状況
+| コマンド               | 用途                                      |
+| ---------------------- | ----------------------------------------- |
+| `just test`            | 単体テストの実行（Vitest）                |
+| `just typecheck`       | TypeScript の型検査                       |
+| `just lint`            | pre-commit による全ファイル検査           |
+| `just lint-md`         | Markdown の構文・スタイル検査             |
+| `just format`          | oxfmt によるコード整形                    |
+| `just docbridge-check` | コードと仕様書（docs/specs/）のリンク検証 |
+| `just build`           | 本番用ビルドの作成                        |
+| `just preview`         | ビルド成果物のローカル確認                |
 
-workspace / CLI / Web UI / WebHID adapterのMVP実装を含みます。mainへのpushはGitHub Pagesへ
-自動デプロイされ、headerに利用中buildの短いcommit SHAを表示します。実機USB/BLEの受入確認は
-実機と人間の明示操作が必要なため、mock/fixtureの自動検証とは分けて扱います。
+## 設計・運用方針
 
-## 方針
+- Cornix LP を最初の対象とします。
+- Vial 表現から独立した Semantic Model を持ちます。
+- Git 管理する目標設定（desired state）として `keymap.yaml` を使います。
+- Web UI と CLI で同一の Core を共有します。
+- 実機書き込みはバックアップと検証を伴い、人間の明示操作に限定します。
+- AI は設定編集や検証を行えますが、実機へ直接書き込む権限を持ちません。
 
-- Cornix LPを最初の対象とする
-- rawなVial表現から独立したSemantic Modelを持つ
-- Git管理するdesired stateとして`keymap.yaml`を使う
-- Browser UIとCLIで同じCoreを共有する
-- `.vil`のimport / exportに対応する
-- validation、reference analysis、semantic diff、SVG / PDF renderingを行う
-- Vial / WebHID経由で実機からreadする
-- 実機writeはbackupとverifyを伴い、人間の明示操作でのみ行う
-- AIエージェントは設定編集や検証を行えるが、実機へ直接writeしない
+## 開発者・運用者向けドキュメント
 
-## 開発者向けドキュメント
-
-重要な設計判断は`docs/decisions/`、コードと対応する実装仕様は`docs/specs/`に記録します。
-[ドキュメントの責務](./docs/README.md)も参照してください。
-
-プロジェクト内の文章・ドキュメント・Issueは日本語を基本とします。コード識別子、CLIコマンド、
-プロトコル名などは必要に応じて英語表記を維持します。
+重要な設計判断は [docs/decisions/](./docs/decisions/README.md)（ADR）に記録します。
+コードと 1:1 で対応する実装仕様は [docs/specs/](./docs/specs/README.md) に置きます。
+運用の責務分担は [ドキュメントの責務](./docs/README.md) を参照してください。

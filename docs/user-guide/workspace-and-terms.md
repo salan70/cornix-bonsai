@@ -1,23 +1,27 @@
-# workspaceと用語
+# workspace と用語
 
-## 用語
+Cornix Bonsai の設定ファイル構造と重要用語を説明します。
 
-| 用語          | 意味                                                                   |
-| ------------- | ---------------------------------------------------------------------- |
-| workspace     | `keymap.yaml`と関連ファイルを置く、利用者が選んだ1つのdirectory        |
-| desired state | workspaceに保存した、実機へ反映したい状態                              |
-| current state | 最後のfull readで取得した実機の状態                                    |
-| full read     | keymap、definition、容量など、比較に必要な実機状態を一式読み取る操作   |
-| definition    | キーの物理配置やcustom keycodeを解釈するためのkeyboard definition      |
-| VIL           | Vialが扱うキーマップのexport形式。拡張子は`.vil`                       |
-| validation    | workspaceの構造、keycode、参照、実機との互換性を検査する処理           |
-| semantic diff | 表記だけでなく、キー・layer・behaviorなど意味単位で示す差分            |
-| Apply         | 確認済みのdesired stateとの差分を実機へwriteし、再readでverifyする操作 |
-| WebHID        | Chromium系browserから対応HID deviceへ接続するWeb API                   |
-| UID           | キーボードを識別し、別deviceへの誤Applyを防ぐための値                  |
-| digest        | definitionの内容から計算し、取り違えや変更を検出するSHA-256値          |
+## 用語一覧
 
-## ファイル配置
+| 用語          | 意味                                                         |
+| ------------- | ------------------------------------------------------------ |
+| workspace     | `keymap.yaml` と関連ファイルを置く専用ディレクトリです。     |
+| desired state | workspace に保存された、実機へ反映したい目標設定です。       |
+| current state | 最後の読み取りで取得した、実機の現在設定です。               |
+| full read     | キーマップや定義など、実機状態を一括取得する操作です。       |
+| definition    | キーの物理配置やカスタムキーコードを解釈する定義データです。 |
+| VIL           | Vial が扱うキーマップファイル（`.vil`）の形式です。          |
+| validation    | 設定の構造、キーコード、参照関係、整合性を検証する処理です。 |
+| semantic diff | 単なる文字列比較ではなく、意味単位で算出する設定差分です。   |
+| Apply         | 差分を実機へ書き込み、直後の再読み込みで検証する操作です。   |
+| WebHID        | ブラウザから USB / BLE HID 機器へ接続する Web API です。     |
+| UID           | キーボード個体を識別し、別機器への誤書き込みを防ぐ値です。   |
+| digest        | definition ファイルの内容から計算する SHA-256 値です。       |
+
+## ファイル配置と Git 管理
+
+workspace の推奨ディレクトリ構成です。
 
 ```text
 <workspace>/
@@ -31,49 +35,49 @@
     └── generated/<name>
 ```
 
-| Path                           | 内容                              | Git管理の扱い |
-| ------------------------------ | --------------------------------- | ------------- |
-| `keymap.yaml`                  | desired stateとdefinition binding | 管理対象      |
-| `cornix/definitions/`          | keymapの解釈に使うdefinition      | 管理対象      |
-| `cornix/labels.yaml`           | layer名とraw keycode式の表示名    | 管理対象      |
-| `cornix/acknowledgements.json` | Apply warningの確認ID             | 管理対象      |
-| `cornix/backups/`              | Apply前の実機full read            | 管理外        |
-| `cornix/generated/`            | VIL、SVG、PDFなどの生成物         | 管理外        |
+| パス                           | 内容                                  | Git 管理 |
+| ------------------------------ | ------------------------------------- | -------- |
+| `keymap.yaml`                  | 目標設定と definition への紐付け情報  | 管理対象 |
+| `cornix/definitions/`          | キーマップ解釈に必要な定義ファイル    | 管理対象 |
+| `cornix/labels.yaml`           | レイヤー名やキーコードの表示用別名    | 管理対象 |
+| `cornix/acknowledgements.json` | 承認済み警告の記録 ID                 | 管理対象 |
+| `cornix/backups/`              | Apply 前に退避した実機状態            | 管理外   |
+| `cornix/generated/`            | 書き出した VIL、SVG、PDF などの成果物 | 管理外   |
 
-workspaceをGit repositoryにする場合は、次を`.gitignore`へ追加します。
+workspace を Git で管理する場合は、`.gitignore` へ以下を追加してください。
 
 ```gitignore
 cornix/backups/
 cornix/generated/
 ```
 
-backupや生成物を共有したい場合は、必要なファイルだけを別の方法で渡してください。
+## `keymap.yaml` が正本である理由
 
-## `keymap.yaml`が正本である理由
+Web UI で編集した内容は、まずローカルの `keymap.yaml` へ保存されます。
+実機ではなく workspace を正本とすることで、以下の利点が得られます。
 
-Web UIで編集した内容は、まず`keymap.yaml`へ保存されます。実機の状態を直接編集するのではなく、
-workspaceをdesired stateの正本にすることで、次の操作が可能になります。
+- Git で変更履歴や差分を正確に追跡できる。
+- CLI と Web UI の両方で同一設定を検証できる。
+- 実機へ書き込む前に意味単位の差分を確認できる。
+- 複数台の PC 間でキーマップを安全に同期できる。
+- AI にファイル編集や検証だけを任せ、実機への書き込みは人間に限定できる。
 
-- Gitで変更履歴と差分を確認する
-- CLIとWeb UIで同じ状態を検証する
-- 実機へwriteする前にsemantic diffを確認する
-- 複数のMacでrepositoryを同期する
-- AIエージェントにファイル編集とvalidationだけを依頼し、実機writeを人間に限定する
+## 補助ファイルの役割
 
-## Definition binding
+### Definition binding
 
-`keymap.yaml`は、対応するdefinitionのpathとdigestを保持します。Cornix Bonsaiは読み込み時とApply前に
-この組み合わせを検証し、別のdefinitionや変更されたファイルを誤って使わないようにします。
+`keymap.yaml` は対応する definition のパスと digest を保持します。
+読み込み時と Apply 前に照合し、取り違えや意図しない変更を防止します。
+ファイルや binding の記述を手作業で書き換えないでください。
 
-definition fileや`keymap.yaml`内のbindingを手作業で置き換えないでください。旧digest規則のworkspaceは、
-Web UIが内容の一致を確認できた場合だけ`bindingを移行する`操作を表示します。
+### 表示名（`cornix/labels.yaml`）
 
-## 表示名と実機状態
+レイヤー名やキーコード表示名は、画面や書き出し画像を読みやすくする情報です。
+実機へ書き込む値には含まれません。
+表示名だけを変更しても実機との差分は生じません。
 
-`cornix/labels.yaml`のlayer名とkeycode表示名は、Web UI、SVG、PDFを読みやすくするための情報です。
-実機へwriteする値には含まれず、表示名だけを変更しても実機との差分は増えません。
+### 警告承認の記録（`cornix/acknowledgements.json`）
 
-## Acknowledgement
-
-Apply時に確認したwarningは`cornix/acknowledgements.json`へ保存されます。確認IDには警告の根拠が含まれる
-ため、keymapや実機状態が変わると同じwarningでも再確認が必要になります。
+Apply 時に承認した警告はここに保存されます。
+承認 ID には警告の根拠情報が含まれます。
+設定や実機状態が変化すると、同じ警告でも再度の確認が求められます。

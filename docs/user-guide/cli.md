@@ -1,14 +1,25 @@
-# CLIの使い方
+# CLI の使い方
 
-CLIはWeb UIと同じCoreを使い、workspaceのvalidation、解析、差分、SVG/PDF rendering、VIL入出力を
-行います。CLIにはWebHID接続やCornix LPへの実機writeのコマンドはありません。
+CLI は Web UI と同じ Core を共有します。
+設定の検証、解析、差分計算、ファイル生成を行います。
+CLI には Cornix LP への実機書き込み機能はありません。
+MacBook 内蔵キーボードの設定のみ、CLI から差分確認と適用を行えます。
 
-MacBook内蔵キーボードの設定だけは例外で、`cornix mac`から適用まで行えます。Karabiner-Elementsの
-設定ファイルを書き換えるだけなので、firmwareへは触れません。
+## サブコマンド一覧
 
-## Setup
+| コマンド     | 対象      | 主な用途                                              |
+| ------------ | --------- | ----------------------------------------------------- |
+| `validate`   | Cornix LP | workspace 設定の構文や整合性を検証します。            |
+| `analyze`    | Cornix LP | レイヤーの到達性や未参照の項目を解析します。          |
+| `diff`       | Cornix LP | 指定した `.vil` と workspace の意味差分を表示します。 |
+| `render`     | Cornix LP | レイヤー図面を SVG または PDF 形式で書き出します。    |
+| `import vil` | Cornix LP | `.vil` と定義から workspace を新規生成します。        |
+| `export vil` | Cornix LP | workspace の設定を `.vil` 形式で書き出します。        |
+| `mac`        | Mac 内蔵  | Karabiner 設定の生成、差分確認、適用を行います。      |
 
-CLIはnpm packageとして配布せず、cloneしたリポジトリのNix環境から実行します。
+## セットアップ
+
+CLI は clone したリポジトリの Nix 環境から実行します。
 
 ```bash
 git clone https://github.com/salan70/cornix-bonsai.git
@@ -17,21 +28,26 @@ direnv allow
 just setup
 ```
 
-direnvを使わない場合は、先に`nix develop`へ入ってから`just cornix ...`を実行します。複数のMacで
-使う場合は各マシンで一度setupし、更新時に`git pull`を実行します。
+direnv を使わない場合は、先に `nix develop` へ入ってから実行してください。
 
 ## 共通規則
+
+基本書式は次のとおりです。
 
 ```text
 just cornix <command> --workspace <directory>
 ```
 
-- `--workspace`を省略すると、現在のdirectoryをworkspaceとして使います。
-- 入出力ファイルの相対pathはworkspaceを基準に解決します。
-- コマンドが失敗すると`cornix: <理由>`を標準エラーへ出力し、終了コード1を返します。
-- `validate`と`analyze`はerror診断が1件以上ある場合に終了コード1、それ以外は0を返します。
+- `--workspace` を省略すると、カレントディレクトリを対象にします。
+- 相対パスは workspace ディレクトリを基準に解決されます。
+- エラー時は標準エラーへ理由を出力し、終了コード 1 を返します。
+- `validate` と `analyze` は、エラーがあれば終了コード 1、無ければ 0 を返します。
 
-## VILからworkspaceを作る
+## Cornix LP 向けコマンド
+
+### VIL から workspace を新規作成する
+
+`.vil` と定義ファイルを読み込み、workspace を作成します。
 
 ```bash
 just cornix import vil baseline.vil \
@@ -39,48 +55,33 @@ just cornix import vil baseline.vil \
   --workspace /path/to/workspace
 ```
 
-`.vil`とkeyboard definitionを読み込み、次のファイルを作成します。
+既存ファイルがある場合は上書きされるため、実行前に Git の状態を確認してください。
+成功時は作成された `keymap.yaml` のパスを表示します。
 
-```text
-keymap.yaml
-cornix/definitions/<digest>.json
-```
+### 設定の検証（validate）
 
-同じ名前のworkspaceファイルがある場合は書き換えるため、既存workspaceでは事前にGitの状態を確認して
-ください。成功時は`keymap.yaml`と出力します。
-
-## Validation
+workspace の設定を検証し、診断結果を JSON で出力します。
 
 ```bash
 just cornix validate --workspace /path/to/workspace
 ```
 
-診断件数と診断一覧をJSONで出力します。
+警告のみの場合は終了コード 0、エラーが 1 件以上ある場合は 1 を返します。
+CI や Git フックでの検証に適しています。
 
-```json
-{
-  "summary": {
-    "error": 0,
-    "warning": 0,
-    "information": 0
-  },
-  "diagnostics": []
-}
-```
+### 参照と到達性の解析（analyze）
 
-警告や情報だけの場合は終了コード0です。errorがある場合は終了コード1になるため、scriptやGit hookでも
-判定できます。
-
-## 参照と到達性の解析
+各レイヤーへの到達性や、参照関係のエッジを解析します。
 
 ```bash
 just cornix analyze --workspace /path/to/workspace
 ```
 
-validation結果に加え、到達可能なlayerとlayer操作のedgeをJSONで出力します。未使用項目の確認や、
-意図せず到達不能になったlayerの調査に使います。
+到達できない孤立レイヤーや、未使用の動作定義の検出に使用します。
 
-## VILとの差分
+### VIL との差分計算（diff）
+
+指定した `.vil` と workspace の設定を比較し、意味差分を出力します。
 
 ```bash
 just cornix diff \
@@ -88,144 +89,108 @@ just cornix diff \
   --workspace /path/to/workspace
 ```
 
-`before.vil`とworkspaceのdesired stateを比較し、semantic diffをJSONで出力します。`--against`は必須です。
-このコマンドは実機をreadせず、ファイル同士を比較します。
+実機との通信は行わず、ファイル同士の意味差分を計算します。
+`--against` オプションは必須です。
 
-## SVG / PDF rendering
+### 図面の出力（render）
 
-```bash
-just cornix render \
-  --format svg \
-  --layer 0 \
-  --out keymap.svg \
-  --workspace /path/to/workspace
-
-just cornix render \
-  --format pdf \
-  --layer 0 \
-  --out keymap.pdf \
-  --workspace /path/to/workspace
-```
-
-- `--format`の既定値は`svg`です。
-- `--layer`の既定値は`0`です。
-- `--out`の既定値は、formatに応じて`keymap.svg`または`keymap.pdf`です。
-- 出力はworkspace内の指定pathへ保存され、成功時はそのpathを表示します。
-
-PDFは外部サービスを使わず、ローカルで1ページのベクターPDFを生成します。
-
-## VILへ書き出す
+キーマップ図面をベクター形式（SVG または PDF）で生成します。
 
 ```bash
-just cornix export vil \
-  --out keymap.vil \
-  --workspace /path/to/workspace
+# SVG の出力
+just cornix render --format svg --layer 0 --workspace /path/to/workspace
+
+# PDF の出力
+just cornix render --format pdf --layer 0 --workspace /path/to/workspace
 ```
 
-`--out`を省略すると`keymap.vil`へ保存します。この操作はファイルを書き出すだけで、実機へwriteしません。
+- `--format`: `svg` または `pdf`（既定値: `svg`）。
+- `--layer`: 出力対象のレイヤー番号（既定値: `0`）。
+- `--out`: 出力ファイル名（既定値: `keymap.svg` または `keymap.pdf`）。
 
-## Macのキーボード
+PDF は外部ツールを使わず、ローカルで高品質なベクター PDF を生成します。
 
-MacのキーボードはKarabiner-Elementsをengineにして管理します。desired stateはworkspace直下の
-`mac-keyboard.<layout>.yaml`で、Cornix LPの`keymap.yaml`とは別のファイルです。片方だけを置いた
-workspaceでも動きます。
+### VIL への書き出し（export vil）
 
-設定は**物理配列ごと**に持ちます。US配列のMacと日本語配列のMacを両方使う場合は
-`mac-keyboard.ansi.yaml`と`mac-keyboard.jis.yaml`を並べて置きます。どちらを使うかは
-`cornix mac`が**実行しているMacの内蔵キーボードの配列を検出して**決めます。検出できない場合は
-`--layout ansi|jis`を指定してください。別の配列の設定を触りたいときも`--layout`を使います。
-
-1つの設定は同じ配列の複数のキーボードへ効かせられます。内蔵に加えて外付けの純正US
-キーボードにも同じ割り当てを使いたい場合は、`mac-keyboard.ansi.yaml`の`devices`へ
-両方を書きます。
-
-```yaml
-devices:
-  - { built_in: true }
-  - { vendor_id: 1452, product_id: 630 }
-```
-
-`devices`を省略すると内蔵キーボードだけが対象です。
-
-### 適用先のキーボードを調べる・登録する
+workspace の設定を `.vil` ファイルへ書き出します。
 
 ```bash
+just cornix export vil --out keymap.vil --workspace /path/to/workspace
+```
+
+ファイルを生成するのみで、実機へは書き込みません。
+
+## MacBook 内蔵キーボード管理（mac）
+
+Mac のキーボード設定は、Karabiner-Elements を介して管理します。
+設定は `mac-keyboard.<layout>.yaml` へ保存されます。
+実行中の Mac の配列（JIS または ANSI）を自動検出し、対応するファイルを処理します。
+
+### 適用先デバイスの一覧・登録（devices）
+
+Karabiner が認識しているキーボードを一覧表示します。
+
+```bash
+# 一覧表示（ファイルは変更しない）
 just cornix mac devices --workspace /path/to/workspace
-```
 
-Karabinerが観測しているキーボードを一覧します。この操作はファイルを書き換えません。
-出力の`identifier`が`devices`へ書ける値で、`add`にそのまま実行できるコマンドが出ます。
-
-```bash
+# 特定のデバイスを設定ファイルへ追加
 just cornix mac devices --workspace /path/to/workspace --add 1452:630
 ```
 
-`--add`を付けたときだけ設定ファイルへ書き戻します。同じデバイスを二重には足しません。
+内蔵キーボードは既定で対象となるため、登録作業は不要です。
+外付けキーボードにも同一設定を適用したい場合は `--add` で登録します。
 
-内蔵キーボードはvendor / product idを申告しないため、一覧に出てもidがありません。
-既定で対象なので登録も要りません。
+### 設定の生成（generate）
 
-**Cornix LPのような他のキーボードも一覧に並びます。** 登録するとMacの割り当てがその実機の
-firmwareの割り当てと二重に効くので、`product`を見て選んでください。
-
-ADR 0027より前に作った`mac-keyboard.yaml`もそのまま読めます。中の`layout`宣言が、どの配列の
-設定かを決めます。
-
-事前にKarabiner-Elementsをインストールし、入力監視の権限を与えておいてください。
-
-### 生成する
+Karabiner 向け complex modifications ファイルを生成します。
 
 ```bash
 just cornix mac generate --workspace /path/to/workspace
 ```
 
-`cornix/generated/karabiner-complex-modifications.json`へ書き出します。Karabinerが入っていれば
-`karabiner_cli --lint-complex-modifications`も通します。Karabinerへ落とせないkeycodeが1つでも
-あれば書き出さず、終了コード1を返します。黙って捨てることはありません。
+出力先は `cornix/generated/` 配下の JSON です。
+変換できないキーコードがある場合は生成を中止し、終了コード 1 を返します。
 
-Web UIのMacタブ（「Karabiner assetを書き出す」）も同じファイルを書き出します。
-Web UIから適用はできません。
+### 差分の確認（diff）
 
-### 差分を見る
+現在の Karabiner 設定と workspace の設定差分を表示します。
 
 ```bash
 just cornix mac diff --workspace /path/to/workspace
 ```
 
-`~/.config/karabiner/karabiner.json`を読み、Cornixが所有する`Cornix Bonsai` profileだけを
-構造で比較します。`--karabiner <path>`で対象を変えられます。読むだけで書き換えません。
+ファイルの読み取りのみ行い、書き換えはしません。
+Cornix が管理する `Cornix Bonsai` プロファイルのみを比較対象にします。
 
-### 適用する
+### 設定の適用（apply）
+
+Karabiner の設定ファイルへ差分を適用します。
 
 ```bash
+# 差分と確認用 fingerprint を表示
 just cornix mac apply --workspace /path/to/workspace
-```
 
-`--confirm`を付けないうちは差分とfingerprintを表示して終わります。中身を確認してから、表示された
-fingerprintをそのまま渡します。
-
-```bash
+# 表示された fingerprint を指定して実際に適用
 just cornix mac apply \
   --confirm v1-xxxxxxxx-xxxxxxxx \
   --workspace /path/to/workspace
 ```
 
-適用は次の順で進みます。
+適用は以下の安全手順で実行されます。
 
-1. `cornix/backups/karabiner-<時刻>.json`へ現在の設定をそのまま退避する
-2. 一時ファイルへ書いてから`rename`で置き換える
-3. 読み直して所有profileが期待どおりかを確認する
+1. 現在の設定をバックアップディレクトリへ退避する。
+2. 一時ファイルを作成後、アトミックにファイルを置き換える。
+3. 反映後のファイルを再読み込みし、内容の一致を検証する。
 
-Cornixが触るのは`Cornix Bonsai`という名前のprofile 1つだけです。`global`と他のprofile、
-どのprofileが選ばれているかは変更しません。Cornix側のprofileが選ばれていない場合はwarningを出すので、
-Karabiner-Elementsの設定画面か`karabiner_cli --select-profile 'Cornix Bonsai'`で切り替えてください。
+Cornix は `Cornix Bonsai` プロファイルのみを変更します。
+他のプロファイルや全体設定は変更しません。
 
-## 更新する
+## ツール本体の更新
+
+リポジトリを更新した後は、Nix 環境からコマンドを実行してください。
 
 ```bash
 cd /path/to/cornix-bonsai
 git pull
 ```
-
-更新後も`just cornix ...`から実行します。systemのNode.jsを直接使わず、direnv済みshellまたは
-`nix develop`内の固定されたtoolchainを使ってください。
