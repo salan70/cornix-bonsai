@@ -14,13 +14,16 @@ import { main } from "./main.ts";
 
 const FIXTURES = join(import.meta.dirname, "../../fixtures/mac-keyboard");
 
-/** `mac-keyboard.yaml` と `karabiner.json` を置いた一時 workspace。 */
-async function workspace(): Promise<{ readonly root: string; readonly karabiner: string }> {
+/** `mac-keyboard.jis.yaml` と `karabiner.json` を置いた一時 workspace。 */
+async function workspace(
+  name = "mac-keyboard.jis.yaml",
+): Promise<{ readonly root: string; readonly karabiner: string; readonly desired: string }> {
   const root = await mkdtemp(join(tmpdir(), "cornix-mac-"));
-  await copyFile(join(FIXTURES, "desired.yaml"), join(root, "mac-keyboard.yaml"));
+  const desired = join(root, name);
+  await copyFile(join(FIXTURES, "desired.yaml"), desired);
   const karabiner = join(root, "karabiner.json");
   await copyFile(join(FIXTURES, "karabiner-baseline.json"), karabiner);
-  return { root, karabiner };
+  return { root, karabiner, desired };
 }
 
 /** `console.log` を捕まえる。CLI は JSON を stdout へ出すだけなので、これで十分に読める。 */
@@ -57,7 +60,14 @@ async function captureJson(
 
 test("mac generate はcornix/generated/へassetを書く", async () => {
   const { root } = await workspace();
-  const { code, json } = await captureJson(["mac", "generate", "--workspace", root]);
+  const { code, json } = await captureJson([
+    "mac",
+    "generate",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+  ]);
 
   strictEqual(code, 0);
   strictEqual(json.output, "cornix/generated/karabiner-complex-modifications.json");
@@ -80,16 +90,23 @@ test("mac generate はcornix/generated/へassetを書く", async () => {
 });
 
 test("errorのあるdesired stateはgenerateしない", async () => {
-  const { root } = await workspace();
+  const { root, desired } = await workspace();
   await writeFile(
-    join(root, "mac-keyboard.yaml"),
+    desired,
     'schema: cornix-bonsai/mac-keymap@1\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "TD(0)"\n',
     "utf8",
   );
-  const { code, json } = await captureJson(["mac", "generate", "--workspace", root]);
+  const { code, json } = await captureJson([
+    "mac",
+    "generate",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+  ]);
   strictEqual(code, 1);
   strictEqual(json.summary?.error, 1);
-  deepStrictEqual(await readdir(join(root)), ["karabiner.json", "mac-keyboard.yaml"]);
+  deepStrictEqual(await readdir(join(root)), ["karabiner.json", "mac-keyboard.jis.yaml"]);
 });
 
 test("mac diffはkarabiner.jsonを書き換えない", async () => {
@@ -99,6 +116,8 @@ test("mac diffはkarabiner.jsonを書き換えない", async () => {
   const { code, json } = await captureJson([
     "mac",
     "diff",
+    "--layout",
+    "jis",
     "--workspace",
     root,
     "--karabiner",
@@ -119,6 +138,8 @@ test("mac applyは--confirmが無ければ書かない", async () => {
   const { code, json } = await captureJson([
     "mac",
     "apply",
+    "--layout",
+    "jis",
     "--workspace",
     root,
     "--karabiner",
@@ -137,6 +158,8 @@ test("fingerprintが一致しないapplyは書かずに落ちる", async () => {
   const { code } = await capture([
     "mac",
     "apply",
+    "--layout",
+    "jis",
     "--workspace",
     root,
     "--karabiner",
@@ -152,11 +175,22 @@ test("fingerprintが一致しないapplyは書かずに落ちる", async () => {
 test("applyはbackupを取り、所有profile以外を保ち、verifyまで通す", async () => {
   const { root, karabiner } = await workspace();
   const before = await readFile(karabiner, "utf8");
-  const plan = await captureJson(["mac", "apply", "--workspace", root, "--karabiner", karabiner]);
+  const plan = await captureJson([
+    "mac",
+    "apply",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--karabiner",
+    karabiner,
+  ]);
 
   const { code, json } = await captureJson([
     "mac",
     "apply",
+    "--layout",
+    "jis",
     "--workspace",
     root,
     "--karabiner",
@@ -181,29 +215,67 @@ test("applyはbackupを取り、所有profile以外を保ち、verifyまで通�
   strictEqual(applied.profiles[1]?.selected, undefined);
 
   // 同じdesiredをもう一度当てても差分は出ない。
-  const again = await captureJson(["mac", "diff", "--workspace", root, "--karabiner", karabiner]);
+  const again = await captureJson([
+    "mac",
+    "diff",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--karabiner",
+    karabiner,
+  ]);
   strictEqual(again.json.diff?.changed, false);
 });
 
 test("errorのあるdesired stateは適用しない", async () => {
-  const { root, karabiner } = await workspace();
+  const { root, karabiner, desired } = await workspace();
   const before = await readFile(karabiner, "utf8");
   await writeFile(
-    join(root, "mac-keyboard.yaml"),
+    desired,
     'schema: cornix-bonsai/mac-keymap@1\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "TD(0)"\n',
     "utf8",
   );
 
-  const { code } = await capture(["mac", "apply", "--workspace", root, "--karabiner", karabiner]);
+  const { code } = await capture([
+    "mac",
+    "apply",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--karabiner",
+    karabiner,
+  ]);
 
   strictEqual(code, 1);
   strictEqual(await readFile(karabiner, "utf8"), before);
 });
 
-test("mac-keyboard.yamlが無ければkeymap.yamlを探さずに落ちる", async () => {
+test("その配列の設定が無ければkeymap.yamlを探さずに落ちる", async () => {
   const root = await mkdtemp(join(tmpdir(), "cornix-mac-"));
-  const { code } = await capture(["mac", "generate", "--workspace", root]);
+  const { code } = await capture(["mac", "generate", "--layout", "jis", "--workspace", root]);
   strictEqual(code, 1);
+});
+
+test("旧名のmac-keyboard.yamlはlayout宣言が一致する配列として読む", async () => {
+  const { root } = await workspace("mac-keyboard.yaml");
+  const jis = await captureJson(["mac", "generate", "--layout", "jis", "--workspace", root]);
+  strictEqual(jis.code, 0);
+  // 宣言は jis なので、ansi を求められても使わない。
+  const ansi = await capture(["mac", "generate", "--layout", "ansi", "--workspace", root]);
+  strictEqual(ansi.code, 1);
+});
+
+test("ファイル名と食い違うlayout宣言は落ちる", async () => {
+  const { root } = await workspace("mac-keyboard.ansi.yaml");
+  const { code } = await capture(["mac", "generate", "--layout", "ansi", "--workspace", root]);
+  strictEqual(code, 1);
+});
+
+test("--layoutが未対応の値なら落ちる", async () => {
+  const { root } = await workspace();
+  strictEqual((await capture(["mac", "generate", "--layout", "iso", "--workspace", root])).code, 1);
 });
 
 test("未知のmacサブコマンドは落ちる", async () => {

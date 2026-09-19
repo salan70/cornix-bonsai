@@ -11,7 +11,7 @@ firmwareのkeymapが無く、matrix・keyboard definition・実機申告の容�
 ## 位置づけ
 
 ```text
-mac-keyboard.yaml            desired state（Git管理、workspace直下）
+mac-keyboard.<layout>.yaml   desired state（Git管理、workspace直下。配列ごと）
   ↓ parseMacKeymapYaml
 MacKeymapDocument            layer番号 → (Karabinerのkey_code名 → QMK表記)
 ```
@@ -46,7 +46,7 @@ YAMLでは省略でき、省略時は内蔵キーボードだけ（`DEFAULT_MAC_
 
 ## serializeMacKeymapYaml
 
-`mac-keyboard.yaml`のテキストを組み立てます。
+`mac-keyboard.<layout>.yaml`のテキストを組み立てます。
 
 ```text
 schema: cornix-bonsai/mac-keymap@1
@@ -257,6 +257,23 @@ severityの判定規則はADR 0010のままです。Karabinerへ落とせず**�
 到達性は`analyzeLayerGraph`を共有します。Vial側の`reachability/trapped-layer`は
 見ません。Karabinerではlayer 0のmanipulatorが変数の状態に関わらず常に効くため、
 `TG(n)`を置いたキーが上のlayerで潰されていない限り出口は必ずあります。
+
+<!-- @code src/mac/keyboard-type.ts#detectBuiltInLayout -->
+
+## detectBuiltInLayout
+
+実行中のMacの内蔵キーボードの物理配列をOSへ問い合わせます。判定できなければ`undefined`です。
+
+正はCarbonの`KBGetLayoutType(LMGetKbdType())`で、FourCharCodeで`'ANSI'` / `'ISO '` / `'JIS '`を
+返します。macOS同梱の`osascript -l JavaScript`からObjC bridgeで呼ぶため、追加依存はありません。
+
+他の経路は使いません。`karabiner_grabber_devices.json`にはANSI / JISを示すfieldがなく
+（ADR 0024）、`karabiner.json`の`keyboard_type_v2`は`generateCornixProfile`が`document.layout`
+から**書く**値なので循環し、`ioreg`の`alt_handler_id`は番号から配列への表を自前で持つ必要が
+あって乖離します。
+
+**検出は任意の追加情報です。** 取れないことを理由に処理を止めず、呼び出し側は
+`--layout ansi|jis`の明示指定へ落とします（ADR 0027）。
 
 ## 適用の境界
 

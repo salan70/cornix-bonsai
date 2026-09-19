@@ -124,11 +124,31 @@ just cornix export vil \
 
 `--out`を省略すると`keymap.vil`へ保存します。この操作はファイルを書き出すだけで、実機へwriteしません。
 
-## MacBook内蔵キーボード
+## Macのキーボード
 
-MacBook内蔵キーボードはKarabiner-Elementsをengineにして管理します。desired stateはworkspace直下の
-`mac-keyboard.yaml`で、Cornix LPの`keymap.yaml`とは別のファイルです。片方だけを置いたworkspaceでも
-動きます。
+MacのキーボードはKarabiner-Elementsをengineにして管理します。desired stateはworkspace直下の
+`mac-keyboard.<layout>.yaml`で、Cornix LPの`keymap.yaml`とは別のファイルです。片方だけを置いた
+workspaceでも動きます。
+
+設定は**物理配列ごと**に持ちます。US配列のMacと日本語配列のMacを両方使う場合は
+`mac-keyboard.ansi.yaml`と`mac-keyboard.jis.yaml`を並べて置きます。どちらを使うかは
+`cornix mac`が**実行しているMacの内蔵キーボードの配列を検出して**決めます。検出できない場合は
+`--layout ansi|jis`を指定してください。別の配列の設定を触りたいときも`--layout`を使います。
+
+1つの設定は同じ配列の複数のキーボードへ効かせられます。内蔵に加えて外付けの純正US
+キーボードにも同じ割り当てを使いたい場合は、`mac-keyboard.ansi.yaml`の`devices`へ
+両方を書きます。
+
+```yaml
+devices:
+  - { built_in: true }
+  - { vendor_id: 1452, product_id: 630 }
+```
+
+`devices`を省略すると内蔵キーボードだけが対象です。
+
+ADR 0027より前に作った`mac-keyboard.yaml`もそのまま読めます。中の`layout`宣言が、どの配列の
+設定かを決めます。
 
 事前にKarabiner-Elementsをインストールし、入力監視の権限を与えておいてください。
 

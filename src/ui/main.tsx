@@ -181,7 +181,7 @@ function App(): React.JSX.Element {
       model.mac.kind === "ready"
         ? createSaveQueue({
             store: model.store,
-            path: WORKSPACE_LAYOUT.macKeymap,
+            path: WORKSPACE_LAYOUT.legacyMacKeymap,
             token: model.mac.token,
             onSaved: () => setStatus("mac-keyboard.yamlへ保存した"),
             onError: (error) => setStatus(message(error)),
@@ -346,7 +346,7 @@ function App(): React.JSX.Element {
       );
       if (asset === undefined) {
         setStatus(
-          `${WORKSPACE_LAYOUT.macKeymap}にerrorが${summary.error}件ある: ${diagnostics
+          `${WORKSPACE_LAYOUT.legacyMacKeymap}にerrorが${summary.error}件ある: ${diagnostics
             .filter((diagnostic) => diagnostic.severity === "error")
             .map((diagnostic) => diagnostic.message)
             .join(" / ")}`,
@@ -843,7 +843,7 @@ function App(): React.JSX.Element {
   async function createMacKeymap(): Promise<void> {
     if (workspace === undefined) return;
     try {
-      await workspace.store.writeText(WORKSPACE_LAYOUT.macKeymap, initialMacKeymapYaml());
+      await workspace.store.writeText(WORKSPACE_LAYOUT.legacyMacKeymap, initialMacKeymapYaml());
       await adoptStore(workspace.store, "mac-keyboard.yamlを作成した");
     } catch (error) {
       setStatus(message(error));

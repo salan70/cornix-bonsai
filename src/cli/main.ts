@@ -13,9 +13,10 @@ import { parseKeymapYaml } from "../core/keymap-yaml/parse.ts";
 import { serializeKeymapYaml } from "../core/keymap-yaml/serialize.ts";
 import { planMacApply, verifyMacApply } from "../core/mac-keymap/apply.ts";
 import { generateKarabinerAsset } from "../core/mac-keymap/generate.ts";
-import { parseMacKeymapYaml } from "../core/mac-keymap/parse.ts";
 import { validateMacKeymap } from "../core/mac-keymap/validate.ts";
-import type { MacKeymapDocument } from "../core/mac-keymap/types.ts";
+import type { MacKeyboardLayout, MacKeymapDocument } from "../core/mac-keymap/types.ts";
+import { detectBuiltInLayout } from "../mac/keyboard-type.ts";
+import { readMacKeymapFor } from "../workspace/mac-keymap-file.ts";
 import {
   defaultKarabinerConfigPath,
   lintComplexModifications,
@@ -28,6 +29,7 @@ import {
   definitionDigest,
   definitionPath,
   generatedPath,
+  macKeymapPath,
   readDefinitionBinding,
   WORKSPACE_LAYOUT,
 } from "../workspace/layout.ts";
@@ -187,20 +189,42 @@ async function importVil(root: string, input: string, args: ParsedArgs): Promise
  */
 async function mac(root: string, args: ParsedArgs): Promise<number> {
   const sub = args._[0];
-  const document = await loadMacKeymap(root);
+  const { document } = await loadMacKeymap(root, args);
   if (sub === "generate") return await macGenerate(root, document, args);
   if (sub === "diff") return await macDiff(document, args);
   if (sub === "apply") return await macApply(root, document, args);
   throw new Error("cornix mac generate|diff|apply が必要");
 }
 
-async function loadMacKeymap(root: string): Promise<MacKeymapDocument> {
-  const store = new NodeWorkspaceStore(root);
-  const text = required(
-    await store.readText(WORKSPACE_LAYOUT.macKeymap),
-    WORKSPACE_LAYOUT.macKeymap,
-  );
-  return parseMacKeymapYaml(text);
+/** `--layout` の明示指定。検出できない環境と、別配列の設定を触りたいときの入口。 */
+function layoutArg(args: ParsedArgs): MacKeyboardLayout | undefined {
+  const value = args.layout;
+  if (value === undefined) return undefined;
+  if (value !== "ansi" && value !== "jis") throw new Error(`--layout が未対応: ${String(value)}`);
+  return value;
+}
+
+/**
+ * 実行中の Mac の内蔵配列に対応する設定を読む。
+ *
+ * 設定は物理配列ごとに分かれている（ADR 0027）。どれを使うかは宣言ではなく
+ * **実行しているマシン**が決める。`--layout` があればそちらを優先し、検出できなければ
+ * 明示指定を要求する。黙って既定の配列へ倒すと、別配列のマシンへ間違った
+ * `keyboard_type_v2` を書き込む。
+ */
+async function loadMacKeymap(
+  root: string,
+  args: ParsedArgs,
+): Promise<{ readonly layout: MacKeyboardLayout; readonly document: MacKeymapDocument }> {
+  const layout = layoutArg(args) ?? (await detectBuiltInLayout());
+  if (layout === undefined) {
+    throw new Error("内蔵キーボードの配列を検出できない。--layout ansi|jis を指定する");
+  }
+  const file = await readMacKeymapFor(new NodeWorkspaceStore(root), layout);
+  if (file === undefined) {
+    throw new Error(`${macKeymapPath(layout)} が見つからない（配列: ${layout}）`);
+  }
+  return { layout, document: file.document };
 }
 
 /** complex_modifications の asset を書き出す。Karabiner が入っていれば lint も通す。 */
@@ -369,7 +393,7 @@ function mapReplacer(_key: string, value: unknown): unknown {
 }
 function printHelp(): void {
   console.log(
-    `cornix validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint>`,
+    `cornix validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint>\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）`,
   );
 }
 

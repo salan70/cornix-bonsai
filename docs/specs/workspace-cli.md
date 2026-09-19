@@ -7,12 +7,13 @@ pathに保存する。`cornix/acknowledgements.json`はApply warningの確認ID�
 mtimeだけでなく読み出したcontent hashを優先する。
 
 <!-- @code src/workspace/layout.ts#WORKSPACE_LAYOUT -->
+<!-- @code src/workspace/layout.ts#macKeymapPath -->
 
 ## 配置
 
 ```text
 keymap.yaml
-mac-keyboard.yaml
+mac-keyboard.<layout>.yaml
 cornix/
   definitions/<digest-prefix>.json
   labels.yaml
@@ -22,9 +23,24 @@ cornix/
   generated/<name>
 ```
 
-`mac-keyboard.yaml`はMacBook内蔵キーボードのdesired stateで、`keymap.yaml`とは別documentである
-（ADR 0022）。仕様は`mac-keymap.md`にある。片方だけが存在するworkspaceも成立するため、
-CLIのmac系サブコマンドは`keymap.yaml`を要求しない。
+`mac-keyboard.<layout>.yaml`（`macKeymapPath`）はMacのdesired stateで、`keymap.yaml`とは別
+documentである（ADR 0022）。仕様は`mac-keymap.md`にある。片方だけが存在するworkspaceも
+成立するため、CLIのmac系サブコマンドは`keymap.yaml`を要求しない。
+
+設定の単位は物理配列である（ADR 0026）。配列の違うMacを1つのworkspaceで扱うため、
+`ansi`と`jis`を別ファイルに分ける（ADR 0027）。ファイル名と中の`layout`宣言が食い違って
+いたら読み込み側が落とす。正規形が2つあると、どちらが正か分からないまま生成まで進む。
+
+ADR 0027より前の`mac-keyboard.yaml`は読み込み時の後方互換として残る。どの配列のものかは
+中の`layout`宣言で決まり、宣言が求めた配列と違えば「その配列の設定は無い」として扱う。
+
+<!-- @code src/workspace/mac-keymap-file.ts#readMacKeymapFor -->
+
+## readMacKeymapFor
+
+指定した配列の設定を読みます。新しい名前を先に見て、無ければ旧名を`layout`宣言で
+解決します。`src/core/mac-keymap/`はfilesystemに触らないため、名前の解決はworkspace層が
+持ちます。
 
 ## 表示用labels
 

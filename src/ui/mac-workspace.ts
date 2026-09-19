@@ -33,18 +33,22 @@ export type MacWorkspaceState =
  * parse 失敗は `error` に閉じ込め、例外を外へ出さない。Mac の不調で workspace 全体を
  * `unresolved` にしないため（ADR 0025）。
  *
+ * **読むのは旧名の 1 ファイルだけ。** ADR 0027 で設定は物理配列ごとのファイルへ分かれたが、
+ * Browser UI にはまだ配列を選ぶ導線が無い。配列の選択を入れるときに
+ * `macKeymapPath(layout)` へ移す。
+ *
  * @doc docs/specs/ui.md#mac-tab
  */
 export async function probeMacKeymap(
   store: Pick<WorkspaceFileStore, "readText" | "stat">,
 ): Promise<MacWorkspaceState> {
   try {
-    const text = await store.readText(WORKSPACE_LAYOUT.macKeymap);
+    const text = await store.readText(WORKSPACE_LAYOUT.legacyMacKeymap);
     if (text === undefined) return { kind: "missing" };
     return {
       kind: "ready",
       document: parseMacKeymapYaml(text),
-      token: (await store.stat(WORKSPACE_LAYOUT.macKeymap)) ?? undefined,
+      token: (await store.stat(WORKSPACE_LAYOUT.legacyMacKeymap)) ?? undefined,
     };
   } catch (error) {
     return { kind: "error", reason: error instanceof Error ? error.message : String(error) };

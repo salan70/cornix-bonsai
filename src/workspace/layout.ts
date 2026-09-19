@@ -6,13 +6,18 @@
  */
 
 import { canonicalDefinitionText } from "../core/definition/identity.ts";
+import type { MacKeyboardLayout } from "../core/mac-keymap/types.ts";
 import type { WorkspaceFileStore } from "./types.ts";
 
 /** @doc docs/specs/workspace-cli.md#配置 */
 export const WORKSPACE_LAYOUT = {
   keymap: "keymap.yaml",
-  /** MacBook 内蔵キーボードの desired state。`keymap.yaml` とは別 document（ADR 0022）。 */
-  macKeymap: "mac-keyboard.yaml",
+  /**
+   * Mac の desired state の**旧名**。ADR 0027 以降は `macKeymapPath(layout)` が正で、
+   * この名前は読み込み時の後方互換としてだけ残る。どの配列のものかは中の `layout`
+   * 宣言で決まる。
+   */
+  legacyMacKeymap: "mac-keyboard.yaml",
   definitions: "cornix/definitions",
   labels: "cornix/labels.yaml",
   acknowledgements: "cornix/acknowledgements.json",
@@ -20,6 +25,19 @@ export const WORKSPACE_LAYOUT = {
   latestBackup: "cornix/backups/latest.vil",
   generated: "cornix/generated",
 } as const;
+
+/**
+ * 物理配列ごとの Mac 設定ファイル。
+ *
+ * 設定の単位は物理配列で（ADR 0026）、配列の違う Mac を 1 つの workspace で扱うため
+ * ファイルを分ける（ADR 0027）。どの配列のものかがファイル名で分かるので、
+ * 中の `layout` 宣言と食い違っていたら読み込み側が落とす。
+ *
+ * @doc docs/specs/workspace-cli.md#配置
+ */
+export function macKeymapPath(layout: MacKeyboardLayout): string {
+  return `mac-keyboard.${layout}.yaml`;
+}
 
 export function definitionPath(digest: string): string {
   if (!/^[0-9a-f]{64}$/i.test(digest)) {
