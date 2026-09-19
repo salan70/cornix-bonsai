@@ -197,6 +197,20 @@ ADR 0023です。`classifyKeycode`が返す`KeycodeLexeme`から直接写しま�
 
 `key_code`名の昇順で並べます。生成物が入力の書き順に依存しないようにするためです。
 
+<!-- @code src/core/mac-keymap/generate.ts#macKeycodeSupport -->
+
+## macKeycodeSupport
+
+keycode 1個をKarabinerへ落とせるかを返します。落とせない場合は診断のcodeとmessageを持ちます。
+
+**判定を書き写しません。** 実際のloweringを1キーのprobeで走らせ、error診断が出たかどうかで
+決めます。「落とせるか」の正は`manipulatorsForKey`の閉じたswitchと各wrapperの表現可能性で、
+判定を別に持つと必ず乖離するためです（ADR 0025）。Browser UIがkeycode pickerのcellを
+無効化するのにこの関数を使っても、定義元は1つのまま保たれます。
+
+位置とlayerに依存しない判定だけを返します。書かれていないlayerを指す`MO(n)`のように
+document全体を見ないと決まらないものは`validateMacKeymap`の担当です。
+
 <!-- @code src/core/mac-keymap/generate.ts#generateKarabinerAsset -->
 
 ## generateKarabinerAsset

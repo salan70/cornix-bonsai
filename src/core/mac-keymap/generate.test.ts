@@ -12,6 +12,7 @@ import {
   generateKarabinerAsset,
   generateCornixProfile,
   generateKarabinerRules,
+  macKeycodeSupport,
 } from "./generate.ts";
 import type { KarabinerManipulator } from "./karabiner.ts";
 import { parseMacKeymapYaml } from "./parse.ts";
@@ -235,4 +236,57 @@ test("layer 1 以上でも device 条件は先頭に残る", () => {
     { type: "device_if", identifiers: [{ vendor_id: 1452, product_id: 630 }] },
     { type: "variable_if", name: "cornix_layer_1", value: 1 },
   ]);
+});
+
+test("macKeycodeSupport は落とせる keycode を ok にする", () => {
+  for (const keycode of [
+    "KC_A",
+    "KC_TRNS",
+    "KC_NO",
+    "MO(1)",
+    "TG(2)",
+    "LT1(KC_SPACE)",
+    "LCTL_T(KC_TAB)",
+  ]) {
+    strictEqual(macKeycodeSupport(keycode).ok, true, keycode);
+  }
+});
+
+test("macKeycodeSupport は落とせない keycode に診断の code を付ける", () => {
+  const cases: readonly (readonly [string, string])[] = [
+    ["LSFT(KC_1)", "mac-keymap/unsupported-keycode"],
+    ["TD(0)", "mac-keymap/unsupported-keycode"],
+    ["M(0)", "mac-keymap/unsupported-keycode"],
+    ["USER00", "mac-keymap/unsupported-keycode"],
+    ["LCTL_T(KC_NO)", "mac-keymap/unsupported-mod-tap"],
+    ["LT1(KC_NO)", "mac-keymap/unsupported-layer-tap-inner"],
+  ];
+  for (const [keycode, code] of cases) {
+    const support = macKeycodeSupport(keycode);
+    strictEqual(support.ok, false, keycode);
+    if (!support.ok) strictEqual(support.code, code, keycode);
+  }
+});
+
+test("macKeycodeSupport と生成器の判定はずれない", () => {
+  // 判定を書き写していないことの確認。probe と本番の lowering が同じ結論になる。
+  const samples = [
+    "KC_A",
+    "KC_TRNS",
+    "KC_NO",
+    "MO(1)",
+    "TG(2)",
+    "LT1(KC_SPACE)",
+    "LCTL_T(KC_TAB)",
+    "LSFT(KC_1)",
+    "TD(0)",
+    "M(0)",
+    "USER00",
+    "KC_LANG1",
+  ];
+  for (const keycode of samples) {
+    const { diagnostics } = generateKarabinerRules(documentOf([{ spacebar: keycode }]));
+    const hasError = diagnostics.some((diagnostic) => diagnostic.severity === "error");
+    strictEqual(macKeycodeSupport(keycode).ok, !hasError, keycode);
+  }
 });

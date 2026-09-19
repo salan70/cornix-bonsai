@@ -119,6 +119,37 @@ export function generateCornixProfile(document: MacKeymapDocument): {
   };
 }
 
+/** `macKeycodeSupport` の判定結果。落とせない場合は診断の code と message を持つ。 */
+export type MacKeycodeSupport =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly code: string; readonly message: string };
+
+/** probe 用の位置と device。`manipulatorsForKey` はどちらも判定に使わない。 */
+const PROBE_POSITION = "spacebar";
+const PROBE_DEVICE = deviceCondition([{ builtIn: true }]);
+
+/**
+ * keycode を Karabiner へ落とせるか。
+ *
+ * **判定を書き写さない。** 実際の lowering を 1 キーの probe で走らせ、error 診断が
+ * 出たかどうかで決める。「落とせるか」の正は `manipulatorsForKey` の閉じた switch と
+ * 各 wrapper の表現可能性であり、判定を別に持つと必ず乖離する（ADR 0025）。UI が
+ * picker の cell を無効化するのにこの関数を使っても、定義元は 1 つのまま保たれる。
+ *
+ * 位置と layer に依存しない判定だけを返す。書かれていない layer を指す `MO(n)` など、
+ * document 全体を見ないと決まらないものは `validateMacKeymap` の担当。
+ *
+ * @doc docs/specs/mac-keymap.md#mackeycodesupport
+ */
+export function macKeycodeSupport(keycode: string): MacKeycodeSupport {
+  const diagnostics: Diagnostic[] = [];
+  manipulatorsForKey(PROBE_POSITION, keycode, 0, PROBE_DEVICE, diagnostics);
+  const first = diagnostics[0];
+  return first === undefined
+    ? { ok: true }
+    : { ok: false, code: first.code, message: first.message };
+}
+
 function layerVariable(layer: number): string {
   return `${LAYER_VARIABLE_PREFIX}${layer}`;
 }
