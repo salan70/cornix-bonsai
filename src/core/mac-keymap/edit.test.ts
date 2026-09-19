@@ -1,7 +1,13 @@
 import { deepStrictEqual, ok, strictEqual, throws } from "node:assert/strict";
 import { test } from "node:test";
 
-import { addMacLayer, clearMacAssignment, MacKeymapEditError, setMacAssignment } from "./edit.ts";
+import {
+  addMacDevice,
+  addMacLayer,
+  clearMacAssignment,
+  MacKeymapEditError,
+  setMacAssignment,
+} from "./edit.ts";
 import { parseMacKeymapYaml } from "./parse.ts";
 import { serializeMacKeymapYaml } from "./serialize.ts";
 import { DEFAULT_MAC_DEVICES, type MacKeymapDocument } from "./types.ts";
@@ -77,4 +83,22 @@ test("空layerを含むdocumentはserialize→parseをround-tripする", () => {
   deepStrictEqual([...reparsed.layers.keys()], [0, 2]);
   strictEqual(reparsed.layers.get(0)?.size, 0);
   strictEqual(reparsed.layers.get(2)?.size, 0);
+});
+
+test("addMacDevice は追加順のまま末尾へ足す", () => {
+  const before = baseDocument();
+  const after = addMacDevice(before, { vendorId: 1452, productId: 630 });
+  deepStrictEqual(after.devices, [{ builtIn: true }, { vendorId: 1452, productId: 630 }]);
+  deepStrictEqual(before.devices, DEFAULT_MAC_DEVICES, "入力は変えない");
+});
+
+test("addMacDevice は同じデバイスを二重に足さない", () => {
+  const once = addMacDevice(baseDocument(), { vendorId: 1452, productId: 630 });
+  strictEqual(addMacDevice(once, { vendorId: 1452, productId: 630 }), once);
+  strictEqual(addMacDevice(once, { builtIn: true }), once);
+});
+
+test("addMacDevice は整数でない id を拒む", () => {
+  throws(() => addMacDevice(baseDocument(), { vendorId: 1.5, productId: 1 }), MacKeymapEditError);
+  throws(() => addMacDevice(baseDocument(), { vendorId: -1, productId: 1 }), MacKeymapEditError);
 });

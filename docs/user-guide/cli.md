@@ -147,6 +147,27 @@ devices:
 
 `devices`を省略すると内蔵キーボードだけが対象です。
 
+### 適用先のキーボードを調べる・登録する
+
+```bash
+just cornix mac devices --workspace /path/to/workspace
+```
+
+Karabinerが観測しているキーボードを一覧します。この操作はファイルを書き換えません。
+出力の`identifier`が`devices`へ書ける値で、`add`にそのまま実行できるコマンドが出ます。
+
+```bash
+just cornix mac devices --workspace /path/to/workspace --add 1452:630
+```
+
+`--add`を付けたときだけ設定ファイルへ書き戻します。同じデバイスを二重には足しません。
+
+内蔵キーボードはvendor / product idを申告しないため、一覧に出てもidがありません。
+既定で対象なので登録も要りません。
+
+**Cornix LPのような他のキーボードも一覧に並びます。** 登録するとMacの割り当てがその実機の
+firmwareの割り当てと二重に効くので、`product`を見て選んでください。
+
 ADR 0027より前に作った`mac-keyboard.yaml`もそのまま読めます。中の`layout`宣言が、どの配列の
 設定かを決めます。
 

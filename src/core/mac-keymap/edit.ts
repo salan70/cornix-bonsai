@@ -8,7 +8,7 @@
  * 疎な map なので「範囲外」という概念が無く、無い layer への書き込みは layer を作る。
  */
 
-import type { MacKeymapDocument, MacLayerAssignments } from "./types.ts";
+import type { MacDeviceIdentifier, MacKeymapDocument, MacLayerAssignments } from "./types.ts";
 
 /** 編集操作の入力が成立しないときに投げる。 */
 export class MacKeymapEditError extends Error {}
@@ -84,4 +84,35 @@ export function addMacLayer(document: MacKeymapDocument, layer: number): MacKeym
   requireValidLayer(layer);
   if (document.layers.has(layer)) return document;
   return withLayer(document, layer, new Map());
+}
+
+/** 2 つの識別子が同じデバイスを指すか。内蔵は 1 種類しか無いので種別だけで決まる。 */
+function sameDevice(left: MacDeviceIdentifier, right: MacDeviceIdentifier): boolean {
+  if ("builtIn" in left || "builtIn" in right) return "builtIn" in left && "builtIn" in right;
+  return left.vendorId === right.vendorId && left.productId === right.productId;
+}
+
+/**
+ * 適用先デバイスを追加する。既にあれば何もしない。
+ *
+ * 順序は追加順のまま保つ。`device_if` の identifiers は OR なので意味は順序に依存しないが、
+ * 並べ替えると diff が動く。
+ *
+ * @doc docs/specs/mac-keymap.md#mac-edit
+ */
+export function addMacDevice(
+  document: MacKeymapDocument,
+  device: MacDeviceIdentifier,
+): MacKeymapDocument {
+  if (!("builtIn" in device)) {
+    for (const value of [device.vendorId, device.productId]) {
+      if (!Number.isInteger(value) || value < 0) {
+        throw new MacKeymapEditError(
+          `vendor_id / product_id は 0 以上の整数（${value} が渡された）`,
+        );
+      }
+    }
+  }
+  if (document.devices.some((existing) => sameDevice(existing, device))) return document;
+  return { ...document, devices: [...document.devices, device] };
 }

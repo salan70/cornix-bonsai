@@ -3,7 +3,12 @@ import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { defaultKarabinerConfigPath, readKarabinerConfig, writeFileAtomic } from "./node.ts";
+import {
+  defaultKarabinerConfigPath,
+  readKarabinerConfig,
+  readObservedKeyboards,
+  writeFileAtomic,
+} from "./node.ts";
 
 async function workDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "cornix-karabiner-"));
@@ -49,4 +54,29 @@ test("書き込みはtempへ書いてからrenameし、tempを残さない", asy
 
   strictEqual(await readFile(path, "utf8"), "new");
   deepStrictEqual(await readdir(directory), ["karabiner.json"]);
+});
+
+test("readObservedKeyboards はキーボードだけを返し、仮想デバイスを外す", async () => {
+  const path = join(import.meta.dirname, "../../fixtures/mac-keyboard/karabiner-devices.json");
+  const keyboards = await readObservedKeyboards(path);
+  deepStrictEqual(keyboards, [
+    {
+      product: "Apple Internal Keyboard / Trackpad",
+      manufacturer: "Apple",
+      builtIn: true,
+      vendorId: undefined,
+      productId: undefined,
+    },
+    {
+      product: "Magic Keyboard",
+      manufacturer: "Apple Inc.",
+      builtIn: false,
+      vendorId: 1452,
+      productId: 630,
+    },
+  ]);
+});
+
+test("readObservedKeyboards はファイルが無ければ undefined", async () => {
+  strictEqual(await readObservedKeyboards(join(import.meta.dirname, "nope.json")), undefined);
 });

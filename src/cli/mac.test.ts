@@ -282,3 +282,71 @@ test("未知のmacサブコマンドは落ちる", async () => {
   const { root } = await workspace();
   strictEqual((await capture(["mac", "publish", "--workspace", root])).code, 1);
 });
+
+const DEVICES = join(FIXTURES, "karabiner-devices.json");
+
+test("mac devices は観測されたキーボードを出し、書き換えない", async () => {
+  const { root, desired } = await workspace();
+  const before = await readFile(desired, "utf8");
+  const { code, out } = await capture([
+    "mac",
+    "devices",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--devices",
+    DEVICES,
+  ]);
+  strictEqual(code, 0);
+  const json = JSON.parse(out) as {
+    observed: readonly { product: string; identifier: string | null; registered: boolean }[];
+  };
+  deepStrictEqual(
+    json.observed.map((entry) => [entry.product, entry.identifier, entry.registered]),
+    [
+      ["Apple Internal Keyboard / Trackpad", null, true],
+      ["Magic Keyboard", "1452:630", false],
+    ],
+  );
+  strictEqual(await readFile(desired, "utf8"), before, "--add が無ければ書き換えない");
+});
+
+test("mac devices --add は devices へ足して書き戻す", async () => {
+  const { root, desired } = await workspace();
+  const { code } = await capture([
+    "mac",
+    "devices",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--add",
+    "1452:630",
+  ]);
+  strictEqual(code, 0);
+  const text = await readFile(desired, "utf8");
+  strictEqual(
+    text.includes("  - { built_in: true }\n  - { vendor_id: 1452, product_id: 630 }\n"),
+    true,
+  );
+
+  // 二重に足さない。
+  await capture(["mac", "devices", "--layout", "jis", "--workspace", root, "--add", "1452:630"]);
+  strictEqual(await readFile(desired, "utf8"), text);
+});
+
+test("mac devices --add が <vendor>:<product> の形でなければ落ちる", async () => {
+  const { root } = await workspace();
+  const { code } = await capture([
+    "mac",
+    "devices",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--add",
+    "abc",
+  ]);
+  strictEqual(code, 1);
+});

@@ -132,6 +132,7 @@ Inferenceです（ADR 0024・0025）。
 <!-- @code src/core/mac-keymap/edit.ts#setMacAssignment -->
 <!-- @code src/core/mac-keymap/edit.ts#clearMacAssignment -->
 <!-- @code src/core/mac-keymap/edit.ts#addMacLayer -->
+<!-- @code src/core/mac-keymap/edit.ts#addMacDevice -->
 
 ## Mac edit
 
@@ -143,6 +144,10 @@ Vial側と違いlayersは疎なmapなので「範囲外」という概念が無�
 無いlayerへの書き込みでlayerを作ります。`clearMacAssignment`は割り当てを外して素通しへ
 戻します。`KC_NO`（イベントを捨てる）と削除（素通し）は別セマンティクスです（ADR 0022）。
 空になったlayerは残します。「割り当てを外したらlayerが消える」という驚きを避けるためです。
+
+`addMacDevice`は適用先デバイスを末尾へ足します。既にあるデバイスは足しません。順序は
+追加順のまま保ちます。`device_if`のidentifiersはORなので意味は順序に依存しませんが、
+並べ替えるとdiffが動きます。
 
 <!-- @code src/core/mac-keymap/physical-layout.ts#MacPhysicalKey -->
 <!-- @code src/core/mac-keymap/physical-layout.ts#macPhysicalLayout -->
@@ -257,6 +262,23 @@ severityの判定規則はADR 0010のままです。Karabinerへ落とせず**�
 到達性は`analyzeLayerGraph`を共有します。Vial側の`reachability/trapped-layer`は
 見ません。Karabinerではlayer 0のmanipulatorが変数の状態に関わらず常に効くため、
 `TG(n)`を置いたキーが上のlayerで潰されていない限り出口は必ずあります。
+
+<!-- @code src/karabiner/node.ts#readObservedKeyboards -->
+
+## readObservedKeyboards
+
+Karabinerが観測しているデバイスの一覧
+（`/Library/Application Support/org.pqrs/tmp/karabiner_grabber_devices.json`）から、
+キーボードだけを取り出します。ファイルが無ければ`undefined`です。
+
+pointing deviceと、Karabiner自身の仮想キーボード（`is_virtual_device`）は外します。
+仮想キーボードはKarabinerの出力側で、`devices`へ登録すると自分の出力を食います。
+
+内蔵キーボードはvendor / product idを申告しないため、一覧に出てもidがありません。
+`is_built_in_keyboard`でしか指せず、既定で対象なので登録も要りません。
+
+このファイルにANSI / JISを示すfieldはありません（ADR 0024）。ここから取れるのは
+**どのデバイスが居るか**だけで、`devices`へ書くidentifiersの出どころとして使います。
 
 <!-- @code src/mac/keyboard-type.ts#detectBuiltInLayout -->
 

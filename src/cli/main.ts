@@ -13,14 +13,18 @@ import { parseKeymapYaml } from "../core/keymap-yaml/parse.ts";
 import { serializeKeymapYaml } from "../core/keymap-yaml/serialize.ts";
 import { planMacApply, verifyMacApply } from "../core/mac-keymap/apply.ts";
 import { generateKarabinerAsset } from "../core/mac-keymap/generate.ts";
+import { addMacDevice } from "../core/mac-keymap/edit.ts";
+import { serializeMacKeymapYaml } from "../core/mac-keymap/serialize.ts";
 import { validateMacKeymap } from "../core/mac-keymap/validate.ts";
 import type { MacKeyboardLayout, MacKeymapDocument } from "../core/mac-keymap/types.ts";
 import { detectBuiltInLayout } from "../mac/keyboard-type.ts";
 import { readMacKeymapFor } from "../workspace/mac-keymap-file.ts";
 import {
   defaultKarabinerConfigPath,
+  KARABINER_DEVICES_PATH,
   lintComplexModifications,
   readKarabinerConfig,
+  readObservedKeyboards,
   writeFileAtomic,
 } from "../karabiner/node.ts";
 import { renderPdf, renderSvg } from "../render/keyboard.ts";
@@ -189,11 +193,12 @@ async function importVil(root: string, input: string, args: ParsedArgs): Promise
  */
 async function mac(root: string, args: ParsedArgs): Promise<number> {
   const sub = args._[0];
-  const { document } = await loadMacKeymap(root, args);
-  if (sub === "generate") return await macGenerate(root, document, args);
-  if (sub === "diff") return await macDiff(document, args);
-  if (sub === "apply") return await macApply(root, document, args);
-  throw new Error("cornix mac generate|diff|apply が必要");
+  const loaded = await loadMacKeymap(root, args);
+  if (sub === "generate") return await macGenerate(root, loaded.document, args);
+  if (sub === "diff") return await macDiff(loaded.document, args);
+  if (sub === "apply") return await macApply(root, loaded.document, args);
+  if (sub === "devices") return await macDevices(root, loaded, args);
+  throw new Error("cornix mac generate|diff|apply|devices が必要");
 }
 
 /** `--layout` の明示指定。検出できない環境と、別配列の設定を触りたいときの入口。 */
@@ -215,7 +220,11 @@ function layoutArg(args: ParsedArgs): MacKeyboardLayout | undefined {
 async function loadMacKeymap(
   root: string,
   args: ParsedArgs,
-): Promise<{ readonly layout: MacKeyboardLayout; readonly document: MacKeymapDocument }> {
+): Promise<{
+  readonly layout: MacKeyboardLayout;
+  readonly path: string;
+  readonly document: MacKeymapDocument;
+}> {
   const layout = layoutArg(args) ?? (await detectBuiltInLayout());
   if (layout === undefined) {
     throw new Error("内蔵キーボードの配列を検出できない。--layout ansi|jis を指定する");
@@ -224,7 +233,96 @@ async function loadMacKeymap(
   if (file === undefined) {
     throw new Error(`${macKeymapPath(layout)} が見つからない（配列: ${layout}）`);
   }
-  return { layout, document: file.document };
+  return { layout, path: file.path, document: file.document };
+}
+
+/** `--add` が受ける `<vendor_id>:<product_id>`。10 進の整数 2 つだけを受ける。 */
+function parseDeviceArg(value: string): { readonly vendorId: number; readonly productId: number } {
+  const match = /^([0-9]+):([0-9]+)$/.exec(value);
+  if (match?.[1] === undefined || match[2] === undefined) {
+    throw new Error(`--add は <vendor_id>:<product_id> の形（${value} が渡された）`);
+  }
+  return { vendorId: Number(match[1]), productId: Number(match[2]) };
+}
+
+/**
+ * 適用先デバイスの一覧と登録。
+ *
+ * `--add` が無ければ観測されたキーボードを出して終わる。`mac apply` と同じで、
+ * **見てから明示的に指定したときだけ**書き込む。内蔵キーボードは vendor / product id を
+ * 申告しないため一覧に id が出ない。既定で対象なので登録も要らない。
+ *
+ * Cornix LP のような他のキーボードもここに並ぶ。登録すると Mac の keymap がその実機の
+ * firmware keymap と二重に効くので、product を見て選ぶ必要がある（ADR 0022 の隔離）。
+ */
+async function macDevices(
+  root: string,
+  loaded: {
+    readonly layout: MacKeyboardLayout;
+    readonly path: string;
+    readonly document: MacKeymapDocument;
+  },
+  args: ParsedArgs,
+): Promise<number> {
+  // `--karabiner` と同じく、既定の場所以外も指せるようにする。
+  const observed = await readObservedKeyboards(
+    args.devices === undefined ? undefined : String(args.devices),
+  );
+  const add = args.add === undefined ? undefined : parseDeviceArg(String(args.add));
+
+  if (add !== undefined) {
+    const next = addMacDevice(loaded.document, add);
+    await new NodeWorkspaceStore(root).writeText(loaded.path, serializeMacKeymapYaml(next));
+    console.log(
+      JSON.stringify(
+        { path: loaded.path, layout: loaded.layout, devices: next.devices, added: add },
+        null,
+        2,
+      ),
+    );
+    return 0;
+  }
+
+  const registered = new Set(
+    loaded.document.devices.flatMap((device) =>
+      "builtIn" in device ? [] : [`${device.vendorId}:${device.productId}`],
+    ),
+  );
+  const list = (observed ?? []).map((keyboard) => {
+    const id =
+      keyboard.vendorId === undefined || keyboard.productId === undefined
+        ? undefined
+        : `${keyboard.vendorId}:${keyboard.productId}`;
+    return {
+      product: keyboard.product ?? null,
+      manufacturer: keyboard.manufacturer ?? null,
+      builtIn: keyboard.builtIn,
+      identifier: id ?? null,
+      registered: keyboard.builtIn
+        ? loaded.document.devices.some((device) => "builtIn" in device)
+        : id !== undefined && registered.has(id),
+      add: id === undefined ? null : `cornix mac devices --layout ${loaded.layout} --add ${id}`,
+    };
+  });
+  console.log(
+    JSON.stringify(
+      {
+        source:
+          observed === undefined
+            ? null
+            : args.devices === undefined
+              ? KARABINER_DEVICES_PATH
+              : String(args.devices),
+        layout: loaded.layout,
+        path: loaded.path,
+        devices: loaded.document.devices,
+        observed: list,
+      },
+      null,
+      2,
+    ),
+  );
+  return 0;
 }
 
 /** complex_modifications の asset を書き出す。Karabiner が入っていれば lint も通す。 */
@@ -393,7 +491,7 @@ function mapReplacer(_key: string, value: unknown): unknown {
 }
 function printHelp(): void {
   console.log(
-    `cornix validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint>\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）`,
+    `cornix validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint>\n  mac devices [--devices <observed.json>] [--add <vendor_id>:<product_id>]\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）`,
   );
 }
 

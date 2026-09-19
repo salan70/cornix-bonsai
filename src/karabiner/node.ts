@@ -5,7 +5,8 @@
  * path を `root` からの相対で解決するため使えない。`node:fs/promises` を直接叩く
  * （`cli/main.ts` の `render` / `export vil` に前例がある）。
  *
- * `src/core/mac-keymap/` は filesystem に触らない。この module が唯一の境界になる。
+ * `src/core/mac-keymap/` は filesystem に触らない。Karabiner 側の境界はこの module で、
+ * OS 自身への問い合わせは `src/mac/keyboard-type.ts` が持つ。
  *
  */
 
@@ -21,6 +22,70 @@ const execFileAsync = promisify(execFile);
 /** Karabiner-Elements が入れる CLI。lint はここからしか呼べない。 */
 export const KARABINER_CLI =
   "/Library/Application Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli";
+
+/**
+ * Karabiner が観測しているデバイスの一覧。root 所有だが読み取りは誰でもできる。
+ *
+ * ANSI / JIS を示す field は無い（ADR 0024）。ここから取れるのは**どのデバイスが居るか**
+ * だけで、`devices` へ書く identifiers の出どころとして使う（ADR 0026）。
+ */
+export const KARABINER_DEVICES_PATH =
+  "/Library/Application Support/org.pqrs/tmp/karabiner_grabber_devices.json";
+
+/** 観測されたキーボード 1 台。`devices` へ書ける情報だけを取り出す。 */
+export interface ObservedKeyboard {
+  readonly product: string | undefined;
+  readonly manufacturer: string | undefined;
+  /** 内蔵キーボードは vendor / product id を申告せず、これでしか指せない。 */
+  readonly builtIn: boolean;
+  readonly vendorId: number | undefined;
+  readonly productId: number | undefined;
+}
+
+/**
+ * 観測されたキーボードを読む。ファイルが無ければ `undefined`。
+ *
+ * pointing device と、Karabiner 自身の仮想キーボード（`is_virtual_device`）は外す。
+ * 仮想キーボードは Karabiner の出力側で、ここへ登録すると自分の出力を食う。
+ *
+ * @doc docs/specs/mac-keymap.md#readobservedkeyboards
+ */
+export async function readObservedKeyboards(
+  path: string = KARABINER_DEVICES_PATH,
+): Promise<readonly ObservedKeyboard[] | undefined> {
+  let text: string;
+  try {
+    text = await readFile(path, "utf8");
+  } catch {
+    return undefined;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    throw new Error(`${path} を JSON として読めない: ${message(error)}`);
+  }
+  if (!Array.isArray(parsed)) throw new Error(`${path} が配列ではない`);
+
+  const keyboards: ObservedKeyboard[] = [];
+  for (const entry of parsed) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const record = entry as Record<string, unknown>;
+    const identifiers = record.device_identifiers;
+    if (typeof identifiers !== "object" || identifiers === null) continue;
+    const ids = identifiers as Record<string, unknown>;
+    if (ids.is_keyboard !== true) continue;
+    if (ids.is_virtual_device === true) continue;
+    keyboards.push({
+      product: typeof record.product === "string" ? record.product : undefined,
+      manufacturer: typeof record.manufacturer === "string" ? record.manufacturer : undefined,
+      builtIn: record.is_built_in_keyboard === true,
+      vendorId: typeof ids.vendor_id === "number" ? ids.vendor_id : undefined,
+      productId: typeof ids.product_id === "number" ? ids.product_id : undefined,
+    });
+  }
+  return keyboards;
+}
 
 /** Karabiner が読む設定ファイルの既定の場所。 */
 export function defaultKarabinerConfigPath(): string {
