@@ -4,8 +4,7 @@ import { diffDocuments, type DiffEntry } from "../core/diff/diff.ts";
 import { setEncoderAssignment, setKeyAssignment } from "../core/model/edit.ts";
 import { addMacLayer, clearMacAssignment, setMacAssignment } from "../core/mac-keymap/edit.ts";
 import { serializeMacKeymapYaml } from "../core/mac-keymap/serialize.ts";
-import type { MacKeymapDocument } from "../core/mac-keymap/types.ts";
-import { createKeycodeTable } from "../core/keycode/table.ts";
+import type { MacKeyboardLayout, MacKeymapDocument } from "../core/mac-keymap/types.ts";
 import { buildKeymapView } from "../core/model/keymap-view.ts";
 import {
   abortApply,
@@ -20,9 +19,7 @@ import { evaluateApplyGate } from "../core/validation/gate.ts";
 import { validateApplyKeymap, validateKeymap } from "../core/validation/validate.ts";
 import { validateMacKeymap } from "../core/mac-keymap/validate.ts";
 import { createDiagnostic, type Severity } from "../core/validation/types.ts";
-import { parseDefinition } from "../core/definition/parse.ts";
 import { canonicalDefinitionText } from "../core/definition/identity.ts";
-import { parseKeymapYaml } from "../core/keymap-yaml/parse.ts";
 import { serializeKeymapYaml } from "../core/keymap-yaml/serialize.ts";
 import { parseVil } from "../core/vil/parse.ts";
 import { serializeVil } from "../core/vil/serialize.ts";
@@ -33,28 +30,21 @@ import {
   definitionDigest,
   definitionPath,
   generatedPath,
-  readDefinitionBinding,
+  macKeymapPath,
   WORKSPACE_LAYOUT,
 } from "../workspace/layout.ts";
-import {
-  planBindingMigration,
-  planWorkspaceInit,
-  writeWorkspacePlan,
-  type BindingMigration,
-} from "../workspace/bootstrap.ts";
+import { planWorkspaceInit, writeWorkspacePlan } from "../workspace/bootstrap.ts";
 import {
   EMPTY_LABELS,
-  parseLabelsYaml,
   serializeLabelsYaml,
   updateLayerLabel,
   type WorkspaceLabels,
 } from "../workspace/labels.ts";
-import { parseAcknowledgements, serializeAcknowledgements } from "../workspace/acknowledgements.ts";
+import { serializeAcknowledgements } from "../workspace/acknowledgements.ts";
 import { CORNIX_LP_V112_SETTINGS } from "../workspace/settings.ts";
 import { createSaveQueue, type SaveQueue } from "../workspace/save-queue.ts";
-import type { WorkspaceConflictToken } from "../workspace/types.ts";
-import { BrowserWorkspaceStore, pickWorkspace, restoreWorkspace } from "./browser-workspace.ts";
-import { initialMacKeymapYaml, probeMacKeymap, type MacWorkspaceState } from "./mac-workspace.ts";
+import { pickWorkspace, restoreWorkspace } from "./browser-workspace.ts";
+import { initialMacKeymapYaml } from "./mac-workspace.ts";
 import { pickVilText } from "./browser-files.ts";
 import {
   parseBrowserVil,
@@ -63,9 +53,19 @@ import {
   serializeBrowserVil,
   generateBrowserKarabinerFromDocument,
 } from "./browser-export.ts";
-import type { Selection, Tab } from "./types.ts";
+import type { CornixTab, EditTarget, MacTab, Selection } from "./types.ts";
+import {
+  cornixIssue,
+  defaultEditTarget,
+  probeStore,
+  type UiWorkspaceStore,
+  type WorkspaceIssue,
+  type WorkspaceModel,
+  type WorkspaceProbe,
+} from "./workspace-probe.ts";
 import type { PickTarget } from "./keycode-compose.ts";
 import { AppHeader } from "./components/AppHeader.tsx";
+import { EditTargetSelect } from "./components/EditTargetSelect.tsx";
 import {
   applyTheme,
   browserSystemDark,
@@ -94,42 +94,24 @@ const USER_GUIDE_URL =
   "https://github.com/salan70/cornix-bonsai/blob/main/docs/user-guide/README.md";
 applyTheme(document.documentElement, initialThemePreference, browserSystemDark());
 
-interface WorkspaceModel {
-  readonly store: BrowserWorkspaceStore;
-  readonly document: ReturnType<typeof parseKeymapYaml>["document"];
-  readonly binding: ReturnType<typeof parseKeymapYaml>["binding"];
-  readonly definition: ReturnType<typeof parseDefinition>;
-  readonly labels: WorkspaceLabels;
-  readonly acknowledged: readonly string[];
-  readonly token: WorkspaceConflictToken | undefined;
-  readonly labelsToken: WorkspaceConflictToken | undefined;
-  /** Macタブの状態。壊れていてもworkspace全体を止めない（ADR 0025）。 */
-  readonly mac: MacWorkspaceState;
-}
-
-type WorkspaceProbe =
-  | { readonly kind: "ready"; readonly model: WorkspaceModel }
-  | { readonly kind: "missing-keymap" }
-  | { readonly kind: "legacy-binding"; readonly migration: BindingMigration }
-  | { readonly kind: "unresolved"; readonly reason: string };
-
-type WorkspaceIssue =
-  | { readonly kind: "missing-keymap"; readonly store: BrowserWorkspaceStore }
-  | {
-      readonly kind: "legacy-binding";
-      readonly store: BrowserWorkspaceStore;
-      readonly migration: BindingMigration;
-    }
-  | { readonly kind: "unresolved"; readonly store: BrowserWorkspaceStore; readonly reason: string };
-
 function App(): React.JSX.Element {
   const [workspace, setWorkspace] = useState<WorkspaceModel | undefined>();
   const [issue, setIssue] = useState<WorkspaceIssue | undefined>();
-  const [tab, setTab] = useState<Tab>("Keymap");
+  const [editTarget, setEditTarget] = useState<EditTarget>({ kind: "cornix" });
+  const [cornixTab, setCornixTab] = useState<CornixTab>("Keymap");
+  const [macTab, setMacTab] = useState<MacTab>("Keymap");
   const [layer, setLayer] = useState(0);
-  const [macLayer, setMacLayer] = useState(0);
-  const [selection, setSelection] = useState<Selection | undefined>();
-  const [pickTarget, setPickTarget] = useState<PickTarget>("whole");
+  const [macLayers, setMacLayers] = useState({ ansi: 0, jis: 0 });
+  const [cornixSelection, setCornixSelection] = useState<Selection | undefined>();
+  const [macSelections, setMacSelections] = useState<{
+    readonly ansi?: Selection;
+    readonly jis?: Selection;
+  }>({});
+  const [cornixPickTarget, setCornixPickTarget] = useState<PickTarget>("whole");
+  const [macPickTargets, setMacPickTargets] = useState({
+    ansi: "whole" as PickTarget,
+    jis: "whole" as PickTarget,
+  });
   const [device, setDevice] = useState<WebHidConnection | undefined>();
   const [deviceRead, setDeviceRead] = useState<ReadDeviceResult | undefined>();
   const [deviceDefinitionDigest, setDeviceDefinitionDigest] = useState<string | undefined>();
@@ -143,11 +125,12 @@ function App(): React.JSX.Element {
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [diagnosticFilter, setDiagnosticFilter] = useState<Severity | undefined>();
   const [themePreference, setThemePreference] = useState<ThemePreference>(initialThemePreference);
-  const editorRef = useRef<HTMLInputElement>(null);
+  const cornixEditorRef = useRef<HTMLInputElement>(null);
+  const macEditorRef = useRef<HTMLInputElement>(null);
   const applyCancellation = useRef(false);
   const saveQueue = useRef<SaveQueue | undefined>(undefined);
   const labelsSaveQueue = useRef<SaveQueue | undefined>(undefined);
-  const macSaveQueue = useRef<SaveQueue | undefined>(undefined);
+  const macSaveQueues = useRef<Partial<Record<MacKeyboardLayout, SaveQueue>>>({});
 
   useEffect(() => {
     const applyCurrentTheme = (systemDark: boolean): void => {
@@ -162,14 +145,17 @@ function App(): React.JSX.Element {
     saveThemePreference(themeStorage, preference);
   }
 
-  function adoptWorkspace(model: WorkspaceModel): void {
-    saveQueue.current = createSaveQueue({
-      store: model.store,
-      path: WORKSPACE_LAYOUT.keymap,
-      token: model.token,
-      onSaved: () => setStatus("keymap.yamlへ保存した"),
-      onError: (error) => setStatus(message(error)),
-    });
+  function adoptWorkspace(model: WorkspaceModel, preserveTarget = false): void {
+    saveQueue.current =
+      model.cornix.kind === "ready"
+        ? createSaveQueue({
+            store: model.store,
+            path: WORKSPACE_LAYOUT.keymap,
+            token: model.cornix.token,
+            onSaved: () => setStatus("keymap.yamlへ保存した"),
+            onError: (error) => setStatus(message(error)),
+          })
+        : undefined;
     labelsSaveQueue.current = createSaveQueue({
       store: model.store,
       path: WORKSPACE_LAYOUT.labels,
@@ -177,32 +163,39 @@ function App(): React.JSX.Element {
       onSaved: () => setStatus("cornix/labels.yamlへ保存した"),
       onError: (error) => setStatus(message(error)),
     });
-    macSaveQueue.current =
-      model.mac.kind === "ready"
-        ? createSaveQueue({
-            store: model.store,
-            path: WORKSPACE_LAYOUT.legacyMacKeymap,
-            token: model.mac.token,
-            onSaved: () => setStatus("mac-keyboard.yamlへ保存した"),
-            onError: (error) => setStatus(message(error)),
-          })
-        : undefined;
+    macSaveQueues.current = {};
+    for (const layout of ["ansi", "jis"] as const) {
+      const state = model.mac[layout];
+      if (state.kind !== "ready") continue;
+      macSaveQueues.current[layout] = createSaveQueue({
+        store: model.store,
+        path: state.path,
+        token: state.token,
+        onSaved: () => setStatus(`${state.path}へ保存した`),
+        onError: (error) => setStatus(message(error)),
+      });
+    }
     setWorkspace(model);
     setAcknowledged(model.acknowledged);
+    if (!preserveTarget) setEditTarget(defaultEditTarget(model));
   }
 
-  async function adoptStore(store: BrowserWorkspaceStore, okStatus: string): Promise<void> {
+  async function adoptStore(
+    store: UiWorkspaceStore,
+    okStatus: string,
+    preserveTarget = false,
+  ): Promise<void> {
     const probe = await probeStore(store);
     if (probe.kind === "ready") {
       setIssue(undefined);
-      adoptWorkspace(probe.model);
+      adoptWorkspace(probe.model, preserveTarget);
       setStatus(okStatus);
       return;
     }
     setWorkspace(undefined);
     saveQueue.current = undefined;
     labelsSaveQueue.current = undefined;
-    macSaveQueue.current = undefined;
+    macSaveQueues.current = {};
     setIssue({ ...probe, store });
     setStatus(issueSummary(probe));
   }
@@ -221,23 +214,24 @@ function App(): React.JSX.Element {
     });
   }, [device]);
 
+  const cornix = workspace?.cornix.kind === "ready" ? workspace.cornix : undefined;
+  const macLayout = editTarget.kind === "mac" ? editTarget.layout : undefined;
+  const macState =
+    macLayout === undefined || workspace === undefined ? undefined : workspace.mac[macLayout];
+  const macLayer = macLayout === undefined ? 0 : macLayers[macLayout];
+  const macSelection = macLayout === undefined ? undefined : macSelections[macLayout];
+  const macPickTarget = macLayout === undefined ? "whole" : macPickTargets[macLayout];
   const validation = useMemo(
-    () =>
-      workspace === undefined
-        ? undefined
-        : validateKeymap(workspace.document, workspace.definition),
-    [workspace],
+    () => (cornix === undefined ? undefined : validateKeymap(cornix.document, cornix.definition)),
+    [cornix],
   );
   const view = useMemo(
-    () =>
-      workspace === undefined
-        ? undefined
-        : buildKeymapView(workspace.document, workspace.definition),
-    [workspace],
+    () => (cornix === undefined ? undefined : buildKeymapView(cornix.document, cornix.definition)),
+    [cornix],
   );
   const macValidation = useMemo(
-    () => (workspace?.mac.kind === "ready" ? validateMacKeymap(workspace.mac.document) : undefined),
-    [workspace],
+    () => (macState?.kind === "ready" ? validateMacKeymap(macState.document) : undefined),
+    [macState],
   );
   // Vialのlayer名をMacのlayer番号空間へ誤適用しないため、layer名だけ剥がす。
   const macLabels = useMemo<WorkspaceLabels>(
@@ -245,29 +239,28 @@ function App(): React.JSX.Element {
     [workspace],
   );
   const changed = useMemo(() => {
-    if (workspace === undefined || deviceRead === undefined) return [];
-    return diffDocuments(deviceRead.document, workspace.document, workspace.definition, {
+    if (cornix === undefined || deviceRead === undefined) return [];
+    return diffDocuments(deviceRead.document, cornix.document, cornix.definition, {
       settings: { labels: CORNIX_LP_V112_SETTINGS },
     }).entries;
-  }, [deviceRead, workspace]);
+  }, [cornix, deviceRead]);
   const applyGate = useMemo(() => {
-    if (workspace === undefined || deviceRead === undefined || changed.length === 0)
-      return undefined;
+    if (cornix === undefined || deviceRead === undefined || changed.length === 0) return undefined;
     const targets = changed
       .map(toWriteTarget)
       .filter((target): target is WriteTarget => target !== undefined);
     const validationResult = validateApplyKeymap(
-      workspace.document,
-      workspace.definition,
+      cornix.document,
+      cornix.definition,
       {
         keyboardUid: deviceRead.keyboardUid,
         capacities: deviceRead.capacities,
         supportedQsids: deviceRead.supportedQsids,
       },
-      { path: workspace.binding.definitionPath, digest: workspace.binding.definitionDigest },
+      { path: cornix.binding.definitionPath, digest: cornix.binding.definitionDigest },
       targets,
     );
-    const definitionMismatch = deviceDefinitionDigest !== workspace.binding.definitionDigest;
+    const definitionMismatch = deviceDefinitionDigest !== cornix.binding.definitionDigest;
     const diagnostics = definitionMismatch
       ? Object.freeze([
           ...validationResult.evidence.diagnostics,
@@ -277,9 +270,9 @@ function App(): React.JSX.Element {
             { kind: "document" },
             deviceDefinitionDigest === undefined
               ? "実機definitionのdigestを取得できていないためApplyできない"
-              : `実機definitionがworkspace bindingと異なる（workspace=${workspace.binding.definitionDigest} device=${deviceDefinitionDigest}）`,
+              : `実機definitionがworkspace bindingと異なる（workspace=${cornix.binding.definitionDigest} device=${deviceDefinitionDigest}）`,
             {
-              workspace: workspace.binding.definitionDigest,
+              workspace: cornix.binding.definitionDigest,
               device: deviceDefinitionDigest ?? "missing",
             },
           ),
@@ -298,7 +291,7 @@ function App(): React.JSX.Element {
       { ...validationResult.evidence, diagnostics: Object.freeze([...diagnostics, unsupported]) },
       acknowledged,
     );
-  }, [acknowledged, changed, deviceDefinitionDigest, deviceRead, workspace]);
+  }, [acknowledged, changed, cornix, deviceDefinitionDigest, deviceRead]);
 
   async function openWorkspace(): Promise<void> {
     try {
@@ -309,7 +302,7 @@ function App(): React.JSX.Element {
   }
 
   async function importVil(): Promise<void> {
-    if (workspace === undefined) return;
+    if (cornix === undefined) return;
     try {
       const document = parseBrowserVil(await pickVilText());
       save(document);
@@ -320,10 +313,10 @@ function App(): React.JSX.Element {
   }
 
   async function exportVil(): Promise<void> {
-    if (workspace === undefined) return;
+    if (workspace === undefined || cornix === undefined) return;
     try {
       const path = generatedPath("keymap.vil");
-      await workspace.store.writeText(path, serializeBrowserVil(workspace.document));
+      await workspace.store.writeText(path, serializeBrowserVil(cornix.document));
       setStatus(`${path}へ書き出した`);
     } catch (error) {
       setStatus(message(error));
@@ -339,14 +332,14 @@ function App(): React.JSX.Element {
    * CLI だけ（ADR 0022）。
    */
   async function exportKarabiner(): Promise<void> {
-    if (workspace === undefined || workspace.mac.kind !== "ready") return;
+    if (workspace === undefined || macState?.kind !== "ready") return;
     try {
       const { asset, diagnostics, summary } = generateBrowserKarabinerFromDocument(
-        workspace.mac.document,
+        macState.document,
       );
       if (asset === undefined) {
         setStatus(
-          `${WORKSPACE_LAYOUT.legacyMacKeymap}にerrorが${summary.error}件ある: ${diagnostics
+          `${macState.path}にerrorが${summary.error}件ある: ${diagnostics
             .filter((diagnostic) => diagnostic.severity === "error")
             .map((diagnostic) => diagnostic.message)
             .join(" / ")}`,
@@ -366,15 +359,10 @@ function App(): React.JSX.Element {
   }
 
   async function exportSvg(): Promise<void> {
-    if (workspace === undefined) return;
+    if (workspace === undefined || cornix === undefined) return;
     try {
       const path = generatedPath(`keymap-layer-${layer}.svg`);
-      const svg = renderBrowserSvg(
-        workspace.document,
-        workspace.definition,
-        layer,
-        workspace.labels,
-      );
+      const svg = renderBrowserSvg(cornix.document, cornix.definition, layer, workspace.labels);
       await workspace.store.writeText(path, svg);
       setStatus(`${path}へ書き出した`);
     } catch (error) {
@@ -383,15 +371,10 @@ function App(): React.JSX.Element {
   }
 
   async function exportPdf(): Promise<void> {
-    if (workspace === undefined) return;
+    if (workspace === undefined || cornix === undefined) return;
     try {
       const path = generatedPath(`keymap-layer-${layer}.pdf`);
-      const pdf = renderBrowserPdf(
-        workspace.document,
-        workspace.definition,
-        layer,
-        workspace.labels,
-      );
+      const pdf = renderBrowserPdf(cornix.document, cornix.definition, layer, workspace.labels);
       await workspace.store.writeBytes(path, pdf);
       setStatus(`${path}へ書き出した`);
     } catch (error) {
@@ -403,13 +386,13 @@ function App(): React.JSX.Element {
     const store = workspace?.store ?? issue?.store;
     if (store === undefined) return;
     try {
-      await adoptStore(store, "keymap.yamlを再読み込みした");
+      await adoptStore(store, "workspaceを再読み込みした", true);
     } catch (error) {
       setStatus(message(error));
     }
   }
 
-  async function initializeWorkspace(store: BrowserWorkspaceStore): Promise<void> {
+  async function initializeWorkspace(store: UiWorkspaceStore): Promise<void> {
     try {
       const connection = device ?? (await acquireDevice());
       if (connection === undefined) return;
@@ -444,11 +427,11 @@ function App(): React.JSX.Element {
     }
   }
 
-  function save(document = workspace?.document): void {
-    if (workspace === undefined || document === undefined) return;
-    setWorkspace({ ...workspace, document });
+  function save(document = cornix?.document): void {
+    if (workspace === undefined || cornix === undefined || document === undefined) return;
+    setWorkspace({ ...workspace, cornix: { ...cornix, document } });
     try {
-      saveQueue.current?.enqueue(serializeKeymapYaml(document, workspace.binding));
+      saveQueue.current?.enqueue(serializeKeymapYaml(document, cornix.binding));
     } catch (error) {
       setStatus(message(error));
     }
@@ -527,12 +510,9 @@ function App(): React.JSX.Element {
     const definitionText = canonicalDefinitionText(result.definitionText);
     const digest = await definitionDigest(definitionText, globalThis.crypto);
     let mismatch = false;
-    if (workspace !== undefined) {
+    if (workspace !== undefined && cornix !== undefined) {
       await workspace.store.writeText(definitionPath(digest), definitionText);
-      if (
-        workspace.binding.definitionDigest !== digest ||
-        workspace.document.uid !== result.keyboardUid
-      )
+      if (cornix.binding.definitionDigest !== digest || cornix.document.uid !== result.keyboardUid)
         mismatch = true;
     }
     setDeviceDefinitionDigest(digest);
@@ -671,11 +651,11 @@ function App(): React.JSX.Element {
   }
 
   async function restoreBackup(): Promise<void> {
-    if (workspace === undefined) return;
+    if (workspace === undefined || cornix === undefined) return;
     try {
       const text = await workspace.store.readText(WORKSPACE_LAYOUT.latestBackup);
       if (text === undefined) throw new Error("最新のbackupが見つからない");
-      setWorkspace({ ...workspace, document: parseVil(text) });
+      setWorkspace({ ...workspace, cornix: { ...cornix, document: parseVil(text) } });
       setStatus("最新backupをdesiredへ読み込んだ。内容を確認してApplyまたは保存してください");
     } catch (error) {
       setStatus(message(error));
@@ -727,18 +707,24 @@ function App(): React.JSX.Element {
   function selectDiagnostic(subject: Parameters<typeof diagnosticSelection>[0]): void {
     const next = diagnosticSelection(subject);
     if (next.layer !== undefined) setLayer(next.layer);
-    if (next.macLayer !== undefined) setMacLayer(next.macLayer);
-    setSelection(next.selection);
+    if (next.macLayer !== undefined && macLayout !== undefined) {
+      setMacLayers((current) => ({ ...current, [macLayout]: next.macLayer ?? current[macLayout] }));
+    }
+    if (editTarget.kind === "mac") {
+      setMacSelections((current) => ({ ...current, [editTarget.layout]: next.selection }));
+    } else {
+      setCornixSelection(next.selection);
+    }
     setDiagnosticsOpen(false);
   }
 
   function editKey(keycode: string): void {
-    if (workspace === undefined || selection?.kind !== "key") return;
+    if (cornix === undefined || cornixSelection?.kind !== "key") return;
     try {
       save(
         setKeyAssignment(
-          workspace.document,
-          { layer, row: selection.row, col: selection.col },
+          cornix.document,
+          { layer, row: cornixSelection.row, col: cornixSelection.col },
           keycode,
         ),
       );
@@ -748,12 +734,16 @@ function App(): React.JSX.Element {
   }
 
   function editEncoder(keycode: string): void {
-    if (workspace === undefined || selection?.kind !== "encoder") return;
+    if (cornix === undefined || cornixSelection?.kind !== "encoder") return;
     try {
       save(
         setEncoderAssignment(
-          workspace.document,
-          { layer, index: selection.index, direction: selection.direction === "ccw" ? 0 : 1 },
+          cornix.document,
+          {
+            layer,
+            index: cornixSelection.index,
+            direction: cornixSelection.direction === "ccw" ? 0 : 1,
+          },
           keycode,
         ),
       );
@@ -763,8 +753,8 @@ function App(): React.JSX.Element {
   }
 
   function editTapDance(index: number, field: number, value: string): void {
-    if (workspace === undefined) return;
-    const current = workspace.document.tapDance[index];
+    if (cornix === undefined) return;
+    const current = cornix.document.tapDance[index];
     if (current === undefined || field < 0 || field > 4) return;
     const next = [...current] as [string, string, string, string, number];
     if (field === 4) {
@@ -776,78 +766,263 @@ function App(): React.JSX.Element {
       next[4] = timeout;
     } else next[field] = value;
     save({
-      ...workspace.document,
-      tapDance: workspace.document.tapDance.map((entry, entryIndex) =>
+      ...cornix.document,
+      tapDance: cornix.document.tapDance.map((entry, entryIndex) =>
         entryIndex === index ? next : entry,
       ),
     });
   }
 
   function editCombo(index: number, field: number, value: string): void {
-    if (workspace === undefined) return;
-    const current = workspace.document.combo[index];
+    if (cornix === undefined) return;
+    const current = cornix.document.combo[index];
     if (current === undefined || field < 0 || field > 4) return;
     const next = [...current] as [string, string, string, string, string];
     next[field] = value;
     save({
-      ...workspace.document,
-      combo: workspace.document.combo.map((entry, entryIndex) =>
+      ...cornix.document,
+      combo: cornix.document.combo.map((entry, entryIndex) =>
         entryIndex === index ? next : entry,
       ),
     });
   }
 
   function editSetting(qsid: number, value: string): void {
-    if (workspace === undefined) return;
+    if (cornix === undefined) return;
     const parsed = Number(value);
     if (!Number.isInteger(parsed) || parsed < 0 || parsed > 0xffff) {
       setStatus("settingは0〜65535の整数が必要");
       return;
     }
     save({
-      ...workspace.document,
-      settings: { ...workspace.document.settings, [String(qsid)]: parsed },
+      ...cornix.document,
+      settings: { ...cornix.document.settings, [String(qsid)]: parsed },
     });
   }
 
-  function saveMac(document: MacKeymapDocument): void {
-    if (workspace === undefined || workspace.mac.kind !== "ready") return;
-    setWorkspace({ ...workspace, mac: { ...workspace.mac, document } });
+  function saveMac(layout: MacKeyboardLayout, document: MacKeymapDocument): void {
+    if (workspace === undefined) return;
+    const state = workspace.mac[layout];
+    if (state.kind !== "ready") return;
+    setWorkspace({
+      ...workspace,
+      mac: { ...workspace.mac, [layout]: { ...state, document } },
+    });
     try {
-      macSaveQueue.current?.enqueue(serializeMacKeymapYaml(document));
+      macSaveQueues.current[layout]?.enqueue(serializeMacKeymapYaml(document));
     } catch (error) {
       setStatus(message(error));
     }
   }
 
   function editMacKey(targetLayer: number, keyCode: string, value: string): void {
-    if (workspace === undefined || workspace.mac.kind !== "ready") return;
+    if (macLayout === undefined || macState?.kind !== "ready") return;
     try {
-      saveMac(setMacAssignment(workspace.mac.document, targetLayer, keyCode, value));
+      saveMac(macLayout, setMacAssignment(macState.document, targetLayer, keyCode, value));
     } catch (error) {
       setStatus(message(error));
     }
   }
 
   function clearMacKey(targetLayer: number, keyCode: string): void {
-    if (workspace === undefined || workspace.mac.kind !== "ready") return;
-    saveMac(clearMacAssignment(workspace.mac.document, targetLayer, keyCode));
+    if (macLayout === undefined || macState?.kind !== "ready") return;
+    saveMac(macLayout, clearMacAssignment(macState.document, targetLayer, keyCode));
   }
 
   function addMacLayerChip(targetLayer: number): void {
-    if (workspace === undefined || workspace.mac.kind !== "ready") return;
-    saveMac(addMacLayer(workspace.mac.document, targetLayer));
-    setMacLayer(targetLayer);
+    if (macLayout === undefined || macState?.kind !== "ready") return;
+    saveMac(macLayout, addMacLayer(macState.document, targetLayer));
+    setMacLayers((current) => ({ ...current, [macLayout]: targetLayer }));
   }
 
   async function createMacKeymap(): Promise<void> {
-    if (workspace === undefined) return;
+    if (workspace === undefined || macLayout === undefined) return;
     try {
-      await workspace.store.writeText(WORKSPACE_LAYOUT.legacyMacKeymap, initialMacKeymapYaml());
-      await adoptStore(workspace.store, "mac-keyboard.yamlを作成した");
+      const path = macKeymapPath(macLayout);
+      await workspace.store.writeText(path, initialMacKeymapYaml(macLayout));
+      await adoptStore(workspace.store, `${path}を作成した`, true);
     } catch (error) {
       setStatus(message(error));
     }
+  }
+
+  function setMacLayer(value: number): void {
+    if (macLayout === undefined) return;
+    setMacLayers((current) => ({ ...current, [macLayout]: value }));
+  }
+
+  function setMacSelection(value: Selection | undefined): void {
+    if (macLayout === undefined) return;
+    setMacSelections((current) => ({ ...current, [macLayout]: value }));
+  }
+
+  function setMacPickTarget(value: PickTarget): void {
+    if (macLayout === undefined) return;
+    setMacPickTargets((current) => ({ ...current, [macLayout]: value }));
+  }
+
+  function renderCornixMain(): React.ReactNode {
+    const recovery = cornixIssue(workspace!);
+    if (recovery !== undefined) {
+      return (
+        <WorkspaceRecovery
+          issue={recovery}
+          busy={progress !== undefined}
+          onInitialize={() => void initializeWorkspace(recovery.store)}
+          onMigrate={() =>
+            recovery.kind === "legacy-binding" ? void migrateBinding(recovery) : undefined
+          }
+          onRetry={() => void reload()}
+        />
+      );
+    }
+    if (cornix === undefined || view === undefined) return null;
+    if (cornixTab === "Keymap") {
+      return (
+        <KeymapTab
+          view={view}
+          definition={cornix.definition}
+          layer={layer}
+          setLayer={setLayer}
+          selection={cornixSelection}
+          setSelection={setCornixSelection}
+          labels={workspace!.labels}
+          pickTarget={cornixPickTarget}
+          onPickTarget={setCornixPickTarget}
+          onEditKey={editKey}
+          onEditEncoder={editEncoder}
+          diagnosticSubjects={
+            validation === undefined
+              ? []
+              : validation.diagnostics.map((diagnostic) => diagnostic.subject)
+          }
+          onFocusEditor={() => {
+            cornixEditorRef.current?.focus();
+            cornixEditorRef.current?.select();
+          }}
+          panel={
+            diagnosticsOpen ? (
+              <DiagnosticsPanel
+                diagnostics={validation?.diagnostics ?? []}
+                filter={diagnosticFilter}
+                onClose={() => setDiagnosticsOpen(false)}
+                onSelect={selectDiagnostic}
+              />
+            ) : (
+              <KeyPanel
+                view={view}
+                definition={cornix.definition}
+                layer={layer}
+                selection={cornixSelection}
+                labels={workspace!.labels}
+                editorRef={cornixEditorRef}
+                pickTarget={cornixPickTarget}
+                onPickTarget={setCornixPickTarget}
+                onEditKey={editKey}
+                onEditEncoder={editEncoder}
+                onEditLabel={editLabel}
+              />
+            )
+          }
+        />
+      );
+    }
+    if (cornixTab === "Overview") {
+      return (
+        <Overview
+          document={cornix.document}
+          definition={cornix.definition}
+          labels={workspace!.labels}
+          view={view}
+          exportLayer={layer}
+          onExportSvg={() => void exportSvg()}
+          onExportPdf={() => void exportPdf()}
+          onEditLayerLabel={editLayerLabel}
+        />
+      );
+    }
+    if (cornixTab === "Behaviors") {
+      return (
+        <Behaviors
+          document={cornix.document}
+          labels={workspace!.labels}
+          onTapDance={editTapDance}
+          onCombo={editCombo}
+          onSetting={editSetting}
+        />
+      );
+    }
+    return (
+      <References
+        diagnostics={validation?.diagnostics ?? []}
+        document={cornix.document}
+        labels={workspace!.labels}
+      />
+    );
+  }
+
+  function renderMacMain(): React.ReactNode {
+    if (macLayout === undefined || workspace === undefined) return null;
+    if (macTab === "References") {
+      return (
+        <section className="c-panel c-panel--wide" style={{ margin: "var(--space-7)" }}>
+          <h1>References</h1>
+          <p className="u-muted">この配列の参照情報はまだありません。</p>
+        </section>
+      );
+    }
+    return (
+      <MacKeymapTab
+        layout={macLayout}
+        mac={workspace.mac[macLayout]}
+        busy={progress !== undefined}
+        onCreate={() => void createMacKeymap()}
+        layer={macLayer}
+        setLayer={setMacLayer}
+        selection={macSelection}
+        setSelection={setMacSelection}
+        labels={macLabels}
+        pickTarget={macPickTarget}
+        onPickTarget={setMacPickTarget}
+        onEdit={editMacKey}
+        onAddLayer={addMacLayerChip}
+        onExportKarabiner={() => void exportKarabiner()}
+        diagnosticSubjects={
+          macValidation === undefined
+            ? []
+            : macValidation.diagnostics.map((diagnostic) => diagnostic.subject)
+        }
+        onFocusEditor={() => {
+          macEditorRef.current?.focus();
+          macEditorRef.current?.select();
+        }}
+        panel={
+          diagnosticsOpen ? (
+            <DiagnosticsPanel
+              diagnostics={macValidation?.diagnostics ?? []}
+              filter={diagnosticFilter}
+              onClose={() => setDiagnosticsOpen(false)}
+              onSelect={selectDiagnostic}
+            />
+          ) : macState?.kind === "ready" ? (
+            <MacKeyPanel
+              document={macState.document}
+              layer={macLayer}
+              selection={macSelection}
+              labels={macLabels}
+              path={macState.path}
+              editorRef={macEditorRef}
+              pickTarget={macPickTarget}
+              onPickTarget={setMacPickTarget}
+              onEdit={editMacKey}
+              onClear={clearMacKey}
+            />
+          ) : (
+            <></>
+          )
+        }
+      />
+    );
   }
 
   return (
@@ -866,12 +1041,25 @@ function App(): React.JSX.Element {
         themePreference={themePreference}
         onThemePreferenceChange={changeThemePreference}
         canReload={workspace !== undefined}
+        canEditCornix={cornix !== undefined}
       />
+      {workspace === undefined ? null : (
+        <EditTargetSelect target={editTarget} mac={workspace.mac} onChange={setEditTarget} />
+      )}
       <nav className="tabs" aria-label="main tabs">
-        {(["Keymap", "Overview", "Behaviors", "Mac", "References"] as const).map((name) => (
+        {(editTarget.kind === "cornix"
+          ? (["Keymap", "Overview", "Behaviors", "References"] as const)
+          : (["Keymap", "References"] as const)
+        ).map((name) => (
           <button
-            className={tab === name ? "is-active" : ""}
-            onClick={() => setTab(name)}
+            className={
+              (editTarget.kind === "cornix" ? cornixTab : macTab) === name ? "is-active" : ""
+            }
+            onClick={() =>
+              editTarget.kind === "cornix"
+                ? setCornixTab(name as CornixTab)
+                : setMacTab(name as MacTab)
+            }
             key={name}
           >
             {name}
@@ -890,7 +1078,7 @@ function App(): React.JSX.Element {
       {workspace === undefined ? (
         <main className="empty-state">
           <h1>workspaceから始める</h1>
-          <p>keymap.yamlを含むディレクトリを開くか、実機readで初期状態を取得します。</p>
+          <p>ディレクトリを開きます。keymap.yamlが無くてもMacキーボードの設定を編集できます。</p>
           <button className="c-btn c-btn--primary" onClick={() => void openWorkspace()}>
             Workspaceを開く
           </button>
@@ -908,139 +1096,12 @@ function App(): React.JSX.Element {
         </main>
       ) : (
         <main className="main-content">
-          {tab === "Keymap" && view !== undefined ? (
-            <KeymapTab
-              view={view}
-              definition={workspace.definition}
-              layer={layer}
-              setLayer={setLayer}
-              selection={selection}
-              setSelection={setSelection}
-              labels={workspace.labels}
-              pickTarget={pickTarget}
-              onPickTarget={setPickTarget}
-              onEditKey={editKey}
-              onEditEncoder={editEncoder}
-              diagnosticSubjects={
-                validation === undefined
-                  ? []
-                  : validation.diagnostics.map((diagnostic) => diagnostic.subject)
-              }
-              onFocusEditor={() => {
-                editorRef.current?.focus();
-                editorRef.current?.select();
-              }}
-              panel={
-                diagnosticsOpen ? (
-                  <DiagnosticsPanel
-                    diagnostics={validation?.diagnostics ?? []}
-                    filter={diagnosticFilter}
-                    onClose={() => setDiagnosticsOpen(false)}
-                    onSelect={selectDiagnostic}
-                  />
-                ) : (
-                  <KeyPanel
-                    view={view}
-                    definition={workspace.definition}
-                    layer={layer}
-                    selection={selection}
-                    labels={workspace.labels}
-                    editorRef={editorRef}
-                    pickTarget={pickTarget}
-                    onPickTarget={setPickTarget}
-                    onEditKey={editKey}
-                    onEditEncoder={editEncoder}
-                    onEditLabel={editLabel}
-                  />
-                )
-              }
-            />
-          ) : null}
-          {tab === "Overview" ? (
-            <Overview
-              document={workspace.document}
-              definition={workspace.definition}
-              labels={workspace.labels}
-              view={view!}
-              exportLayer={layer}
-              onExportSvg={() => void exportSvg()}
-              onExportPdf={() => void exportPdf()}
-              onEditLayerLabel={editLayerLabel}
-            />
-          ) : null}
-          {tab === "Behaviors" ? (
-            <Behaviors
-              document={workspace.document}
-              labels={workspace.labels}
-              onTapDance={editTapDance}
-              onCombo={editCombo}
-              onSetting={editSetting}
-            />
-          ) : null}
-          {tab === "Mac" && view !== undefined ? (
-            <MacKeymapTab
-              mac={workspace.mac}
-              busy={progress !== undefined}
-              onCreate={() => void createMacKeymap()}
-              layer={macLayer}
-              setLayer={setMacLayer}
-              selection={selection}
-              setSelection={setSelection}
-              table={createKeycodeTable(workspace.definition, view.capacities)}
-              labels={macLabels}
-              pickTarget={pickTarget}
-              onPickTarget={setPickTarget}
-              onEdit={editMacKey}
-              onAddLayer={addMacLayerChip}
-              onExportKarabiner={() => void exportKarabiner()}
-              diagnosticSubjects={
-                macValidation === undefined
-                  ? []
-                  : macValidation.diagnostics.map((diagnostic) => diagnostic.subject)
-              }
-              onFocusEditor={() => {
-                editorRef.current?.focus();
-                editorRef.current?.select();
-              }}
-              panel={
-                diagnosticsOpen ? (
-                  <DiagnosticsPanel
-                    diagnostics={macValidation?.diagnostics ?? []}
-                    filter={diagnosticFilter}
-                    onClose={() => setDiagnosticsOpen(false)}
-                    onSelect={selectDiagnostic}
-                  />
-                ) : workspace.mac.kind === "ready" ? (
-                  <MacKeyPanel
-                    document={workspace.mac.document}
-                    layer={macLayer}
-                    selection={selection}
-                    labels={macLabels}
-                    table={createKeycodeTable(workspace.definition, view.capacities)}
-                    editorRef={editorRef}
-                    pickTarget={pickTarget}
-                    onPickTarget={setPickTarget}
-                    onEdit={editMacKey}
-                    onClear={clearMacKey}
-                  />
-                ) : (
-                  <></>
-                )
-              }
-            />
-          ) : null}
-          {tab === "References" ? (
-            <References
-              diagnostics={validation?.diagnostics ?? []}
-              document={workspace.document}
-              labels={workspace.labels}
-            />
-          ) : null}
+          {editTarget.kind === "cornix" ? renderCornixMain() : renderMacMain()}
         </main>
       )}
       <StatusBar
         summary={
-          (tab === "Mac" ? macValidation?.summary : validation?.summary) ?? {
+          (editTarget.kind === "mac" ? macValidation?.summary : validation?.summary) ?? {
             error: 0,
             warning: 0,
             information: 0,
@@ -1077,65 +1138,8 @@ function App(): React.JSX.Element {
   );
 }
 
-async function probeStore(store: BrowserWorkspaceStore): Promise<WorkspaceProbe> {
-  let parsed: ReturnType<typeof parseKeymapYaml>;
-  try {
-    const keymapText = await store.readText(WORKSPACE_LAYOUT.keymap);
-    if (keymapText === undefined) return { kind: "missing-keymap" };
-    parsed = parseKeymapYaml(keymapText);
-  } catch (error) {
-    return { kind: "unresolved", reason: message(error) };
-  }
-  let definitionText: string;
-  try {
-    definitionText = await readDefinitionBinding(
-      store,
-      parsed.binding.definitionPath,
-      parsed.binding.definitionDigest,
-      globalThis.crypto,
-    );
-  } catch (error) {
-    const migration = await planBindingMigration(
-      store,
-      parsed.document,
-      parsed.binding,
-      globalThis.crypto,
-    ).catch(() => undefined);
-    if (migration !== undefined) return { kind: "legacy-binding", migration };
-    return { kind: "unresolved", reason: message(error) };
-  }
-  try {
-    const labelsText = await store.readText(WORKSPACE_LAYOUT.labels);
-    return {
-      kind: "ready",
-      model: {
-        store,
-        document: parsed.document,
-        binding: parsed.binding,
-        definition: parseDefinition(definitionText),
-        labels: labelsText === undefined ? EMPTY_LABELS : parseLabelsYaml(labelsText),
-        acknowledged: parseAcknowledgements(
-          await store.readText(WORKSPACE_LAYOUT.acknowledgements),
-        ),
-        token: (await store.stat(WORKSPACE_LAYOUT.keymap)) ?? undefined,
-        labelsToken: (await store.stat(WORKSPACE_LAYOUT.labels)) ?? undefined,
-        mac: await probeMacKeymap(store),
-      },
-    };
-  } catch (error) {
-    return { kind: "unresolved", reason: message(error) };
-  }
-}
-
-function issueSummary(probe: Exclude<WorkspaceProbe, { kind: "ready" }>): string {
-  switch (probe.kind) {
-    case "missing-keymap":
-      return "このdirectoryにkeymap.yamlが無い";
-    case "legacy-binding":
-      return "definition bindingが古いdigest規則のままになっている";
-    case "unresolved":
-      return "workspaceを読み込めなかった";
-  }
+function issueSummary(_probe: Exclude<WorkspaceProbe, { kind: "ready" }>): string {
+  return "workspaceを読み込めなかった";
 }
 
 function toWriteTarget(entry: DiffEntry): WriteTarget | undefined {

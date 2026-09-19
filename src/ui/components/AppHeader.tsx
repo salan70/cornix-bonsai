@@ -18,6 +18,7 @@ export function AppHeader({
   themePreference,
   onThemePreferenceChange,
   canReload,
+  canEditCornix,
 }: {
   readonly workspaceName: string | undefined;
   readonly device: WebHidConnection | undefined;
@@ -32,6 +33,7 @@ export function AppHeader({
   readonly themePreference: ThemePreference;
   readonly onThemePreferenceChange: (preference: ThemePreference) => void;
   readonly canReload: boolean;
+  readonly canEditCornix: boolean;
 }): React.JSX.Element {
   return (
     <header className="hdr">
@@ -65,10 +67,10 @@ export function AppHeader({
         <div className="chrome-divider" aria-hidden="true" />
         <div className="header-group">
           <Button onClick={onOpenWorkspace}>Workspace</Button>
-          <Button onClick={onImportVil} disabled={!canReload}>
+          <Button onClick={onImportVil} disabled={!canEditCornix}>
             VIL読込
           </Button>
-          <Button onClick={onExportVil} disabled={!canReload}>
+          <Button onClick={onExportVil} disabled={!canEditCornix}>
             VIL書出
           </Button>
           <Button onClick={onReload} disabled={!canReload}>
@@ -76,7 +78,7 @@ export function AppHeader({
           </Button>
         </div>
         <div className="chrome-divider" aria-hidden="true" />
-        <Button variant="ghost" onClick={onRestoreBackup} disabled={!canReload}>
+        <Button variant="ghost" onClick={onRestoreBackup} disabled={!canEditCornix}>
           backup から復元
         </Button>
         <div className="chrome-divider" aria-hidden="true" />

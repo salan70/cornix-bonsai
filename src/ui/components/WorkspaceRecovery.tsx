@@ -1,16 +1,6 @@
-import type { BindingMigration } from "../../workspace/bootstrap.ts";
-import type { BrowserWorkspaceStore } from "../browser-workspace.ts";
 import { WORKSPACE_LAYOUT } from "../../workspace/layout.ts";
+import type { WorkspaceIssue } from "../workspace-probe.ts";
 import { Button } from "./ui/index.ts";
-
-type WorkspaceIssue =
-  | { readonly kind: "missing-keymap"; readonly store: BrowserWorkspaceStore }
-  | {
-      readonly kind: "legacy-binding";
-      readonly store: BrowserWorkspaceStore;
-      readonly migration: BindingMigration;
-    }
-  | { readonly kind: "unresolved"; readonly store: BrowserWorkspaceStore; readonly reason: string };
 
 /** @doc docs/specs/ui.md#workspace-recovery */
 export function WorkspaceRecovery({
@@ -31,9 +21,9 @@ export function WorkspaceRecovery({
       <section className="recovery">
         <h2>keymap.yamlが無い</h2>
         <p>
-          <code>{issue.store.directory.name}</code>{" "}
-          にkeymap.yamlが無いため、まだworkspaceになっていません。実機をfull
-          readして初期状態を作成できます。
+          <code>{issue.store.directory.name}</code> にkeymap.yamlが無いため、Cornix
+          LPの編集はまだできません。実機をfull
+          readして初期状態を作成できます。Macキーボードの設定は編集対象から選べます。
         </p>
         <p className="recovery-detail">
           作成するのは <code>{WORKSPACE_LAYOUT.keymap}</code> と{" "}

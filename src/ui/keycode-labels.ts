@@ -25,7 +25,7 @@ const PURE_SHIFT_MODIFIERS = new Set(["LSFT", "RSFT"]);
 export function keycodeDisplay(
   keycode: string,
   labels: WorkspaceLabels,
-  table: ReturnType<typeof createKeycodeTable>,
+  table?: ReturnType<typeof createKeycodeTable>,
   options: DisplayOptions = {},
 ): KeycodeDisplay {
   const name = keycodeLabel(labels, keycode);
@@ -74,6 +74,7 @@ export function keycodeDisplay(
     case "macro":
       return { primary: `M ${lexeme.index}`, role: "Macro" };
     case "custom": {
+      if (table === undefined) return { primary: keycode };
       const resolved = table.resolve(keycode);
       return resolved.kind === "custom"
         ? { primary: shortLabel(resolved.shortName) }
@@ -193,7 +194,7 @@ export function basicLabel(keycode: string): string {
 function shiftedResultLabel(
   inner: string,
   labels: WorkspaceLabels,
-  table: ReturnType<typeof createKeycodeTable>,
+  table: ReturnType<typeof createKeycodeTable> | undefined,
   options: DisplayOptions,
 ): string {
   const shifted = shiftedOf(canonicalKeycode(inner));
@@ -245,7 +246,7 @@ export function layerActionLabel(action: string): string {
 
 export function describeDisplayKeycode(
   keycode: string,
-  table: ReturnType<typeof createKeycodeTable>,
+  table?: ReturnType<typeof createKeycodeTable> | undefined,
 ): string {
   return describeKeycode(keycode, table);
 }

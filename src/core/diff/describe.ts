@@ -51,7 +51,7 @@ export function describeSetting(
  *
  * @doc docs/specs/semantic-diff.md#describekeycode
  */
-export function describeKeycode(keycode: string, table: KeycodeTable): string {
+export function describeKeycode(keycode: string, table?: KeycodeTable | undefined): string {
   const lexeme = classifyKeycode(keycode);
 
   switch (lexeme.kind) {
@@ -74,6 +74,7 @@ export function describeKeycode(keycode: string, table: KeycodeTable): string {
     case "macro":
       return `macro ${lexeme.index}`;
     case "custom": {
+      if (table === undefined) return keycode;
       const resolved = table.resolve(keycode);
       return resolved.kind === "custom"
         ? `${resolved.name}（${resolved.title}）`
@@ -90,7 +91,7 @@ function describeLayerSwitch(
   action: string,
   layer: number,
   inner: string | undefined,
-  table: KeycodeTable,
+  table?: KeycodeTable | undefined,
 ): string {
   switch (action) {
     case "momentary":

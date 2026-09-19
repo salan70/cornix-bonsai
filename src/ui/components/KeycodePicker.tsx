@@ -30,7 +30,7 @@ export function KeycodePicker({
   disabled,
   onPick: onPickRaw,
 }: {
-  readonly table: ReturnType<typeof createKeycodeTable>;
+  readonly table?: ReturnType<typeof createKeycodeTable> | undefined;
   readonly labels: WorkspaceLabels;
   readonly pickTarget: PickTarget;
   readonly onPickTarget: (target: PickTarget) => void;
@@ -130,7 +130,7 @@ function PickerGroup({
 }: {
   readonly rows: readonly PickerRow[];
   readonly field: "main" | "nav" | "numpad";
-  readonly table: ReturnType<typeof createKeycodeTable>;
+  readonly table?: ReturnType<typeof createKeycodeTable> | undefined;
   readonly labels: WorkspaceLabels;
   readonly selectedValue: string | undefined;
   readonly disabled: boolean;
@@ -173,7 +173,7 @@ function PickerEntryButton({
   onPick,
 }: {
   readonly entry: PickerEntry;
-  readonly table: ReturnType<typeof createKeycodeTable>;
+  readonly table?: ReturnType<typeof createKeycodeTable> | undefined;
   readonly labels: WorkspaceLabels;
   readonly selected: boolean;
   readonly disabled: boolean;

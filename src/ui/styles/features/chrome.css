@@ -71,6 +71,29 @@
     padding: var(--space-1) var(--space-3);
     font-size: var(--text-base);
   }
+  .target-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    min-height: var(--bar-height-tabs);
+    padding: 0 var(--space-6);
+    background: var(--surface);
+    border-bottom: var(--border-width) solid var(--border);
+  }
+  .target-bar label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .target-bar select {
+    min-height: var(--control-height-sm);
+    min-width: var(--target-select-min-width);
+    max-width: min(var(--target-select-max-width), 100%);
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-base);
+  }
   .tabs {
     display: flex;
     gap: var(--space-1);

@@ -64,3 +64,10 @@ test("複合Shiftはmodifierを残し、hold文言だけを表示しない", () 
   assert.equal(keycodeDisplay("LT1(KC_A)", labels, table).role?.startsWith("hold"), false);
   assert.equal(keycodeDisplay("MO(2)", labels, table).role, undefined);
 });
+
+test("table無しでもbasicとmod-tapを表示できる", () => {
+  const labels = { layers: new Map<number, string>(), keycodes: new Map<string, string>() };
+  assert.equal(keycodeDisplay("KC_A", labels).primary, "A");
+  assert.deepEqual(keycodeDisplay("LCTL_T(KC_ESC)", labels), { primary: "ESC", role: "⌃" });
+  assert.equal(keycodeDisplay("USER00", labels).primary, "USER00");
+});

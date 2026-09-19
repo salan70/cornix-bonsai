@@ -1,5 +1,4 @@
 import type { RefObject } from "react";
-import type { createKeycodeTable } from "../../core/keycode/table.ts";
 import { describeKeycode } from "../../core/diff/describe.ts";
 import type { MacKeymapDocument } from "../../core/mac-keymap/types.ts";
 import type { WorkspaceLabels } from "../../workspace/labels.ts";
@@ -27,7 +26,7 @@ export function MacKeyPanel({
   layer,
   selection,
   labels,
-  table,
+  path,
   editorRef,
   pickTarget,
   onPickTarget,
@@ -38,7 +37,7 @@ export function MacKeyPanel({
   readonly layer: number;
   readonly selection: Selection | undefined;
   readonly labels: WorkspaceLabels;
-  readonly table: ReturnType<typeof createKeycodeTable>;
+  readonly path: string;
   readonly editorRef: RefObject<HTMLInputElement | null>;
   readonly pickTarget: PickTarget;
   readonly onPickTarget: (target: PickTarget) => void;
@@ -107,14 +106,14 @@ export function MacKeyPanel({
               <span className="u-mono">{keyCode}</span>
             </div>
             <div className="kv">
-              <span>mac-keyboard.yaml</span>
+              <span>{path}</span>
               <span className="u-mono">
                 layers[{layer}] &quot;{keyCode}&quot;
               </span>
             </div>
             <div className="kv">
               <span>挙動</span>
-              <span>{current === undefined ? "素通し" : describeKeycode(current, table)}</span>
+              <span>{current === undefined ? "素通し" : describeKeycode(current)}</span>
             </div>
             <label className="c-field-raw">
               raw keycode

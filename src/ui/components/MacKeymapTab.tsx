@@ -1,7 +1,8 @@
 import { useRef } from "react";
-import type { createKeycodeTable } from "../../core/keycode/table.ts";
+import type { MacKeyboardLayout } from "../../core/mac-keymap/types.ts";
 import type { DiagnosticSubject } from "../../core/validation/types.ts";
 import { boardMetrics, boardSize, keyBox } from "../../render/geometry.ts";
+import { macKeymapPath } from "../../workspace/layout.ts";
 import type { WorkspaceLabels } from "../../workspace/labels.ts";
 import { keycodeClass, keycodeDisplay, renderKeycode } from "../keycode-display.tsx";
 import { applyPick, type PickTarget } from "../keycode-compose.ts";
@@ -20,15 +21,16 @@ import { KeycodePicker } from "./KeycodePicker.tsx";
 import { Button, Callout, CalloutLabel, Chip } from "./ui/index.ts";
 
 /**
- * Mac 内蔵キーボードのタブ。
+ * 選んだ物理配列の Mac キーボード編集。
  *
- * workspace に `mac-keyboard.yaml` が無くても Vial 編集は成立するため、タブは常設し、
- * missing / error をタブ内の状態表示に閉じ込める。ready では `layout` 宣言に応じた
- * 物理盤面を Cornix と同じ geometry で描画する（ADR 0025）。
+ * ファイルが無くても Cornix 編集は成立するため、対象は常設し、missing / error を
+ * タブ内の状態表示に閉じ込める。ready ではその配列の物理盤面を Cornix と同じ
+ * geometry で描画する（ADR 0025 / 0027）。
  *
  * @doc docs/specs/ui.md#mac-tab
  */
 export function MacKeymapTab({
+  layout,
   mac,
   busy,
   onCreate,
@@ -36,7 +38,6 @@ export function MacKeymapTab({
   setLayer,
   selection,
   setSelection,
-  table,
   labels,
   pickTarget,
   onPickTarget,
@@ -47,6 +48,7 @@ export function MacKeymapTab({
   diagnosticSubjects = [],
   panel,
 }: {
+  readonly layout: MacKeyboardLayout;
   readonly mac: MacWorkspaceState;
   readonly busy: boolean;
   readonly onCreate: () => void;
@@ -54,7 +56,6 @@ export function MacKeymapTab({
   readonly setLayer: (value: number) => void;
   readonly selection: Selection | undefined;
   readonly setSelection: (value: Selection | undefined) => void;
-  readonly table: ReturnType<typeof createKeycodeTable>;
   /** layer 名は Vial の layer 番号空間のものなので、剥がした labels を渡すこと。 */
   readonly labels: WorkspaceLabels;
   readonly pickTarget: PickTarget;
@@ -70,18 +71,19 @@ export function MacKeymapTab({
   const metrics = boardMetrics(entries.map((entry) => entry.physical));
   const { ref: fitRef, scale } = useBoardScale(metrics, KEYMAP_BOARD_SCALE);
   const selectedButtonRef = useRef<HTMLButtonElement>(null);
+  const path = macKeymapPath(layout);
 
   if (mac.kind === "missing") {
     return (
       <section className="mac-tab" aria-label="mac keyboard">
         <div className="empty-state">
-          <h1>Mac内蔵キーボードの設定が無い</h1>
+          <h1>Macキーボード（{layout.toUpperCase()}）の設定が無い</h1>
           <p>
-            workspaceにmac-keyboard.yamlを作成すると、MacBook内蔵キーボードの割り当てを
-            ここで編集できます。実機への適用はCLI（cornix mac apply）で行います。
+            workspaceに{path}を作成すると、この物理配列の割り当てをここで編集できます。
+            実機への適用はCLI（cornix mac apply）で行います。
           </p>
           <Button variant="primary" disabled={busy} onClick={onCreate}>
-            mac-keyboard.yamlを作成
+            {path}を作成
           </Button>
         </div>
       </section>
@@ -91,7 +93,7 @@ export function MacKeymapTab({
     return (
       <section className="mac-tab" aria-label="mac keyboard">
         <Callout tone="error">
-          <CalloutLabel>mac-keyboard.yamlを読み込めない</CalloutLabel>
+          <CalloutLabel>{path}を読み込めない</CalloutLabel>
           <p>{mac.reason}</p>
           <p>ファイルを修正して「再読込」を押してください。</p>
         </Callout>
@@ -175,7 +177,7 @@ export function MacKeymapTab({
               const display =
                 entry.keycode === undefined
                   ? undefined
-                  : keycodeDisplay(entry.keycode, labels, table, { compact: true });
+                  : keycodeDisplay(entry.keycode, labels, undefined, { compact: true });
               return (
                 <button
                   ref={selected ? selectedButtonRef : undefined}
@@ -210,7 +212,6 @@ export function MacKeymapTab({
           </div>
         </div>
         <KeycodePicker
-          table={table}
           labels={labels}
           pickTarget={pickTarget}
           onPickTarget={onPickTarget}
