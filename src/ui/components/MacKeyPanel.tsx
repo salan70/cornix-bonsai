@@ -3,7 +3,7 @@ import { describeKeycode } from "../../core/diff/describe.ts";
 import type { MacKeymapDocument } from "../../core/mac-keymap/types.ts";
 import type { WorkspaceLabels } from "../../workspace/labels.ts";
 import {
-  BEHAVIOR_OPTIONS,
+  macBehaviorOptions,
   behaviorKind,
   composeKeycode,
   structuredValues,
@@ -76,11 +76,13 @@ export function MacKeyPanel({
                   onEdit(layer, keyCode, composeKeycode(event.target.value, structured))
                 }
               >
-                {BEHAVIOR_OPTIONS.map((option) => (
-                  <option value={option} key={option}>
-                    {option}
-                  </option>
-                ))}
+                {macBehaviorOptions(current === undefined ? "none" : behaviorKind(lexeme)).map(
+                  (option) => (
+                    <option value={option} key={option}>
+                      {option}
+                    </option>
+                  ),
+                )}
               </select>
             </Field>
             <Field label="適用先">

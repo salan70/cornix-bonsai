@@ -5,6 +5,7 @@ import { DiagnosticsPanel as DiagnosticsPanelComponent } from "./DiagnosticsPane
 import { KeyPanel as KeyPanelComponent } from "./KeyPanel.js";
 import { KeymapTab as KeymapTabComponent } from "./KeymapTab.js";
 import { MacKeymapTab as MacKeymapTabComponent } from "./MacKeymapTab.js";
+import { MacReferences as MacReferencesComponent } from "./MacReferences.js";
 import { KeycodePicker as KeycodePickerComponent } from "./KeycodePicker.js";
 import { Overview as OverviewComponent } from "./Overview.js";
 import { References as ReferencesComponent } from "./References.js";
@@ -43,6 +44,8 @@ export const Behaviors = BehaviorsComponent;
 
 /** @doc docs/specs/ui.md#behaviors-and-references */
 export const References = ReferencesComponent;
+
+export const MacReferences = MacReferencesComponent;
 
 /** @doc docs/specs/ui.md#workspace-recovery */
 export const WorkspaceRecovery = WorkspaceRecoveryComponent;

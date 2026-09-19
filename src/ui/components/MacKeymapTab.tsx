@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { macKeycodeSupport } from "../../core/mac-keymap/generate.ts";
 import type { MacKeyboardLayout } from "../../core/mac-keymap/types.ts";
 import type { DiagnosticSubject } from "../../core/validation/types.ts";
 import { boardMetrics, boardSize, keyBox } from "../../render/geometry.ts";
@@ -153,7 +154,23 @@ export function MacKeymapTab({
           <Chip as="button" onClick={() => onAddLayer(nextMacLayer(document))}>
             + layer追加
           </Chip>
-          <span className="u-text-sm u-muted u-push-end">layout: {document.layout}</span>
+          <span className="mac-scope u-push-end">
+            {document.devices.map((device, index) => (
+              <Chip
+                key={index}
+                title={
+                  "builtIn" in device
+                    ? "{ is_built_in_keyboard: true }"
+                    : `{ vendor_id: ${device.vendorId}, product_id: ${device.productId} }`
+                }
+              >
+                {"builtIn" in device ? "内蔵" : `${device.vendorId}:${device.productId}`}
+              </Chip>
+            ))}
+            <span className="u-text-sm u-muted" title="外付けの追加は CLI だけが観測一覧を読める">
+              追加は cornix mac devices
+            </span>
+          </span>
         </div>
         <div className="board-fit" ref={fitRef}>
           <div
@@ -217,6 +234,7 @@ export function MacKeymapTab({
           onPickTarget={onPickTarget}
           selectedKeycode={current}
           disabled={selectedKeyCode === undefined}
+          isKeycodeEnabled={(keycode) => macKeycodeSupport(keycode).ok}
           onPick={(picked) => {
             if (selectedKeyCode === undefined) return;
             onEdit(layer, selectedKeyCode, applyPick(current ?? "KC_NO", pickTarget, picked));

@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { applyPick, canPick, composeKeycode, structuredValues } from "./keycode-compose.ts";
+import {
+  applyPick,
+  canPick,
+  composeKeycode,
+  macBehaviorOptions,
+  structuredValues,
+} from "./keycode-compose.ts";
 
 test("applyPick replaces the whole keycode", () => {
   assert.equal(applyPick("LSFT_T(KC_SPACE)", "whole", "KC_ENTER"), "KC_ENTER");
@@ -42,4 +48,15 @@ test("composeKeycode preserves existing modifier and layer forms", () => {
   assert.equal(composeKeycode("layerSwitch", structuredValues("LT2(KC_A)")), "LT2(KC_A)");
   assert.equal(composeKeycode("layerSwitch", structuredValues("MO(3)")), "MO(3)");
   assert.equal(composeKeycode("layerSwitch", structuredValues("TG(4)")), "TG(4)");
+});
+
+test("Macの動作選択肢は落とせるものだけ。既存の非対応値は残す", () => {
+  assert.deepEqual(macBehaviorOptions("basic"), ["basic", "modTap", "layerSwitch", "none"]);
+  assert.deepEqual(macBehaviorOptions("tapDance"), [
+    "basic",
+    "modTap",
+    "layerSwitch",
+    "none",
+    "tapDance",
+  ]);
 });

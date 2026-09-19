@@ -24,6 +24,15 @@ export const BEHAVIOR_OPTIONS = [
   "none",
 ] as const;
 
+/** Karabiner へ落とせる動作だけ。判定の定義元は `macKeycodeSupport`。 */
+export const MAC_BEHAVIOR_OPTIONS = ["basic", "modTap", "layerSwitch", "none"] as const;
+
+export function macBehaviorOptions(current: string): readonly string[] {
+  return (MAC_BEHAVIOR_OPTIONS as readonly string[]).includes(current)
+    ? MAC_BEHAVIOR_OPTIONS
+    : [...MAC_BEHAVIOR_OPTIONS, current];
+}
+
 export function behaviorKind(lexeme: KeycodeLexeme | undefined): string {
   if (lexeme === undefined) return "basic";
   switch (lexeme.kind) {

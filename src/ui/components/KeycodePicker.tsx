@@ -28,6 +28,7 @@ export function KeycodePicker({
   onPickTarget,
   selectedKeycode,
   disabled,
+  isKeycodeEnabled,
   onPick: onPickRaw,
 }: {
   readonly table?: ReturnType<typeof createKeycodeTable> | undefined;
@@ -38,6 +39,8 @@ export function KeycodePicker({
   readonly selectedKeycode: string | undefined;
   /** 編集対象が選択されていないときに全 cell を無効化する。 */
   readonly disabled: boolean;
+  /** 省略時は語彙を絞らない。Mac は `macKeycodeSupport` を渡す。 */
+  readonly isKeycodeEnabled?: (keycode: string) => boolean;
   readonly onPick: (picked: string) => void;
 }): React.JSX.Element {
   const selectedValue = targetValue(selectedKeycode, pickTarget);
@@ -49,8 +52,12 @@ export function KeycodePicker({
     return observeFitContainer(element);
   }, []);
 
+  function allowed(keycode: string): boolean {
+    return canPick(pickTarget, keycode) && (isKeycodeEnabled?.(keycode) ?? true);
+  }
+
   function onPick(picked: string): void {
-    if (disabled || !canPick(pickTarget, picked)) return;
+    if (disabled || !allowed(picked)) return;
     onPickRaw(picked);
   }
 
@@ -77,7 +84,7 @@ export function KeycodePicker({
           labels={labels}
           selectedValue={selectedValue}
           disabled={disabled}
-          pickTarget={pickTarget}
+          allowed={allowed}
           onPick={onPick}
         />
         <PickerGroup
@@ -87,7 +94,7 @@ export function KeycodePicker({
           labels={labels}
           selectedValue={selectedValue}
           disabled={disabled}
-          pickTarget={pickTarget}
+          allowed={allowed}
           onPick={onPick}
         />
         <PickerGroup
@@ -97,7 +104,7 @@ export function KeycodePicker({
           labels={labels}
           selectedValue={selectedValue}
           disabled={disabled}
-          pickTarget={pickTarget}
+          allowed={allowed}
           onPick={onPick}
         />
       </div>
@@ -108,7 +115,7 @@ export function KeycodePicker({
             table={table}
             labels={labels}
             selected={"keycode" in entry && entry.keycode === selectedValue}
-            disabled={disabled || ("keycode" in entry && !canPick(pickTarget, entry.keycode))}
+            disabled={disabled || ("keycode" in entry && !allowed(entry.keycode))}
             onPick={onPick}
             key={entryIndex}
           />
@@ -125,7 +132,7 @@ function PickerGroup({
   labels,
   selectedValue,
   disabled,
-  pickTarget,
+  allowed,
   onPick,
 }: {
   readonly rows: readonly PickerRow[];
@@ -134,7 +141,7 @@ function PickerGroup({
   readonly labels: WorkspaceLabels;
   readonly selectedValue: string | undefined;
   readonly disabled: boolean;
-  readonly pickTarget: PickTarget;
+  readonly allowed: (keycode: string) => boolean;
   readonly onPick: (keycode: string) => void;
 }): React.JSX.Element {
   const width = field === "main" ? 16 : field === "nav" ? 3 : 4;
@@ -153,7 +160,7 @@ function PickerGroup({
               table={table}
               labels={labels}
               selected={"keycode" in entry && entry.keycode === selectedValue}
-              disabled={disabled || ("keycode" in entry && !canPick(pickTarget, entry.keycode))}
+              disabled={disabled || ("keycode" in entry && !allowed(entry.keycode))}
               onPick={onPick}
               key={entryIndex}
             />

@@ -81,6 +81,7 @@ import { diagnosticSelection, DiagnosticsPanel } from "./components/DiagnosticsP
 import { KeymapTab } from "./components/KeymapTab.tsx";
 import { MacKeymapTab } from "./components/MacKeymapTab.tsx";
 import { MacKeyPanel } from "./components/MacKeyPanel.tsx";
+import { MacReferences } from "./components/MacReferences.tsx";
 import { KeyPanel } from "./components/KeyPanel.tsx";
 import { Overview } from "./components/Overview.tsx";
 import { References } from "./components/References.tsx";
@@ -964,12 +965,7 @@ function App(): React.JSX.Element {
   function renderMacMain(): React.ReactNode {
     if (macLayout === undefined || workspace === undefined) return null;
     if (macTab === "References") {
-      return (
-        <section className="c-panel c-panel--wide" style={{ margin: "var(--space-7)" }}>
-          <h1>References</h1>
-          <p className="u-muted">この配列の参照情報はまだありません。</p>
-        </section>
-      );
+      return <MacReferences layout={macLayout} mac={workspace.mac[macLayout]} />;
     }
     return (
       <MacKeymapTab
@@ -1107,10 +1103,24 @@ function App(): React.JSX.Element {
             information: 0,
           }
         }
-        changedCount={changed.length}
         status={progress ?? status}
-        canApply={changed.length > 0 && deviceRead !== undefined}
-        onApply={() => void openApply()}
+        mode={
+          editTarget.kind === "mac"
+            ? {
+                kind: "mac",
+                savePath:
+                  macState?.kind === "ready" ? macState.path : macKeymapPath(editTarget.layout),
+                canExport: macState?.kind === "ready",
+                onExportKarabiner: () => void exportKarabiner(),
+              }
+            : {
+                kind: "cornix",
+                savePath: WORKSPACE_LAYOUT.keymap,
+                changedCount: changed.length,
+                canApply: changed.length > 0 && deviceRead !== undefined,
+                onApply: () => void openApply(),
+              }
+        }
         onSeverity={openDiagnostics}
       />
       {applyOpen ? (

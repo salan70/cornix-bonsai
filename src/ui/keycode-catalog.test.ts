@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { macKeycodeSupport } from "../core/mac-keymap/generate.ts";
 import { isKnownKeycode } from "../core/validation/keycode-vocabulary.ts";
 import {
   EXTRA_ROW,
@@ -49,4 +50,14 @@ test("ISO/JIS main rows preserve their intended physical widths", () => {
 test("picker groups use fixed 26u coordinates", () => {
   assert.deepEqual(PICKER_GROUP_OFFSETS, { main: 0, nav: 18, numpad: 22 });
   assert.equal(PICKER_TOTAL_UNITS, 26);
+});
+
+test("EXTRA_ROWのshift済み記号はmacKeycodeSupportが拒む", () => {
+  const unsupported = EXTRA_ROW.flatMap((entry) =>
+    "keycode" in entry && !macKeycodeSupport(entry.keycode).ok ? [entry.keycode] : [],
+  );
+  assert.ok(unsupported.includes("KC_TILD"));
+  assert.ok(unsupported.includes("KC_EXLM"));
+  assert.ok(!unsupported.includes("KC_NO"));
+  assert.ok(!unsupported.includes("KC_TRNS"));
 });

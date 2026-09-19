@@ -5,10 +5,31 @@
     background: transparent;
     border-color: var(--border);
   }
+  .mac-scope {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
   .mac-tab {
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
+  }
+  .mac-refs {
+    display: grid;
+    gap: var(--space-4);
+    margin: 0 0 var(--space-6);
+  }
+  .mac-refs div {
+    display: grid;
+    gap: var(--space-1);
+  }
+  .mac-refs dt {
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .mac-refs dd {
+    margin: 0;
   }
   .mac-export-row {
     display: flex;
