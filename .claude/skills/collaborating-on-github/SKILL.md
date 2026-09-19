@@ -15,7 +15,8 @@ GitHub操作は`gh`、ローカル操作は`git`を使う。文面はプロジ�
 
 ## PR
 
-- 新規PRはDraftで作り、検証とセルフレビュー後にReadyへ変更する。
+- 新規 PR は作業と検証が未完なら Draft とする。
+- 完了していればプロジェクト慣例に従う。
 - review対応ではREST commentsとGraphQL `reviewThreads`の両方を取得する。
 - 修正が必要なら、検証、commit、pushの後に返信・Resolveする。
 - 完了前に未解決thread、CI、review decision、merge state、PR bodyを再取得する。

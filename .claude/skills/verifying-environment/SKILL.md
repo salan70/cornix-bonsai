@@ -1,24 +1,26 @@
 ---
 name: verifying-environment
-description: 開発開始時、test・lint・build前、PATHやキャッシュに起因する失敗診断時に使う。
+description: PATH、バージョン、キャッシュ、ピン留め環境の差によって検証が再現しないときに使う。
 ---
 
 # 環境検証
 
-失敗をコードやpre-existingの問題と判断する前に、実行環境を確認する。
+環境差が疑われる証拠を集め、コードの失敗と区別する。
 
-## 軽量プリフライト
+## 診断
 
-1. `IN_NIX_SHELL`と`DIRENV_DIR`を確認する。
-2. リポジトリの`flake.nix`、mise、devbox、package managerのmarkerを確認する。
-3. 実行するtoolの`command -v <tool>`と`<tool> --version`を確認する。
-4. pin留め環境がある場合は、その環境経由でtest・lint・buildを実行する。
+1. 失敗したコマンド、エラー、実行場所を記録する。
+2. `flake.nix`、mise、devbox、package manager の marker を確認する。
+3. 関連ツールの path と version を host とピン留め環境で比較する。
+4. 固有 cache、重複 process、worktree で欠落した設定を確認する。
+5. ピン留め環境で同じコマンドを再実行する。
 
-`flake.nix`がありdirenv未読込、またはtoolが`/opt/homebrew`や`~/.nix-profile`へ解決される場合は、`nix develop -c <command>`と比較する。
+`flake.nix`があるのにツールが global PATH へ解決される場合は環境差を疑う。
+`nix develop -c <command>`の結果と比較する。
 
-## 失敗診断
+## 境界
 
-1. hostとpin留め環境のtool path・versionを比較する。
-2. project固有のcache、重複process、worktreeで欠落したgitignored設定を確認する。
-3. 安全に再生成できるcacheだけを消し、同じcommandをpin留め環境で再実行する。
-4. それでも再現した場合だけpre-existingと報告し、path・version・command・errorを残す。
+- cache は再生成可能と確認できる場合だけ消す。
+- ピン留め環境でも再現した場合だけ pre-existing 候補とする。
+- path、version、コマンド、エラーを報告する。
+- 検証が成功している作業では追加の環境調査をしない。

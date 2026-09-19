@@ -2,11 +2,10 @@
 
 同期前に実体から判断し、検出できない値だけユーザーへ確認する。
 
-## 作業ログ
+## 設計判断
 
-1. `docs/tasks/ai-logs/`があればそのまま使う。
-2. `ai-logs/`があれば`ai-logs/YYYY-MM-DD_{slug}.md`へ置換する。
-3. どちらもなければ`docs/ai-logs/YYYY-MM-DD_{slug}.md`を提案する。
+将来の変更で参照する設計判断は、必要に応じて ADR または既存の設計文書へ残す。
+既存の配置と形式があればそれに従う。
 
 ## ブランチ戦略
 
@@ -21,7 +20,7 @@
 
 - `flake.nix`があればNix経由を優先する。
 - mise、devbox、package manager、Makefile、justfileがあれば、プロジェクトが定義するcommandを使う。
-- pin留め環境がない場合はSkill本文を変更せず、host toolのpathとversionを確認する。
+- pin留め環境がなく、検証失敗の原因に環境差が疑われる場合はhost toolのpathとversionを確認する。
 
 ## Claude/Codex共通化
 

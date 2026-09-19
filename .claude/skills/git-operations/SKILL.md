@@ -1,6 +1,6 @@
 ---
 name: git-operations
-description: ローカルGit操作、明示的なステージング、コミット規約、機密ファイル確認に使う。
+description: ローカル Git の stage、commit、branch、履歴統合など、リポジトリを変更するときに使う。
 ---
 
 # Git操作
@@ -21,8 +21,9 @@ description: ローカルGit操作、明示的なステージング、コミッ�
 
 1. `git status --short`と`git diff`で対象を確定する。
 2. `git add <明示パス>`で関連ファイルだけをstageする。`git add .`はユーザーが明示した場合だけ使う。
-3. [安全チェックリスト](references/safety-checklist.md)を実行する。
-4. プロジェクト指定のtest・lintと`git diff --cached --check`を実行する。
+3. commit 前は[安全チェックリスト](references/safety-checklist.md)を実行する。
+4. 変更範囲に対応するプロジェクト指定の検証を実行する。
+5. `git diff --cached --check`を実行する。
 
 ## コミット
 
