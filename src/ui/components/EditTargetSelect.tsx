@@ -2,7 +2,10 @@ import type { MacWorkspaceByLayout } from "../mac-workspace.ts";
 import { macScopeLabel } from "../mac-workspace.ts";
 import type { EditTarget } from "../types.ts";
 
-/** header 直下の編集対象ドロップダウン。項目が配列ごとになる。 */
+/** header 直下の編集対象ドロップダウン。項目が配列ごとになる。
+ *
+ * @doc docs/specs/ui.md#5-tab
+ */
 export function EditTargetSelect({
   target,
   mac,

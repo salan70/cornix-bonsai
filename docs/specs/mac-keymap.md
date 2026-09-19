@@ -296,6 +296,8 @@ pointing deviceと、Karabiner自身の仮想キーボード（`is_virtual_devic
 
 **検出は任意の追加情報です。** 取れないことを理由に処理を止めず、呼び出し側は
 `--layout ansi|jis`の明示指定へ落とします（ADR 0027）。
+Browser UIはこの関数を呼ばない。
+配列は編集対象ドロップダウンで選ぶ。
 
 ## 適用の境界
 

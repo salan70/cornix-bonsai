@@ -5,7 +5,11 @@ import { describeDevices, deviceIfText } from "../mac-references.ts";
 import type { MacWorkspaceState } from "../mac-workspace.ts";
 import { Callout, CalloutLabel, Panel } from "./ui/index.ts";
 
-/** 選んだ物理配列の参照情報。Vial の usages / unused は持たない。 */
+/**
+ * 選んだ物理配列の参照情報。Vial の usages / unused は持たない。
+ *
+ * @doc docs/specs/ui.md#behaviors-and-references
+ */
 export function MacReferences({
   layout,
   mac,

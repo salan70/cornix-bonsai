@@ -33,8 +33,10 @@ connectionは文字、icon、borderなどを併用し、色だけを状態の識
 
 ## Workspace入口
 
-File System Access APIでdirectoryを選択し、directory handleをIndexedDBへ保存する。reload後は
-権限が`granted`なら再選択なしに復帰し、keymapの保存時はworkspace adapterの競合検出を通す。
+File System Access APIでdirectoryを選択し、directory handleをIndexedDBへ保存する。
+`keymap.yaml`が無くてもdirectoryは開ける。
+reload後は権限が`granted`なら再選択なしに復帰する。
+keymapの保存時はworkspace adapterの競合検出を通す。
 headerにはdevice接続状態、current/desired UID、definition bindingの一致状態を表示する。
 
 <!-- @code src/workspace/bootstrap.ts#planWorkspaceInit -->
@@ -42,10 +44,11 @@ headerにはdevice接続状態、current/desired UID、definition bindingの一�
 
 ## Workspace初期化
 
-`keymap.yaml`が無いdirectoryは、実機のfull readから`keymap.yaml`と
-`cornix/definitions/<digest>.json`を作って成立させる。CLIの`import vil`と同じ組み立てを
-browser側で行うもので、実機へは書き込まない。definitionを先に書き、途中で中断しても
-「bindingが指す先が無い」状態を作らない。
+Cornixを初期化するときは、実機のfull readから`keymap.yaml`と
+`cornix/definitions/<digest>.json`を作る。
+CLIの`import vil`と同じ組み立てをbrowser側で行うもので、実機へは書き込まない。
+directoryを開くこと自体は`keymap.yaml`を要求しない。
+definitionを先に書き、途中で中断しても「bindingが指す先が無い」状態を作らない。
 
 <!-- @code src/workspace/bootstrap.ts#planBindingMigration -->
 
@@ -63,9 +66,14 @@ digest不一致で落ちる。
 UIは読み込み失敗を例外の文字列のまま出さず、`keymap.yaml`が無い場合・旧bindingの場合・
 それ以外を区別して、それぞれの復旧操作を提示する。
 
+<!-- @code src/ui/components/index.ts#EditTargetSelect -->
+
 ## 5 tab
 
-常設header、`Keymap` / `Overview` / `Behaviors` / `Mac` / `References`の5 tab、status barを置く。
+常設headerの直下に編集対象ドロップダウンを置く。
+項目は`Cornix LP`と`Mac キーボード（ANSI / JIS）`であり、配列を選ぶ専用UIは置かない。
+選んだ対象のタブ列へ入れ替える。
+Cornixは`Keymap` / `Overview` / `Behaviors` / `References`、Macは`Keymap` / `References`である。
 tab navigationの右端には利用者ガイドへの外部linkを置き、新しいtabで操作・安全・復旧手順を開く。
 Keymapはdefinitionの座標をHTML/CSSの絶対配置へ投影し、encoderを専用帯へ分ける。選択中の
 key / encoderのraw keycodeをside panelで編集し、盤面は方向キー、Enter、Escで操作できる。
@@ -85,15 +93,21 @@ Applyが全operationのverifyを終えたら実機をfull readし直し、curren
 
 ## Header and status
 
-headerはCornix Bonsaiのbrand、workspace path、接続状態chipを常設する。artifactの再読み込み、
-backup復元、`.vil`読込・書出ボタンに加えて、WebHIDのuser gestureを必要とする接続・切断・実機readと、
-workspace directoryを切り替える操作を同じ行へ置く。接続状態は色だけに頼らず、未接続または製品名を文字で示す。
-brandの隣には`build`ラベル、build時の短いcommit SHA、利用者のローカルtimezoneで整形したbuild時刻を
-可視表示する。build時刻は`time`要素の`dateTime`へISO文字列を保持し、build情報が無い場合は開発用の
-fallback表示へ切り替える。
+headerはCornix Bonsaiのbrand、workspace path、接続状態chipを常設する。
+artifactの再読み込み、backup復元、`.vil`読込・書出に加えて、WebHIDの接続・切断・実機readと
+workspace directoryの切替を同じ行へ置く。
+Cornixが`ready`でないときは`.vil`読込・書出とbackup復元を無効化する。
+再読込はdirectoryが開いていれば使える。
+接続状態は色だけに頼らず、未接続または製品名を文字で示す。
+brandの隣には`build`ラベル、短いcommit SHA、ローカルtimezoneのbuild時刻を出す。
+build時刻は`time`要素の`dateTime`へISO文字列を保持する。
+build情報が無い場合は開発用のfallback表示へ切り替える。
 
-status barのエラー・警告・情報件数は押下でき、診断panelを開く。差分件数、保存先、Apply導線も
-常設し、Applyのgateと診断のseverityをUI表示上で混同しない。
+status barのエラー・警告・情報件数は押下でき、診断panelを開く。
+Cornix表示中は差分件数、保存先`keymap.yaml`、VialのApply導線を出す。
+Mac表示中は保存先`mac-keyboard.<layout>.yaml`、適用は`cornix mac apply`、Karabiner asset書出だけを出す。
+Vialの差分件数とApplyは出さない。
+Applyのgateと診断のseverityをUI表示上で混同しない。
 
 <!-- @code src/ui/components/index.ts#KeymapTab -->
 <!-- @code src/render/geometry.ts#KeyShape -->
@@ -153,10 +167,12 @@ base keycodeはshift済み記号を上段へ併記し、`KC_KP_7`のようなnum
 選択した値はVial形式の`X_T(kc)`へ組み立てる。編集対象が未選択ならgridとストリップを含む
 picker全体を無効化する。
 
-pickerは選択中の編集対象が何か（key / encoder / Macの盤面位置）を知らない。現在値の
-`selectedKeycode`を受け取り、選ばれたkeycodeを生のまま通知するだけで、`applyPick`での合成と
-保存先の分岐は呼び出し側（各タブ）の責務にする。編集対象の型に依存しないことで、同じpickerを
-CornixのKeymapタブとMacタブが共有する（ADR 0025）。
+pickerは選択中の編集対象が何か（key / encoder / Macの盤面位置）を知らない。
+現在値の`selectedKeycode`を受け取り、選ばれたkeycodeを生のまま通知する。
+`applyPick`での合成と保存先の分岐は呼び出し側の責務にする。
+同じpickerをCornixのKeymapとMacのKeymapが共有する（ADR 0025）。
+Macは`macKeycodeSupport`を渡し、落とせないcellをdisabledにする。
+判定表はUIへ複製しない。
 
 <!-- @code src/ui/components/index.ts#MacKeymapTab -->
 <!-- @code src/ui/mac-workspace.ts#probeMacKeymap -->
@@ -165,40 +181,39 @@ CornixのKeymapタブとMacタブが共有する（ADR 0025）。
 
 ## Mac tab
 
-MacBook内蔵キーボード（`mac-keyboard.yaml`）の編集タブ。workspaceの必須ファイルでは
-ないため、タブは常設し、ファイルの状態をタブ内の3状態に閉じ込める（ADR 0025）。
+物理配列ごとの`mac-keyboard.<layout>.yaml`を編集する。
+workspaceの必須ファイルではない。
+状態は配列ごとに`ready` / `missing` / `error`へ閉じる（ADR 0025 / 0027）。
 
-- `ready` — `layout`宣言に応じた物理盤面（`macPhysicalLayout`）を描画し、割り当てを編集する
-- `missing` — 空状態と「mac-keyboard.yamlを作成」ボタン。作成する初期状態は既定layoutと
-  空のlayer 0だけを持つ
+- `ready` — その配列の物理盤面（`macPhysicalLayout`）を描画し、割り当てを編集する
+- `missing` — 空状態と作成ボタン。初期状態は選んだ配列と空のlayer 0だけを持つ
 - `error` — parse失敗の理由と再読込の案内
 
-読み込みは`probeMacKeymap`が担い、parse失敗を`error`に閉じ込めて例外を外へ出さない。
-Macの不調でVial編集を止めないためで、`keymap.yaml`が無い場合のworkspace全体の
-`missing-keymap`とは扱いが違う。保存はVial側と同じ`createSaveQueue`の3本目で、
-`mac-keyboard.yaml`の競合tokenを独立に持つ。
+読み込みは`probeMacKeymap(store, layout)`が`readMacKeymapFor`を使う。
+旧名`mac-keyboard.yaml`は中の`layout`宣言で解決する。
+parse失敗は`error`に閉じ込め、例外を外へ出さない。
+保存キューはreadyな配列ごとに1本持つ。
 
-盤面はCornixと同じgeometry（`KeyShape`）で描く。entryは`macBoardEntries`が物理配列を
-正として組み、割り当ての無いキーは素通しとして物理キャップ名（`macKeycapLabel`。同じ
-`key_code`でも刻印は配列で変わる）をfaint表示する。選択は`Selection`の
-`{kind: "macKey", keyCode}`で、layer番号空間はVialと別に持つ（layer chipも疎な番号を
-昇順に並べ、`+`で末尾+1を作る）。方向キー移動はVial盤面と同じ幾何ベースの`moveKey`を
-共有する。
+盤面はCornixと同じgeometry（`KeyShape`）で描く。
+entryは`macBoardEntries`が物理配列を正として組む。
+割り当ての無いキーは素通しとして物理キャップ名をfaint表示する。
+選択は`{kind: "macKey", keyCode}`で、layer番号空間はVialと別に持つ。
+layer chip行の右端に適用先チップを置く。
+titleは`device_if`のidentifiersである。
+追加は`cornix mac devices`であると明示する。
 
-keycodeの選択は同じ`KeycodePicker`を使い、`applyPick`の合成と`setMacAssignment`での
-保存はタブ側が持つ。Karabinerへ落とせないkeycodeはpickerでdisabledにせず、
-`validateMacKeymap`の診断へ委ねる（ADR 0025）。side panelは`MacKeyPanel`で、
-raw keycode入力（空文字は素通しへ戻す）と「割り当てを外す」操作を持つ。keycode表示は
-Vialと同じlabel関数を使うが、layer名はVialのlayer番号空間のものなので剥がして渡す。
+keycodeの選択は同じ`KeycodePicker`を使う。
+`applyPick`の合成と`setMacAssignment`での保存はタブ側が持つ。
+Karabinerへ落とせないkeycodeは`macKeycodeSupport`でdisabledにする。
+動作selectは`basic` / `modTap` / `layerSwitch` / `none`に絞る。
+side panelは`MacKeyPanel`で、raw入力と「割り当てを外す」を持つ。
+keycode表示はVialと同じlabel関数を使うが、layer名は剥がして渡す。
+`createKeycodeTable`は呼ばない。
 
-診断は`validateMacKeymap`の結果をVial側と分けて持つ。盤面のバッジ・診断panel
-（`DiagnosticsPanel`を共有）・status barの件数はすべてMacの診断で描き、status barは
-表示中のtabに応じてVial / Macのsummaryを切り替える（どちらのdocumentのerrorかを
-混ぜない）。診断から該当キーへの移動は`diagnosticSelection`が`macLayer`を別fieldで
-返し、Vialのlayerを動かさない。差分件数とApply導線はVial専用のまま変えない。
-
-実機への適用はCLI（`cornix mac apply`）のみで、タブ内にその旨を明示する。UI上で
-「実機Applyできるのはknown deviceだけ」という非対称を導線で示す（ADR 0022）。
+診断は`validateMacKeymap`の結果をVial側と分けて持つ。
+盤面のバッジ・診断panel・status barの件数はすべてMacの診断で描く。
+診断から該当キーへの移動は`diagnosticSelection`が`macLayer`を別fieldで返す。
+実機への適用はCLI（`cornix mac apply`）のみである（ADR 0022）。
 
 <!-- @code src/ui/keycode-labels.ts#keycodeDisplay -->
 <!-- @code src/core/keycode/shifted.ts#shiftedOf -->
@@ -280,28 +295,34 @@ desired stateへ保存する。UIDや容量が実機と異なる場合は通常�
 VIL、SVG、PDFの書出はworkspaceのGit管理外である`cornix/generated/`へ保存する。SVG/PDFはrendererへ
 選択中のlayerを渡し、CLIと同じ座標・表示名規則を使う。いずれも実機へのwriteを開始しない。
 
-Karabinerのcomplex_modifications assetの書き出しはMacタブの
-「Karabiner assetを書き出す」ボタンが担い、`cornix/generated/karabiner-complex-modifications.json`へ
-保存する。生成元はディスクの`mac-keyboard.yaml`ではなく**編集中のin-memory document**で、
-保存キューに未flushの編集がある瞬間のstale readを構造的に避ける（ADR 0025）。
-errorが1件でもあれば書き出さず、status barへ件数と内容を出す。**適用はしない。**
-`karabiner.json`へ触るのはCLIの`cornix mac apply`だけで、Browser UIからの適用経路は
-用意しない（ADR 0022）。この非対称はstatus barの文言とタブ内の常設文言で明示する。
+Karabinerのcomplex_modifications assetの書き出しは、Mac表示中のstatus barとタブ内の
+「Karabiner assetを書き出す」が担う。
+保存先は`cornix/generated/karabiner-complex-modifications.json`である。
+生成元は**編集中のin-memory document**であり、ディスクを再読しない（ADR 0025）。
+errorが1件でもあれば書き出さない。
+`karabiner.json`へ触るのはCLIの`cornix mac apply`だけである（ADR 0022）。
 
 <!-- @code src/ui/components/index.ts#Behaviors -->
 <!-- @code src/ui/components/index.ts#References -->
+<!-- @code src/ui/components/index.ts#MacReferences -->
 
 ## Behaviors and references
 
 Behaviorsは既存どおりTap Dance、Combo、Settingsをcoreの編集関数へ渡して保存し、入力値に対応する表示名を
-補助表示する。Referencesはdynamic entryのusages / unusedとlayerのunreachableを、診断panelとは別の参照
-情報として表示し、`TD(n)` / `M(n)`に名前があればraw表記と併記する。Applyの差分確認と書き込み進捗では
-表示名・raw式・既存の挙動説明を併記する。表示名の変更はvalidation、diff判定、Apply fingerprintへ影響しない。
+補助表示する。
+CornixのReferencesはdynamic entryのusages / unusedとlayerのunreachableを、診断panelとは別の参照
+情報として表示する。
+MacのReferencesはファイル、物理配列、適用先、`device_if`相当、layer数、割り当て数、非対応件数、診断一覧を出す。
+検出した内蔵配列はBrowserでは出さない。
+CLIがapply / diff時に検出すると書く。
+表示名の変更はvalidation、diff判定、Apply fingerprintへ影響しない。
 
 <!-- @code src/ui/components/index.ts#WorkspaceRecovery -->
+<!-- @code src/ui/workspace-probe.ts#probeStore -->
 
 ## Workspace recovery
 
-workspaceを読めない場合は、keymap欠落、旧digest binding、その他の読み込み失敗を分けて表示し、
-実機readによる初期化、binding移行、再読み込みの導線をそれぞれ提示する。初期化はworkspaceファイル
-を作るだけで実機へwriteせず、実機操作の安全境界を維持する。
+directoryを開けた時点でworkspaceとして成立する。
+`keymap.yaml`の欠落やparse失敗はCornix対象へ閉じ、Mac編集を止めない。
+Cornixを選んだときだけ、keymap欠落、旧digest binding、その他の読み込み失敗を分けて復旧操作を出す。
+初期化はworkspaceファイルを作るだけで実機へwriteしない。

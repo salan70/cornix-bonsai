@@ -5,6 +5,9 @@ Web UI は、ローカルの workspace をブラウザから直接読み書き�
 
 Web UI: <https://salan70.github.io/cornix-bonsai/>
 
+`keymap.yaml` が無い directory でも開けます。
+Mac キーボードだけを編集できます。
+
 ## ヘッダー操作一覧
 
 | ボタン               | 動作                                         |
@@ -23,9 +26,27 @@ Web UI: <https://salan70.github.io/cornix-bonsai/>
 `接続` だけでは実機設定を読み込みません。
 差分を確認するには、接続後に `実機から再読み込み` を実行してください。
 
+`keymap.yaml` が無い、または読めないときは VIL 読込・書出は使えません。
+backup 復元も使えません。
+再読込は directory が開いていれば使えます。
+
+## 編集対象
+
+ヘッダー直下のドロップダウンで編集対象を選びます。
+
+| 項目                     | タブ                                       |
+| ------------------------ | ------------------------------------------ |
+| `Cornix LP（実機）`      | Keymap / Overview / Behaviors / References |
+| `Mac キーボード（ANSI）` | Keymap / References                        |
+| `Mac キーボード（JIS）`  | Keymap / References                        |
+
+Browser は内蔵配列を検出しません。
+「この Mac には無い」という表示も出しません。
+適用する配列は CLI の `cornix mac apply` が検出します。
+
 ## 画面別の機能と操作
 
-### Keymap タブ
+### Keymap タブ（Cornix）
 
 レイヤーごとの物理キーやエンコーダーの割り当てを編集します。
 
@@ -55,32 +76,54 @@ Tap Dance、Combo、各種詳細設定を直接編集します。
 - Tap Dance の timeout や設定値は 0〜65535 の整数値です。
 - 不正な値を入力した場合は保存されず、画面下部に理由が表示されます。
 
-### Mac タブ（MacBook 内蔵キーボード）
-
-MacBook 内蔵キーボードの設定（`mac-keyboard.yaml`）を編集します。
-
-- 盤面は配列設定（JIS または ANSI）に応じて切り替わります。
-- 薄い表示のキーは、入力をそのまま通す「素通し」状態です。
-- Karabiner で表現できない割り当てはエラー診断となり、保存できません。
-- `Karabiner assetを書き出す` で定義 JSON を生成します。
-
-Web UI から実機（Karabiner）への直接適用はできません。
-適用は [CLI の mac コマンド](./cli.md#macbook-内蔵キーボード管理mac) を使用してください。
-
-### References タブ
+### References タブ（Cornix）
 
 キーマップ全体の参照整合性を確認します。
 
 - 各レイヤーや Macro、Tap Dance の参照元件数を確認できます。
 - 未使用の定義や、到達不能な孤立レイヤーを一覧表示します。
 
+### Keymap タブ（Mac）
+
+選んだ配列の `mac-keyboard.<layout>.yaml` を編集します。
+ファイルが無ければ、その配列の初期ファイルを作れます。
+旧名 `mac-keyboard.yaml` は、中の `layout` 宣言が一致すれば読めます。
+
+- 薄い表示のキーは、入力をそのまま通す「素通し」状態です。
+- Karabiner で表現できない割り当ては picker で選べません。
+- 動作の種類は basic、mod-tap、layer switch、none です。
+- レイヤー行の右端に適用先チップがあります。
+- 適用先の追加は `cornix mac devices` です。
+
+Web UI から Karabiner への直接適用はできません。
+適用は [CLI の mac コマンド](./cli.md#macbook-内蔵キーボード管理mac) を使います。
+
+### References タブ（Mac）
+
+選んだ配列のファイル、物理配列、適用先、診断を確認します。
+
+- `device_if` 相当の識別子を文言化して表示します。
+- レイヤー数、割り当て数、Karabiner 非対応件数を出します。
+- `validateMacKeymap` の診断を一覧します。
+- 検出した内蔵配列は出しません。CLI が apply / diff 時に検出します。
+
 ## 診断と差分の確認
 
-画面下部のステータスバーには、診断結果と実機差分が常に表示されます。
+画面下部のステータスバーには、いま選んでいる対象の診断が常に表示されます。
+
+Cornix 表示中は次を出します。
 
 - **エラー**: Apply を中止します。設定の修正が必要です。
 - **警告**: 内容ごとの確認が必要です。設定が変わると再確認が求められます。
 - **実機差分**: 最後の読み取り結果と workspace の差分件数を示します。
+- 保存先は `keymap.yaml` です。Apply 導線もあります。
+
+Mac 表示中は次を出します。
+
+- 保存先は `mac-keyboard.<layout>.yaml` です。
+- 適用は `cornix mac apply` です。
+- `Karabiner assetを書き出す` で定義 JSON を生成します。
+- Vial の差分件数と Apply は出しません。
 
 ## 外部エディタとの併用
 

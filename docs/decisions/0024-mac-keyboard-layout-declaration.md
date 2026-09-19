@@ -32,7 +32,7 @@ JIS前提のfixture（`fixtures/mac-keyboard/desired.yaml`）と既に矛盾し�
 
 - `MacKeymapDocument`へ`layout: "ansi" | "jis"`を**必須フィールド**として追加する。
   YAML側では省略可とし、`parseMacKeymapYaml`が省略時に`jis`を埋める。既定を`jis`に
-  するのは既存fixtureと実運用（JIS配列のMacBook）に合わせるため。schemaは
+  するのは既存fixtureと後方互換のためで、実運用の配列を固定しない。schemaは
   `cornix-bonsai/mac-keymap@1`のまま上げない（省略時の挙動追加は互換性を壊さない）
 - `serializeMacKeymapYaml`は`layout`行を**常に**書き出す。正規形は明示とする
 - 宣言した配列に物理的に存在しないキーをfromに書いた場合、
@@ -51,7 +51,7 @@ JIS前提のfixture（`fixtures/mac-keyboard/desired.yaml`）と既に矛盾し�
 - **案2は成立しない**。`karabiner_grabber_devices.json`にはANSI / JISを示すフィールドが
   無い（Karabiner 15.3.0で実測。記録されるのは`is_built_in_keyboard`・product・transport
   など）。観測で得られない以上、宣言以外に配列を知る手段が無い
-- **案3はJIS実機での正当な使用にノイズを出し続ける**。fixtureも実運用も
+- **案3はJIS実機での正当な使用にノイズを出し続ける**。fixtureもJIS実機も
   `japanese_kana` / `japanese_eisuu`を使っており、正しい構成が常に警告される規則は
   規則の側が間違っている（ADR 0010の「severityは実fixtureで較正する」と同じ姿勢）
 - **severityはADR 0010の判定規則に従いwarning**。存在しないキーへの割り当ては
@@ -88,3 +88,9 @@ JIS前提のfixture（`fixtures/mac-keyboard/desired.yaml`）と既に矛盾し�
   なく盤面からのInferenceで、盤面自体の実機照合はADR 0025のOpen Questionに残る。
   空集合のまま放置していた間、この2キーへの割り当ては無診断で失われていた。
   漏れを再発させないよう、盤面の差を両方向で検証する不変条件testを足した
+
+## 追記（2026-09-19）
+
+`DEFAULT_MAC_LAYOUT = "jis"` は YAML 省略時の parse 既定だけである。
+実運用の配列を JIS に固定しない。
+Browser の作成はドロップダウンで選んだ配列の `mac-keyboard.<layout>.yaml` を書く。

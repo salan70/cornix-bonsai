@@ -56,6 +56,8 @@ export type WorkspaceIssue =
  * directory を開けた時点で workspace として成立させる。
  *
  * `keymap.yaml` の欠落や parse 失敗は `cornix` に閉じ、Mac の読み込みを止めない。
+ *
+ * @doc docs/specs/ui.md#workspace-recovery
  */
 export async function probeStore(store: UiWorkspaceStore): Promise<WorkspaceProbe> {
   try {

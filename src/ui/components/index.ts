@@ -1,4 +1,5 @@
 import { AppHeader as AppHeaderComponent } from "./AppHeader.js";
+import { EditTargetSelect as EditTargetSelectComponent } from "./EditTargetSelect.js";
 import { ApplyDialog as ApplyDialogComponent } from "./ApplyDialog.js";
 import { Behaviors as BehaviorsComponent } from "./Behaviors.js";
 import { DiagnosticsPanel as DiagnosticsPanelComponent } from "./DiagnosticsPanel.js";
@@ -11,6 +12,9 @@ import { Overview as OverviewComponent } from "./Overview.js";
 import { References as ReferencesComponent } from "./References.js";
 import { StatusBar as StatusBarComponent } from "./StatusBar.js";
 import { WorkspaceRecovery as WorkspaceRecoveryComponent } from "./WorkspaceRecovery.js";
+
+/** @doc docs/specs/ui.md#5-tab */
+export const EditTargetSelect = EditTargetSelectComponent;
 
 /** @doc docs/specs/ui.md#header-and-status */
 export const AppHeader = AppHeaderComponent;
@@ -45,6 +49,7 @@ export const Behaviors = BehaviorsComponent;
 /** @doc docs/specs/ui.md#behaviors-and-references */
 export const References = ReferencesComponent;
 
+/** @doc docs/specs/ui.md#behaviors-and-references */
 export const MacReferences = MacReferencesComponent;
 
 /** @doc docs/specs/ui.md#workspace-recovery */

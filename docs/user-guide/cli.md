@@ -125,6 +125,8 @@ just cornix export vil --out keymap.vil --workspace /path/to/workspace
 Mac のキーボード設定は、Karabiner-Elements を介して管理します。
 設定は `mac-keyboard.<layout>.yaml` へ保存されます。
 実行中の Mac の配列（JIS または ANSI）を自動検出し、対応するファイルを処理します。
+Browser UI は配列を検出しません。
+ドロップダウンで選んだファイルを編集し、適用とデバイス追加は本コマンドだけが行います。
 
 ### 適用先デバイスの一覧・登録（devices）
 

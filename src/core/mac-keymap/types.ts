@@ -16,7 +16,7 @@ export const MAC_KEYMAP_SCHEMA = "cornix-bonsai/mac-keymap@1";
  */
 export type MacKeyboardLayout = "ansi" | "jis";
 
-/** YAML で `layout` を省略したときの既定。既存 fixture と実運用が JIS 前提（ADR 0024）。 */
+/** YAML で `layout` を省略したときの既定。作成導線はこれを使わない（ADR 0024）。 */
 export const DEFAULT_MAC_LAYOUT: MacKeyboardLayout = "jis";
 
 /**
