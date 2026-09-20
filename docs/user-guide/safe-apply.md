@@ -70,6 +70,30 @@ Apply 直前の状態は `cornix/backups/latest.vil` に保存されます。
 バックアップを選んだ時点では、実機は書き換わりません。
 通常の Apply と同様に差分確認を経て実機へ反映します。
 
+## MacBook 内蔵キーボードの Apply
+
+Mac 側は対象も経路も別です。書き込み先は実機ではなく
+`~/.config/karabiner/karabiner.json` で、操作は CLI だけが行います。
+
+```bash
+just mac apply                          # 差分と fingerprint を表示（書き換えない）
+just mac apply --confirm v1-xxxx-yyyy   # 適用してプロファイル選択まで行う
+```
+
+安全原則は Cornix LP と同じです。適用前に自動でバックアップを取り、人間が fingerprint を
+渡すまで書き込まず、書き込み後は読み直して検証します。変更するのは `Cornix Bonsai`
+プロファイル 1 つだけで、他のプロファイルと全体設定には触れません。
+
+戻す手順は 2 段階あります。
+
+1. 変換を止めるだけなら、プロファイルを戻します。
+   `karabiner_cli --select-profile "Default profile"`
+2. 設定ファイルごと戻すなら、`cornix/backups/karabiner-<時刻>.json` を
+   `~/.config/karabiner/karabiner.json` へコピーします。
+
+バックアップは読み取ったテキストをそのまま保存しているため、復元すると元のファイルと
+バイト単位で一致します。
+
 ## 永続化の確認
 
 Apply 完了時に保証されるのは、実機のメモリへ反映されたことと直後の照合一致です。

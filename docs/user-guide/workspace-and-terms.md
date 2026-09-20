@@ -19,6 +19,20 @@ Cornix Bonsai の設定ファイル構造と重要用語を説明します。
 | UID           | キーボード個体を識別し、別機器への誤書き込みを防ぐ値です。   |
 | digest        | definition ファイルの内容から計算する SHA-256 値です。       |
 
+## MacBook 内蔵キーボードの設定
+
+Mac の設定は Cornix LP 向けの workspace とは別で、cornix-bonsai リポジトリ直下に置きます。
+
+| パス                     | 内容                              | Git 管理 |
+| ------------------------ | --------------------------------- | -------- |
+| `mac-keyboard.ansi.yaml` | ANSI 配列の Mac 向け目標設定      | 管理対象 |
+| `mac-keyboard.jis.yaml`  | JIS 配列の Mac 向け目標設定       | 管理対象 |
+| `cornix/generated/`      | Karabiner 向けに書き出した JSON   | 管理外   |
+| `cornix/backups/`        | 適用前に退避した `karabiner.json` | 管理外   |
+
+どちらのファイルを使うかは、実行している Mac の内蔵配列から自動で決まります。
+`$CORNIX_WORKSPACE` を設定すると、別のディレクトリを対象にできます。
+
 ## ファイル配置と Git 管理
 
 workspace の推奨ディレクトリ構成です。

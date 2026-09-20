@@ -50,6 +50,7 @@ just dev         # ローカル開発サーバーの起動
 | `just lint-md`         | Markdown の構文・スタイル検査             |
 | `just format`          | oxfmt によるコード整形                    |
 | `just docbridge-check` | コードと仕様書（docs/specs/）のリンク検証 |
+| `just mac`             | MacBook 内蔵キーボードの設定を適用        |
 | `just build`           | 本番用ビルドの作成                        |
 | `just preview`         | ビルド成果物のローカル確認                |
 

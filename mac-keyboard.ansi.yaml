@@ -1,0 +1,7 @@
+schema: cornix-bonsai/mac-keymap@1
+layout: ansi
+devices:
+  - { built_in: true }
+profile: "Cornix Bonsai"
+layers:
+  0:

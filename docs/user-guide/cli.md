@@ -39,6 +39,7 @@ just cornix <command> --workspace <directory>
 ```
 
 - `--workspace` を省略すると、カレントディレクトリを対象にします。
+  ただし `mac` だけは cornix-bonsai リポジトリを既定にします。
 - 相対パスは workspace ディレクトリを基準に解決されます。
 - エラー時は標準エラーへ理由を出力し、終了コード 1 を返します。
 - `validate` と `analyze` は、エラーがあれば終了コード 1、無ければ 0 を返します。
@@ -123,70 +124,89 @@ just cornix export vil --out keymap.vil --workspace /path/to/workspace
 ## MacBook 内蔵キーボード管理（mac）
 
 Mac のキーボード設定は、Karabiner-Elements を介して管理します。
-設定は `mac-keyboard.<layout>.yaml` へ保存されます。
-実行中の Mac の配列（JIS または ANSI）を自動検出し、対応するファイルを処理します。
-Browser UI は配列を検出しません。
-ドロップダウンで選んだファイルを編集し、適用とデバイス追加は本コマンドだけが行います。
+設定は cornix-bonsai リポジトリ直下の `mac-keyboard.<layout>.yaml` に置き、Git で管理します。
+`mac` コマンドの workspace は既定でこのリポジトリなので、`--workspace` は要りません。
+対象の配列は実行中の Mac から自動検出するため、`--layout` も要りません。
+別の場所を使う場合は `$CORNIX_WORKSPACE` か `--workspace` で指定します。
+
+日常の操作は次の 2 つです。
+
+```bash
+just mac apply                          # 差分と確認用 fingerprint を表示（何も書き換えない）
+just mac apply --confirm v1-xxxx-yyyy   # 適用してプロファイル選択まで行う
+```
+
+`mac` の出力には、実際に読んだ workspace の絶対パスが必ず含まれます。
+
+### 設定の適用（apply）
+
+`--confirm` が無いうちは、次を行って終わります。`karabiner.json` は書き換えません。
+
+1. desired state を検証する。error があればここで止まる。
+2. Karabiner 向けファイルを `cornix/generated/` へ生成し、`karabiner_cli` で lint する。
+3. 現在の設定との構造差分と、確認用の fingerprint を表示する。
+
+表示された fingerprint をそのまま渡すと、次を行います。
+
+1. lint が通らなければ、`karabiner.json` に触れずに終了する。
+2. 現在の設定をバックアップディレクトリへ退避する。
+3. 一時ファイルを作成後、アトミックにファイルを置き換える。
+4. 反映後のファイルを再読み込みし、内容の一致を検証する。
+5. `Cornix Bonsai` プロファイルを選択し、選べたことを読み戻して確認する。
+
+Cornix は `Cornix Bonsai` プロファイルのみを変更します。
+他のプロファイルや全体設定は変更しません。
+プロファイルの選択は `karabiner.json` へ直接書かず、`karabiner_cli` に任せます。
+
+`--no-select` を付けると、プロファイルの選択を行いません。
+この場合 fingerprint が変わり、確認用のコマンドにも `--no-select` が含まれます。
+
+### 差分の確認（diff）
+
+現在の Karabiner 設定と workspace の設定差分だけを見ます。
+
+```bash
+just mac diff
+```
+
+ファイルの読み取りのみ行い、書き換えはしません。
+`Cornix Bonsai` プロファイルのみを比較対象にします。
+
+### 設定の生成（generate）
+
+Karabiner 向け complex modifications ファイルだけを生成します。
+
+```bash
+just mac generate
+```
+
+出力先は `cornix/generated/` 配下の JSON です。
+`apply` も内部で同じ生成と lint を行うため、通常は単独で実行する必要はありません。
+変換できないキーコードがある場合は生成を中止し、終了コード 1 を返します。
 
 ### 適用先デバイスの一覧・登録（devices）
 
 Karabiner が認識しているキーボードを一覧表示します。
 
 ```bash
-# 一覧表示（ファイルは変更しない）
-just cornix mac devices --workspace /path/to/workspace
-
-# 特定のデバイスを設定ファイルへ追加
-just cornix mac devices --workspace /path/to/workspace --add 1452:630
+just mac devices                  # 一覧表示（ファイルは変更しない）
+just mac devices --add 1452:630   # 特定のデバイスを設定ファイルへ追加
 ```
 
 内蔵キーボードは既定で対象となるため、登録作業は不要です。
 外付けキーボードにも同一設定を適用したい場合は `--add` で登録します。
 
-### 設定の生成（generate）
+### 戻し方
 
-Karabiner 向け complex modifications ファイルを生成します。
-
-```bash
-just cornix mac generate --workspace /path/to/workspace
-```
-
-出力先は `cornix/generated/` 配下の JSON です。
-変換できないキーコードがある場合は生成を中止し、終了コード 1 を返します。
-
-### 差分の確認（diff）
-
-現在の Karabiner 設定と workspace の設定差分を表示します。
+プロファイルを戻すと、Karabiner による変換は無効になります。
 
 ```bash
-just cornix mac diff --workspace /path/to/workspace
+karabiner_cli --select-profile "Default profile"
 ```
 
-ファイルの読み取りのみ行い、書き換えはしません。
-Cornix が管理する `Cornix Bonsai` プロファイルのみを比較対象にします。
-
-### 設定の適用（apply）
-
-Karabiner の設定ファイルへ差分を適用します。
-
-```bash
-# 差分と確認用 fingerprint を表示
-just cornix mac apply --workspace /path/to/workspace
-
-# 表示された fingerprint を指定して実際に適用
-just cornix mac apply \
-  --confirm v1-xxxxxxxx-xxxxxxxx \
-  --workspace /path/to/workspace
-```
-
-適用は以下の安全手順で実行されます。
-
-1. 現在の設定をバックアップディレクトリへ退避する。
-2. 一時ファイルを作成後、アトミックにファイルを置き換える。
-3. 反映後のファイルを再読み込みし、内容の一致を検証する。
-
-Cornix は `Cornix Bonsai` プロファイルのみを変更します。
-他のプロファイルや全体設定は変更しません。
+`karabiner_cli` は `/Library/Application Support/org.pqrs/Karabiner-Elements/bin/` にあります。
+設定ファイルごと戻す場合は、`cornix/backups/karabiner-<時刻>.json` を
+`~/.config/karabiner/karabiner.json` へコピーします。
 
 ## ツール本体の更新
 

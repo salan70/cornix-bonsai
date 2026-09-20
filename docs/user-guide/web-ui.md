@@ -97,6 +97,8 @@ Tap Dance、Combo、各種詳細設定を直接編集します。
 
 Web UI から Karabiner への直接適用はできません。
 適用は [CLI の mac コマンド](./cli.md#macbook-内蔵キーボード管理mac) を使います。
+Mac の設定ファイルは cornix-bonsai リポジトリ直下に置きます。
+Web UI で編集する場合は、そのリポジトリを workspace として開きます。
 
 ### References タブ（Mac）
 
