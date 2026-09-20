@@ -36,12 +36,31 @@ export interface OwnedProfileDiff {
   readonly entries: readonly ManipulatorDiff[];
 }
 
+/** 適用時の選択肢。 */
+export interface MacApplyOptions {
+  /**
+   * 適用後に所有 profile を選択するか。既定は `true`（ADR 0028）。
+   *
+   * `false` にすると診断が warning へ変わり、診断 id が指紋へ入るので
+   * **fingerprint も変わる**。確認文字列がフラグを含むのはこのため。
+   */
+  readonly selectProfile?: boolean;
+}
+
+/** 適用後に所有 profile を選び直す必要があるか。 */
+export interface MacProfileSelection {
+  readonly required: boolean;
+  readonly profile: string;
+}
+
 /** 適用計画。write は行わない。 */
 export interface MacApplyPlan {
   readonly validation: MacValidationResult;
   /** validation に加えて、profile の選択状態など適用時にだけ分かることを含む。 */
   readonly diagnostics: readonly Diagnostic[];
   readonly diff: OwnedProfileDiff;
+  /** CLI が再導出しなくて済むよう、選択の要否をここで確定させる。 */
+  readonly selection: MacProfileSelection;
   readonly profile: KarabinerProfile;
   /** 置き換え後の config 全体。`global` と他 profile と `selected` はそのまま。 */
   readonly next: KarabinerConfig;
@@ -60,23 +79,45 @@ export interface MacVerifyResult {
  *
  * @doc docs/specs/mac-keymap.md#planmacapply
  */
-export function planMacApply(current: KarabinerConfig, document: MacKeymapDocument): MacApplyPlan {
+export function planMacApply(
+  current: KarabinerConfig,
+  document: MacKeymapDocument,
+  options: MacApplyOptions = {},
+): MacApplyPlan {
+  const selectProfile = options.selectProfile ?? true;
   const validation = validateMacKeymap(document);
   const { profile } = generateCornixProfile(document);
   const before = ownedProfile(current, document.profile);
   const diff = diffOwnedProfile(before, profile);
 
+  // 判定は「適用後に所有 profile が有効な profile になっているか」。profile が既存か
+  // どうかとは独立である。ここを `before !== undefined` で書くと、profile を新規追加する
+  // 初回だけ無診断で通り、**apply は成功したのに何も効かない**（ADR 0028）。
+  const selected = current.profiles.find((one) => one.selected === true);
+  const selection: MacProfileSelection = {
+    required: selected?.name !== document.profile,
+    profile: document.profile,
+  };
+
   const diagnostics = [...validation.diagnostics];
-  if (before !== undefined && before.selected !== true) {
-    // profile の切り替えはユーザーの操作。selected は書き換えない（ADR 0022）。
+  if (selection.required) {
+    // `selected` は書き込まない。選択は `karabiner_cli --select-profile` に任せる（ADR 0028）。
     diagnostics.push(
-      createDiagnostic(
-        "mac-keymap/profile-not-selected",
-        "warning",
-        { kind: "field", name: document.profile },
-        `profile ${document.profile} は選択されていない。karabiner_cli --select-profile で切り替える`,
-        { profile: document.profile },
-      ),
+      selectProfile
+        ? createDiagnostic(
+            "mac-keymap/profile-will-be-selected",
+            "information",
+            { kind: "field", name: document.profile },
+            `適用後に profile ${document.profile} を選択する`,
+            { profile: document.profile },
+          )
+        : createDiagnostic(
+            "mac-keymap/profile-not-selected",
+            "warning",
+            { kind: "field", name: document.profile },
+            `profile ${document.profile} は選択されていない。karabiner_cli --select-profile で切り替える`,
+            { profile: document.profile },
+          ),
     );
   }
 
@@ -84,6 +125,7 @@ export function planMacApply(current: KarabinerConfig, document: MacKeymapDocume
     validation,
     diagnostics,
     diff,
+    selection,
     profile,
     next: replaceOwnedProfile(current, profile),
     fingerprint: fingerprint(profile, diagnostics),

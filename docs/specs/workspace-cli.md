@@ -34,6 +34,24 @@ documentである（ADR 0022）。仕様は`mac-keymap.md`にある。片方だ�
 ADR 0027より前の`mac-keyboard.yaml`は読み込み時の後方互換として残る。どの配列のものかは
 中の`layout`宣言で決まり、宣言が求めた配列と違えば「その配列の設定は無い」として扱う。
 
+<!-- @code src/workspace/default-root.ts#defaultMacWorkspaceRoot -->
+
+## defaultMacWorkspaceRoot
+
+`cornix mac`が`--workspace`無しで使うworkspaceです。優先順は`--workspace` >
+`$CORNIX_WORKSPACE` > **cornix-bonsaiリポジトリのroot**です（ADR 0028）。
+
+Macのdesired stateはこのリポジトリ自身が持ちます。Cornix LP向けのworkspaceは利用者が
+任意のディレクトリへ置きますが、Mac側は「どこに置くか」が決まっていないこと自体が
+運用の負担でした。
+
+**cwdへは倒しません。** `just cornix`がリポジトリrootで走るのはjustfileの副作用であり、
+これに依存すると「どこを見ているか分からない」という元の問題がそのまま残ります。
+
+既定が暗黙に効くので、`mac`の各サブコマンドは出力へ解決済みの`workspace`を必ず載せます。
+既定が変わるのは`mac`だけで、`validate` / `analyze` / `diff` / `render` / `export` /
+`import`は従来どおりcwdです。
+
 <!-- @code src/workspace/mac-keymap-file.ts#readMacKeymapFor -->
 
 ## readMacKeymapFor
@@ -115,14 +133,23 @@ writeはこのqueueが1本の列で行う。競合検査に使うtokenは、成�
 `cornix render --format svg|pdf`、`cornix export vil`を提供する。`.vil` importは
 `cornix import vil <file> --definition <definition.json>`でworkspaceへ初期化する。
 
-MacBook内蔵キーボードは`cornix mac generate|diff|apply`で扱う。仕様は`mac-keymap.md`にある。
-`keymap.yaml`もdefinitionも要らないため、`import vil`と同じく**workspaceを読み込む手前で
-分岐**する。`--karabiner <path>`の既定は`~/.config/karabiner/karabiner.json`。
+MacBook内蔵キーボードは`cornix mac generate|diff|apply|devices`で扱う。仕様は
+`mac-keymap.md`にある。`keymap.yaml`もdefinitionも要らないため、`import vil`と同じく
+**workspaceを読み込む手前で分岐**する。`--karabiner <path>`の既定は
+`~/.config/karabiner/karabiner.json`。workspaceの既定だけ他のcommandと違い、
+`defaultMacWorkspaceRoot`が決める。
 
-適用はCLIだけが行う（ADR 0022）。`cornix mac apply`は`--confirm`が無いうちは構造diffと
-fingerprintを出して終わり、人間が同じfingerprintを渡したときだけ書き込む。書き込みは
-backup → temp + renameでのatomic置換 → 再read → verifyの順に進む。error diagnosticが
-1件でもあれば適用しない。
+日常の操作は`--workspace`も`--layout`も要らない。配列は実行しているMacから検出し
+（ADR 0027）、workspaceはこのリポジトリを既定にする（ADR 0028）。`mac`の全出力へ
+解決済みの`workspace`を載せる。
+
+適用はCLIだけが行う（ADR 0022）。`cornix mac apply`は`--confirm`が無いうちはasset生成と
+lint、構造diff、fingerprintを出して終わり、人間が同じfingerprintを渡したときだけ
+`karabiner.json`を書く。手順は`mac-keymap.md`の「適用の境界」にある。error diagnosticが
+1件でもあれば適用せず、lintが落ちても書き込まない。
+
+`--no-select`を渡すとprofileの選択を行わない。診断が変わるのでfingerprintも変わり、
+確認文字列はフラグを含む形で返る（ADR 0028）。
 
 exit codeは他のコマンドと揃える。errorが1件でもあれば1、それ以外は0。
 

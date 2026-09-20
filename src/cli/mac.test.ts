@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { main } from "./main.ts";
+import type { KarabinerCli, KarabinerCliResult } from "../karabiner/node.ts";
 
 const FIXTURES = join(import.meta.dirname, "../../fixtures/mac-keyboard");
 
@@ -26,13 +27,56 @@ async function workspace(
   return { root, karabiner, desired };
 }
 
+/** 呼び出しを記録するだけの `karabiner_cli`。 */
+interface FakeKarabinerCli extends KarabinerCli {
+  readonly calls: string[];
+}
+
+/**
+ * `karabiner_cli` の偽物。
+ *
+ * **既定で必ず注入する。** 実物を通すと、開発機で test を回しただけで
+ * `--select-profile` が走り、動いている Karabiner の profile が切り替わる。
+ *
+ * `absent` は Karabiner が入っていない環境（CI の macOS runner）を表す。
+ */
+function fakeKarabinerCli(
+  options: {
+    readonly lint?: KarabinerCliResult;
+    readonly select?: KarabinerCliResult;
+    readonly current?: string;
+    readonly absent?: boolean;
+  } = {},
+): FakeKarabinerCli {
+  const calls: string[] = [];
+  const absent = options.absent === true;
+  return {
+    calls,
+    async lintComplexModifications(path) {
+      calls.push(`lint ${path}`);
+      return absent ? undefined : (options.lint ?? { ok: true, output: `${path}: ok` });
+    },
+    async selectProfile(name) {
+      calls.push(`select ${name}`);
+      return absent ? undefined : (options.select ?? { ok: true, output: "" });
+    },
+    async currentProfileName() {
+      calls.push("current");
+      return absent ? undefined : options.current;
+    },
+  };
+}
+
 /** `console.log` を捕まえる。CLI は JSON を stdout へ出すだけなので、これで十分に読める。 */
-async function capture(argv: readonly string[]): Promise<{ code: number; out: string }> {
+async function capture(
+  argv: readonly string[],
+  cli: KarabinerCli = fakeKarabinerCli({ absent: true }),
+): Promise<{ code: number; out: string }> {
   const lines: string[] = [];
   const original = console.log;
   console.log = (...args: unknown[]) => void lines.push(args.map(String).join(" "));
   try {
-    const code = await main([...argv]);
+    const code = await main([...argv], { karabinerCli: cli });
     return { code, out: lines.join("\n") };
   } finally {
     console.log = original;
@@ -41,7 +85,16 @@ async function capture(argv: readonly string[]): Promise<{ code: number; out: st
 
 /** CLI が stdout へ出す JSON のうち、test が読む範囲だけを型にする。 */
 interface MacOutput {
+  readonly workspace?: string;
   readonly output?: string;
+  readonly generated?: string;
+  readonly lint?: { readonly ok: boolean } | null;
+  readonly selection?: { readonly required: boolean; readonly profile: string };
+  readonly selected?: {
+    readonly requested: string;
+    readonly observed: string | null;
+    readonly ok: boolean;
+  } | null;
   readonly summary?: { readonly error: number };
   readonly diagnostics?: readonly { readonly code: string }[];
   readonly fingerprint?: string;
@@ -53,8 +106,9 @@ interface MacOutput {
 
 async function captureJson(
   argv: readonly string[],
+  cli?: KarabinerCli,
 ): Promise<{ readonly code: number; readonly json: MacOutput }> {
-  const { code, out } = await capture(argv);
+  const { code, out } = await capture(argv, cli);
   return { code, json: JSON.parse(out) as MacOutput };
 }
 
@@ -151,6 +205,64 @@ test("mac applyは--confirmが無ければ書かない", async () => {
   strictEqual(await readFile(karabiner, "utf8"), before);
 });
 
+test("--no-selectはfingerprintを変え、確認文字列にもフラグが入る", async () => {
+  // 診断が warning へ変わり、診断 id は指紋に入る。取り違えたまま確認できないようにする。
+  const { root, karabiner } = await workspace();
+  const before = await readFile(karabiner, "utf8");
+  const plan = await captureJson([
+    "mac",
+    "apply",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--karabiner",
+    karabiner,
+  ]);
+  const noSelect = await captureJson([
+    "mac",
+    "apply",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--karabiner",
+    karabiner,
+    "--no-select",
+  ]);
+
+  strictEqual(
+    noSelect.json.diagnostics?.some((one) => one.code === "mac-keymap/profile-not-selected"),
+    true,
+  );
+  strictEqual(
+    plan.json.diagnostics?.some((one) => one.code === "mac-keymap/profile-will-be-selected"),
+    true,
+  );
+  strictEqual(noSelect.json.fingerprint === plan.json.fingerprint, false);
+  strictEqual(
+    noSelect.json.confirm,
+    `cornix mac apply --no-select --confirm ${noSelect.json.fingerprint}`,
+  );
+
+  // 他方の fingerprint では書かない。
+  const { code } = await capture([
+    "mac",
+    "apply",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--karabiner",
+    karabiner,
+    "--no-select",
+    "--confirm",
+    String(plan.json.fingerprint),
+  ]);
+  strictEqual(code, 1);
+  strictEqual(await readFile(karabiner, "utf8"), before);
+});
+
 test("fingerprintが一致しないapplyは書かずに落ちる", async () => {
   const { root, karabiner } = await workspace();
   const before = await readFile(karabiner, "utf8");
@@ -172,35 +284,42 @@ test("fingerprintが一致しないapplyは書かずに落ちる", async () => {
   strictEqual(await readFile(karabiner, "utf8"), before);
 });
 
-test("applyはbackupを取り、所有profile以外を保ち、verifyまで通す", async () => {
+test("applyはbackupを取り、所有profile以外を保ち、verifyとprofile選択まで通す", async () => {
   const { root, karabiner } = await workspace();
   const before = await readFile(karabiner, "utf8");
-  const plan = await captureJson([
-    "mac",
-    "apply",
-    "--layout",
-    "jis",
-    "--workspace",
-    root,
-    "--karabiner",
-    karabiner,
-  ]);
+  const cli = fakeKarabinerCli({ current: "Cornix Bonsai" });
+  const plan = await captureJson(
+    ["mac", "apply", "--layout", "jis", "--workspace", root, "--karabiner", karabiner],
+    cli,
+  );
 
-  const { code, json } = await captureJson([
-    "mac",
-    "apply",
-    "--layout",
-    "jis",
-    "--workspace",
-    root,
-    "--karabiner",
-    karabiner,
-    "--confirm",
-    String(plan.json.fingerprint),
-  ]);
+  const { code, json } = await captureJson(
+    [
+      "mac",
+      "apply",
+      "--layout",
+      "jis",
+      "--workspace",
+      root,
+      "--karabiner",
+      karabiner,
+      "--confirm",
+      String(plan.json.fingerprint),
+    ],
+    cli,
+  );
 
   strictEqual(code, 0);
   deepStrictEqual(json.verify, { ok: true, entries: [] });
+
+  // 選択は karabiner_cli に任せる。karabiner.json の selected は書き換えない（ADR 0028）。
+  deepStrictEqual(json.selected, {
+    requested: "Cornix Bonsai",
+    observed: "Cornix Bonsai",
+    ok: true,
+    output: "",
+  });
+  strictEqual(cli.calls.includes("select Cornix Bonsai"), true);
 
   // backupは読んだテキストをそのまま置く。再serializeするとKarabiner独自の整形が落ちる。
   strictEqual(await readFile(join(root, String(json.backup)), "utf8"), before);
@@ -349,4 +468,159 @@ test("mac devices --add が <vendor>:<product> の形でなければ落ちる", 
     "abc",
   ]);
   strictEqual(code, 1);
+});
+
+test("所有profileがまだ無い初回applyでも選択が要ることを診断に出す", async () => {
+  // 初回は profile を末尾へ足す。ここを「profile が既存か」で判定すると無診断で通り、
+  // apply は成功したのに何も効かない状態になる（ADR 0028）。
+  const { root } = await workspace();
+  const karabiner = join(root, "karabiner-fresh.json");
+  await copyFile(join(FIXTURES, "karabiner-no-owned-profile.json"), karabiner);
+
+  const { json } = await captureJson([
+    "mac",
+    "apply",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--karabiner",
+    karabiner,
+  ]);
+
+  strictEqual(json.diff?.present, false);
+  deepStrictEqual(json.selection, { required: true, profile: "Cornix Bonsai" });
+  strictEqual(
+    json.diagnostics?.some((one) => one.code === "mac-keymap/profile-will-be-selected"),
+    true,
+  );
+
+  const noSelect = await captureJson([
+    "mac",
+    "apply",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--karabiner",
+    karabiner,
+    "--no-select",
+  ]);
+  strictEqual(
+    noSelect.json.diagnostics?.some((one) => one.code === "mac-keymap/profile-not-selected"),
+    true,
+  );
+});
+
+test("lintが通らなければkarabiner.jsonへ書かない", async () => {
+  const { root, karabiner } = await workspace();
+  const before = await readFile(karabiner, "utf8");
+  const cli = fakeKarabinerCli({ lint: { ok: false, output: "error: unknown key_code" } });
+  const plan = await captureJson(
+    ["mac", "apply", "--layout", "jis", "--workspace", root, "--karabiner", karabiner],
+    cli,
+  );
+  strictEqual(plan.json.lint?.ok, false);
+
+  const { code } = await capture(
+    [
+      "mac",
+      "apply",
+      "--layout",
+      "jis",
+      "--workspace",
+      root,
+      "--karabiner",
+      karabiner,
+      "--confirm",
+      String(plan.json.fingerprint),
+    ],
+    cli,
+  );
+  strictEqual(code, 1);
+  strictEqual(await readFile(karabiner, "utf8"), before);
+});
+
+test("Karabinerが入っていなければlintを保留して適用まで進む", async () => {
+  const { root, karabiner } = await workspace();
+  const plan = await captureJson([
+    "mac",
+    "apply",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--karabiner",
+    karabiner,
+  ]);
+  strictEqual(plan.json.lint, null);
+
+  const { code, json } = await captureJson([
+    "mac",
+    "apply",
+    "--layout",
+    "jis",
+    "--workspace",
+    root,
+    "--karabiner",
+    karabiner,
+    "--confirm",
+    String(plan.json.fingerprint),
+  ]);
+  strictEqual(code, 0);
+  strictEqual(json.verify?.ok, true);
+  strictEqual(json.selected, null);
+});
+
+test("profileを選べたか読み戻して確かめる", async () => {
+  const { root, karabiner } = await workspace();
+  const cli = fakeKarabinerCli({ current: "Default profile" });
+  const plan = await captureJson(
+    ["mac", "apply", "--layout", "jis", "--workspace", root, "--karabiner", karabiner],
+    cli,
+  );
+
+  const { code, json } = await captureJson(
+    [
+      "mac",
+      "apply",
+      "--layout",
+      "jis",
+      "--workspace",
+      root,
+      "--karabiner",
+      karabiner,
+      "--confirm",
+      String(plan.json.fingerprint),
+    ],
+    cli,
+  );
+
+  // write と verify は通っている。食い違うのは選択だけで、それでも成功にはしない。
+  strictEqual(json.verify?.ok, true);
+  strictEqual(json.selected?.ok, false);
+  strictEqual(json.selected?.observed, "Default profile");
+  strictEqual(code, 1);
+});
+
+test("macの出力は解決済みのworkspaceを必ず載せる", async () => {
+  const { root, karabiner } = await workspace();
+  for (const argv of [
+    ["mac", "generate", "--layout", "jis", "--workspace", root],
+    ["mac", "diff", "--layout", "jis", "--workspace", root, "--karabiner", karabiner],
+    ["mac", "apply", "--layout", "jis", "--workspace", root, "--karabiner", karabiner],
+    [
+      "mac",
+      "devices",
+      "--layout",
+      "jis",
+      "--workspace",
+      root,
+      "--devices",
+      join(FIXTURES, "karabiner-devices.json"),
+    ],
+  ]) {
+    const { json } = await captureJson(argv);
+    strictEqual(json.workspace, root);
+  }
 });

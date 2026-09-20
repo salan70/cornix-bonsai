@@ -263,6 +263,24 @@ severityの判定規則はADR 0010のままです。Karabinerへ落とせず**�
 見ません。Karabinerではlayer 0のmanipulatorが変数の状態に関わらず常に効くため、
 `TG(n)`を置いたキーが上のlayerで潰されていない限り出口は必ずあります。
 
+<!-- @code src/karabiner/node.ts#KarabinerCli -->
+
+## KarabinerCli
+
+`karabiner_cli`の呼び出し口です。lint、profileの選択、現在のprofile名の3つを持ちます。
+
+interfaceにしているのは**testから差し替えるため**です。CIのmacOS runnerにKarabinerは
+入っておらず、実物を叩くtestは書けません（ADR 0022）。実物を通すと、開発機でtestを
+回しただけで`--select-profile`が走り、動いているKarabinerのprofileが切り替わります。
+
+`KARABINER_CLI`は絶対パス固定のままです。PATH探索もenv overrideも足しません。解決は
+注入で行います。
+
+`--lint-complex-modifications`は**エラーがあってもexit code 0を返す**ため、判定は出力が
+`: ok`で終わるかどうかで行います。`--select-profile`と`--show-current-profile-name`は
+失敗時に非0を返すのでexit codeを使います。いずれもbinaryが無ければ`undefined`で、
+呼び出し側は「Karabiner不在」として扱います。
+
 <!-- @code src/karabiner/node.ts#readObservedKeyboards -->
 
 ## readObservedKeyboards
@@ -305,6 +323,29 @@ Browser UIはこの関数を呼ばない。
 `src/karabiner/node.ts`が担います。`~/.config/karabiner/karabiner.json`は**workspaceの外**に
 あり、`NodeWorkspaceStore`はpathを`root`からの相対で解決するため使えません。
 
+`cornix mac apply`の手順は次の順です（ADR 0028）。
+
+```text
+desired stateを読む
+→ karabiner.jsonを読む
+→ validate（errorがあればここで止める。cornix/は作らない）
+→ assetを生成してlint（落ちたらkarabiner.jsonへ触らない）
+→ 構造diffとfingerprintを出す
+→ 人間が同じfingerprintを渡す
+→ backup
+→ temp + renameで置き換え
+→ 読み直してverify
+→ karabiner_cli --select-profile
+→ --show-current-profile-nameで読み戻し
+```
+
+**lintは書き込み前のゲート**です。ADR 0022は最後に置いていましたが、落ちたときに既に
+書き込み済みでは意味が薄いため前へ移しました。Karabinerが入っていなければlintは
+`undefined`になり、判定を保留して素通しします。
+
+**選択はverifyの後**です。`--select-profile`はKarabiner自身に`karabiner.json`を書かせるため、
+前に置くとverifyが自分で動かした後のファイルを見ます。
+
 ADR 0008の状態機械（`src/core/apply/plan.ts`）は**再利用しません**。あちらは実機への
 往復するwriteを扱い「部分的に書けた状態」からの復旧を型で表しますが、こちらは1ファイルの
 atomic置換なのでその状態が原理的に生じません（ADR 0022）。
@@ -327,12 +368,27 @@ Cornixが所有するのは`profiles[]`のうち名前が一致する**profile 1
 他のprofileには触りません。所有profileが無ければ末尾へ足します。
 
 所有profileが持っていた`selected`などのfieldは残します。生成するprofileは`selected`を
-持たないため、丸ごと置き換えると選択状態を落とします。選択されていない場合は
-`mac-keymap/profile-not-selected`（warning）を出し、`karabiner_cli --select-profile`を
-案内します。profileの切り替えはユーザーの操作です（ADR 0022）。
+持たないため、丸ごと置き換えると選択状態を落とします。**`selected`は書きません。**
+選択は`karabiner_cli --select-profile`に任せます（ADR 0028）。
+
+`selection`は適用後に所有profileを選び直す必要があるかです。判定は「適用後に所有profileが
+有効なprofileになっているか」で、**profileが既存かどうかとは独立**です。ここを
+「所有profileが既にある」で書くと、profileを新規追加する初回だけ無診断で通り、
+applyは成功したのに何も効かない状態になります。
+
+選択が要るとき、診断は`MacApplyOptions.selectProfile`で分かれます。
+
+| `selectProfile` | code                                  | severity    |
+| --------------- | ------------------------------------- | ----------- |
+| `true`（既定）  | `mac-keymap/profile-will-be-selected` | information |
+| `false`         | `mac-keymap/profile-not-selected`     | warning     |
 
 `fingerprint`は人間の確認と適用を結びつける同一性の指紋です。表示用ではありません。
 CLIの`cornix mac apply`は`--confirm <fingerprint>`が一致したときだけ書き込みます。
+
+診断のidは指紋へ入るため、**`--no-select`はfingerprintを変えます**。CLIが返す確認文字列は
+`cornix mac apply --no-select --confirm <fingerprint>`の形でフラグを含み、フラグを
+取り違えた確認が黙って別の計画を通さないようにします。
 
 <!-- @code src/core/mac-keymap/apply.ts#diffOwnedProfile -->
 

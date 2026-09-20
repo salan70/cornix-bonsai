@@ -20,12 +20,14 @@ import type { MacKeyboardLayout, MacKeymapDocument } from "../core/mac-keymap/ty
 import { detectBuiltInLayout } from "../mac/keyboard-type.ts";
 import { readMacKeymapFor } from "../workspace/mac-keymap-file.ts";
 import {
+  createKarabinerCli,
   defaultKarabinerConfigPath,
   KARABINER_DEVICES_PATH,
-  lintComplexModifications,
   readKarabinerConfig,
   readObservedKeyboards,
   writeFileAtomic,
+  type KarabinerCli,
+  type KarabinerCliResult,
 } from "../karabiner/node.ts";
 import { renderPdf, renderSvg } from "../render/keyboard.ts";
 import {
@@ -37,9 +39,22 @@ import {
   readDefinitionBinding,
   WORKSPACE_LAYOUT,
 } from "../workspace/layout.ts";
+import { defaultMacWorkspaceRoot } from "../workspace/default-root.ts";
 import { parseLabelsYaml, EMPTY_LABELS } from "../workspace/labels.ts";
 import { CORNIX_LP_V112_SETTINGS } from "../workspace/settings.ts";
 import { NodeWorkspaceStore } from "../workspace/node.ts";
+
+/** テストから実物の `karabiner_cli` を外すための注入口。 */
+interface CliDeps {
+  readonly karabinerCli?: KarabinerCli;
+}
+
+/** 読み込んだ Mac の desired state と、どのファイルから来たか。 */
+interface LoadedMacKeymap {
+  readonly layout: MacKeyboardLayout;
+  readonly path: string;
+  readonly document: MacKeymapDocument;
+}
 
 interface LoadedWorkspace {
   readonly root: string;
@@ -51,8 +66,15 @@ interface LoadedWorkspace {
   readonly labels: ReturnType<typeof parseLabelsYaml>;
 }
 
-/** @doc docs/specs/workspace-cli.md#cli */
-export async function main(argv = process.argv.slice(2)): Promise<number> {
+/**
+ * CLI の入口。
+ *
+ * `deps` はテストのための注入口である。`karabiner_cli` は CI の macOS runner に無く、
+ * 実物を叩くテストは書けない（ADR 0022）。
+ *
+ * @doc docs/specs/workspace-cli.md#cli
+ */
+export async function main(argv = process.argv.slice(2), deps: CliDeps = {}): Promise<number> {
   if (argv[0] === "--") argv = argv.slice(1);
   const [command, ...rest] = argv;
   if (command === undefined || command === "help" || command === "--help") {
@@ -60,13 +82,14 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     return 0;
   }
   const args = parseArgs(rest);
-  const root = resolve(String(args.workspace ?? process.cwd()));
+  const explicit = args.workspace === undefined ? undefined : resolve(String(args.workspace));
   try {
     if (command === "import" && args._[0] === "vil")
-      return await importVil(root, String(args._[1] ?? ""), args);
+      return await importVil(explicit ?? process.cwd(), String(args._[1] ?? ""), args);
     // mac 系は keymap.yaml も definition も要らない。loadWorkspace の手前で分ける（ADR 0022）。
-    if (command === "mac") return await mac(root, args);
-    const workspace = await loadWorkspace(root);
+    // 既定 workspace も mac だけ違う。ほかは従来どおり cwd（ADR 0028）。
+    if (command === "mac") return await mac(explicit ?? defaultMacWorkspaceRoot(), args, deps);
+    const workspace = await loadWorkspace(explicit ?? process.cwd());
     switch (command) {
       case "validate":
         return validate(workspace);
@@ -191,12 +214,13 @@ async function importVil(root: string, input: string, args: ParsedArgs): Promise
  *
  * 適用は CLI だけが行う。Browser UI は `cornix/generated/` への書き出しまで（ADR 0022）。
  */
-async function mac(root: string, args: ParsedArgs): Promise<number> {
+async function mac(root: string, args: ParsedArgs, deps: CliDeps): Promise<number> {
   const sub = args._[0];
+  const cli = deps.karabinerCli ?? createKarabinerCli();
   const loaded = await loadMacKeymap(root, args);
-  if (sub === "generate") return await macGenerate(root, loaded.document, args);
-  if (sub === "diff") return await macDiff(loaded.document, args);
-  if (sub === "apply") return await macApply(root, loaded.document, args);
+  if (sub === "generate") return await macGenerate(root, loaded, args, cli);
+  if (sub === "diff") return await macDiff(root, loaded, args);
+  if (sub === "apply") return await macApply(root, loaded, args, cli);
   if (sub === "devices") return await macDevices(root, loaded, args);
   throw new Error("cornix mac generate|diff|apply|devices が必要");
 }
@@ -217,14 +241,7 @@ function layoutArg(args: ParsedArgs): MacKeyboardLayout | undefined {
  * 明示指定を要求する。黙って既定の配列へ倒すと、別配列のマシンへ間違った
  * `keyboard_type_v2` を書き込む。
  */
-async function loadMacKeymap(
-  root: string,
-  args: ParsedArgs,
-): Promise<{
-  readonly layout: MacKeyboardLayout;
-  readonly path: string;
-  readonly document: MacKeymapDocument;
-}> {
+async function loadMacKeymap(root: string, args: ParsedArgs): Promise<LoadedMacKeymap> {
   const layout = layoutArg(args) ?? (await detectBuiltInLayout());
   if (layout === undefined) {
     throw new Error("内蔵キーボードの配列を検出できない。--layout ansi|jis を指定する");
@@ -257,11 +274,7 @@ function parseDeviceArg(value: string): { readonly vendorId: number; readonly pr
  */
 async function macDevices(
   root: string,
-  loaded: {
-    readonly layout: MacKeyboardLayout;
-    readonly path: string;
-    readonly document: MacKeymapDocument;
-  },
+  loaded: LoadedMacKeymap,
   args: ParsedArgs,
 ): Promise<number> {
   // `--karabiner` と同じく、既定の場所以外も指せるようにする。
@@ -275,7 +288,13 @@ async function macDevices(
     await new NodeWorkspaceStore(root).writeText(loaded.path, serializeMacKeymapYaml(next));
     console.log(
       JSON.stringify(
-        { path: loaded.path, layout: loaded.layout, devices: next.devices, added: add },
+        {
+          workspace: root,
+          path: loaded.path,
+          layout: loaded.layout,
+          devices: next.devices,
+          added: add,
+        },
         null,
         2,
       ),
@@ -307,6 +326,7 @@ async function macDevices(
   console.log(
     JSON.stringify(
       {
+        workspace: root,
         source:
           observed === undefined
             ? null
@@ -325,26 +345,55 @@ async function macDevices(
   return 0;
 }
 
+/**
+ * complex_modifications の asset を書き出して lint する。
+ *
+ * `mac apply` も計画フェーズでここを通る。**lint は書き込み前のゲート**で、
+ * 落ちたら `karabiner.json` へは触らない（ADR 0028）。Karabiner が入っていない環境では
+ * lint が `undefined` になり、判定を保留して素通しする。
+ */
+async function writeAndLintAsset(
+  root: string,
+  document: MacKeymapDocument,
+  output: string,
+  cli: KarabinerCli,
+): Promise<{ readonly output: string; readonly lint: KarabinerCliResult | undefined }> {
+  const { asset } = generateKarabinerAsset(document);
+  await new NodeWorkspaceStore(root).writeText(output, `${JSON.stringify(asset, null, 2)}\n`);
+  return { output, lint: await cli.lintComplexModifications(join(root, output)) };
+}
+
 /** complex_modifications の asset を書き出す。Karabiner が入っていれば lint も通す。 */
 async function macGenerate(
   root: string,
-  document: MacKeymapDocument,
+  loaded: LoadedMacKeymap,
   args: ParsedArgs,
+  cli: KarabinerCli,
 ): Promise<number> {
-  const result = validateMacKeymap(document);
-  const output = String(args.out ?? generatedPath("karabiner-complex-modifications.json"));
+  const result = validateMacKeymap(loaded.document);
+  const target = String(args.out ?? generatedPath("karabiner-complex-modifications.json"));
   if (result.summary.error > 0) {
     console.log(
-      JSON.stringify({ summary: result.summary, diagnostics: result.diagnostics }, null, 2),
+      JSON.stringify(
+        { workspace: root, summary: result.summary, diagnostics: result.diagnostics },
+        null,
+        2,
+      ),
     );
     return 1;
   }
-  const { asset } = generateKarabinerAsset(document);
-  await new NodeWorkspaceStore(root).writeText(output, `${JSON.stringify(asset, null, 2)}\n`);
-  const lint = await lintComplexModifications(join(root, output));
+  const { output, lint } = await writeAndLintAsset(root, loaded.document, target, cli);
   console.log(
     JSON.stringify(
-      { output, summary: result.summary, diagnostics: result.diagnostics, lint: lint ?? null },
+      {
+        workspace: root,
+        layout: loaded.layout,
+        source: loaded.path,
+        output,
+        summary: result.summary,
+        diagnostics: result.diagnostics,
+        lint: lint ?? null,
+      },
       null,
       2,
     ),
@@ -353,16 +402,20 @@ async function macGenerate(
 }
 
 /** 所有 profile の構造 diff を出す。karabiner.json は読むだけ。 */
-async function macDiff(document: MacKeymapDocument, args: ParsedArgs): Promise<number> {
+async function macDiff(root: string, loaded: LoadedMacKeymap, args: ParsedArgs): Promise<number> {
   const path = karabinerPath(args);
   const { config } = await readKarabinerConfig(path);
-  const plan = planMacApply(config, document);
+  const plan = planMacApply(config, loaded.document, { selectProfile: selectProfileArg(args) });
   console.log(
     JSON.stringify(
       {
+        workspace: root,
+        layout: loaded.layout,
+        source: loaded.path,
         karabiner: path,
         summary: plan.validation.summary,
         diagnostics: plan.diagnostics,
+        selection: plan.selection,
         fingerprint: plan.fingerprint,
         diff: plan.diff,
       },
@@ -374,36 +427,62 @@ async function macDiff(document: MacKeymapDocument, args: ParsedArgs): Promise<n
 }
 
 /**
- * 所有 profile を置き換える。
+ * 所有 profile を置き換え、必要なら profile を選択する。
  *
- * `--confirm` が無いうちは diff と fingerprint を出して終わる。人間が中身を見てから
- * 同じ fingerprint を渡したときだけ書き込む（ADR 0022 の Apply フロー）。
+ * `--confirm` が無いうちは asset の生成と lint、diff、fingerprint を出して終わる。人間が
+ * 中身を見てから同じ fingerprint を渡したときだけ `karabiner.json` を書く（ADR 0022 の
+ * Apply フロー）。書き込みのあとは verify し、そこまで通ってから profile を選ぶ。
+ *
+ * 順序に意味がある。`--select-profile` は Karabiner 自身に `karabiner.json` を書かせるので、
+ * **verify の読み直しより後**でなければ、verify が自分で動かした後のファイルを見る（ADR 0028）。
  */
 async function macApply(
   root: string,
-  document: MacKeymapDocument,
+  loaded: LoadedMacKeymap,
   args: ParsedArgs,
+  cli: KarabinerCli,
 ): Promise<number> {
+  const select = selectProfileArg(args);
   const path = karabinerPath(args);
   const { config, text } = await readKarabinerConfig(path);
-  const plan = planMacApply(config, document);
+  const plan = planMacApply(config, loaded.document, { selectProfile: select });
   if (plan.validation.summary.error > 0) {
     console.log(
-      JSON.stringify({ summary: plan.validation.summary, diagnostics: plan.diagnostics }, null, 2),
+      JSON.stringify(
+        { workspace: root, summary: plan.validation.summary, diagnostics: plan.diagnostics },
+        null,
+        2,
+      ),
     );
     throw new Error("error のある desired state は適用しない");
   }
+
+  // error を先に弾いてから生成する。error のある desired state は cornix/ を作らない。
+  const asset = await writeAndLintAsset(
+    root,
+    loaded.document,
+    generatedPath("karabiner-complex-modifications.json"),
+    cli,
+  );
 
   const confirmed = args.confirm === undefined ? undefined : String(args.confirm);
   if (confirmed === undefined) {
     console.log(
       JSON.stringify(
         {
+          workspace: root,
+          layout: loaded.layout,
+          source: loaded.path,
           karabiner: path,
           diagnostics: plan.diagnostics,
           diff: plan.diff,
+          generated: asset.output,
+          lint: asset.lint ?? null,
+          selection: plan.selection,
           fingerprint: plan.fingerprint,
-          confirm: `cornix mac apply --confirm ${plan.fingerprint}`,
+          // `--no-select` は診断を変え、診断 id は指紋に入る。フラグを取り違えたまま
+          // 確認すると黙って別の計画が通るので、確認文字列にフラグを含める。
+          confirm: `cornix mac apply${select ? "" : " --no-select"} --confirm ${plan.fingerprint}`,
         },
         null,
         2,
@@ -414,6 +493,9 @@ async function macApply(
   if (confirmed !== plan.fingerprint) {
     throw new Error(`fingerprint が一致しない: expected=${plan.fingerprint} actual=${confirmed}`);
   }
+  if (asset.lint !== undefined && !asset.lint.ok) {
+    throw new Error(`lint が通らない: ${asset.lint.output}`);
+  }
 
   // backup は読んだテキストをそのまま置く。再 serialize すると Karabiner 独自の整形が落ちる。
   const backup = backupPath(new Date(), { prefix: "karabiner-", extension: "json" });
@@ -422,16 +504,63 @@ async function macApply(
 
   const { config: observed } = await readKarabinerConfig(path);
   const verified = verifyMacApply(observed, plan.profile);
+  const selected =
+    verified.ok && select && plan.selection.required
+      ? await selectOwnedProfile(cli, plan.selection.profile)
+      : null;
   console.log(
     JSON.stringify(
-      { karabiner: path, backup, diagnostics: plan.diagnostics, verify: verified },
+      {
+        workspace: root,
+        layout: loaded.layout,
+        source: loaded.path,
+        karabiner: path,
+        backup,
+        diagnostics: plan.diagnostics,
+        generated: asset.output,
+        lint: asset.lint ?? null,
+        verify: verified,
+        selected,
+      },
       null,
       2,
     ),
   );
-  return verified.ok ? 0 : 1;
+  if (!verified.ok) return 1;
+  return selected !== null && !selected.ok ? 1 : 0;
 }
 
+/**
+ * 所有 profile を選び、選べたことを読み戻して確かめる。
+ *
+ * `selected` を `karabiner.json` へ書くのではなく `karabiner_cli` に選ばせる。動いている
+ * Karabiner と食い違わないのはこちらだけで、Cornix が書く範囲は所有 profile 1 個のまま
+ * 変わらない（ADR 0028）。Karabiner が入っていなければ `null` を返す。
+ */
+async function selectOwnedProfile(
+  cli: KarabinerCli,
+  profile: string,
+): Promise<{
+  readonly requested: string;
+  readonly observed: string | null;
+  readonly ok: boolean;
+  readonly output: string;
+} | null> {
+  const result = await cli.selectProfile(profile);
+  if (result === undefined) return null;
+  const observed = await cli.currentProfileName();
+  return {
+    requested: profile,
+    observed: observed ?? null,
+    ok: result.ok && observed === profile,
+    output: result.output,
+  };
+}
+
+/** `--no-select` を受ける。既定は選択する（ADR 0028）。 */
+function selectProfileArg(args: ParsedArgs): boolean {
+  return args["no-select"] === undefined;
+}
 function karabinerPath(args: ParsedArgs): string {
   return args.karabiner === undefined
     ? defaultKarabinerConfigPath()
@@ -491,7 +620,7 @@ function mapReplacer(_key: string, value: unknown): unknown {
 }
 function printHelp(): void {
   console.log(
-    `cornix validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint>\n  mac devices [--devices <observed.json>] [--add <vendor_id>:<product_id>]\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）`,
+    `cornix validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint> [--no-select]\n  mac devices [--devices <observed.json>] [--add <vendor_id>:<product_id>]\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）\n  mac ... の --workspace 既定は $CORNIX_WORKSPACE、無ければ cornix-bonsai リポジトリ`,
   );
 }
 

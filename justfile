@@ -47,6 +47,12 @@ preview:
 cornix *ARGS:
     pnpm run cornix -- "$@"
 
+# MacBook内蔵キーボードの設定を扱う（例: just mac apply）
+# workspaceはこのリポジトリ。--workspace も --layout も既定で要らない。
+[positional-arguments]
+mac *ARGS:
+    pnpm run cornix -- mac "$@"
+
 # コードを整形する
 # .claude / .agents は正本からコピーした vendor 資産のため整形しない。
 # 整形すると正本との差分が生まれ、再同期のたびに衝突する。

@@ -52,10 +52,35 @@ test("所有 profile の selected は変更しない", () => {
   );
 });
 
-test("所有 profile が選択されていなければ warning になる", () => {
-  const { diagnostics } = planMacApply(baseline(), DESIRED);
+test("所有 profile が選択されていなければ選択の要否を診断に出す", () => {
+  // 既定では apply が選ぶので information。`--no-select` のときだけ warning になる（ADR 0028）。
+  const plan = planMacApply(baseline(), DESIRED);
+  strictEqual(plan.selection.required, true);
   strictEqual(
-    diagnostics.some((one) => one.code === "mac-keymap/profile-not-selected"),
+    plan.diagnostics.some((one) => one.code === "mac-keymap/profile-will-be-selected"),
+    true,
+  );
+
+  const noSelect = planMacApply(baseline(), DESIRED, { selectProfile: false });
+  strictEqual(
+    noSelect.diagnostics.some((one) => one.code === "mac-keymap/profile-not-selected"),
+    true,
+  );
+  strictEqual(noSelect.fingerprint === plan.fingerprint, false);
+});
+
+test("所有 profile がまだ無くても選択が要ると判定する", () => {
+  // 判定を「profile が既存か」で書くと、初回だけ無診断で通って何も効かない（ADR 0028）。
+  const original = baseline();
+  const current: KarabinerConfig = {
+    ...original,
+    profiles: original.profiles.filter((profile) => profile.name !== "Cornix Bonsai"),
+  };
+  const plan = planMacApply(current, DESIRED);
+  strictEqual(plan.diff.present, false);
+  strictEqual(plan.selection.required, true);
+  strictEqual(
+    plan.diagnostics.some((one) => one.code === "mac-keymap/profile-will-be-selected"),
     true,
   );
 });

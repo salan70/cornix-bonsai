@@ -136,27 +136,71 @@ export async function writeFileAtomic(path: string, text: string): Promise<void>
   }
 }
 
+/** `karabiner_cli` の呼び出し結果。Karabiner が入っていなければ `undefined`。 */
+export interface KarabinerCliResult {
+  readonly ok: boolean;
+  readonly output: string;
+}
+
 /**
- * complex_modifications の asset を `karabiner_cli` で lint する。
+ * `karabiner_cli` の呼び出し口。
  *
- * `karabiner_cli` は **エラーがあっても exit code 0 を返す**。判定は出力が `: ok` で
- * 終わるかどうかで行う。Karabiner が入っていない環境では `undefined` を返す。
- * CI の macOS runner には入っていない（ADR 0022）。
+ * interface にしているのは**テストから差し替えるため**である。CI の macOS runner に
+ * Karabiner は入っておらず、実物を叩くテストは書けない（ADR 0022）。`KARABINER_CLI` は
+ * 絶対パス固定のままにし、PATH 探索も env override も足さない。解決は注入で行う。
+ *
+ * @doc docs/specs/mac-keymap.md#karabinercli
  */
+export interface KarabinerCli {
+  lintComplexModifications(path: string): Promise<KarabinerCliResult | undefined>;
+  selectProfile(name: string): Promise<KarabinerCliResult | undefined>;
+  currentProfileName(): Promise<string | undefined>;
+}
+
+/**
+ * 実物の `karabiner_cli` を叩く実装。
+ *
+ * `--lint-complex-modifications` は **エラーがあっても exit code 0 を返す**ため、判定は
+ * 出力が `: ok` で終わるかどうかで行う。`--select-profile` と
+ * `--show-current-profile-name` は失敗時に非 0 を返すので exit code を使う。
+ * いずれも binary が無ければ `undefined` で、呼び出し側は「Karabiner 不在」として扱う。
+ */
+export function createKarabinerCli(binary: string = KARABINER_CLI): KarabinerCli {
+  return {
+    async lintComplexModifications(path) {
+      const result = await run(binary, ["--lint-complex-modifications", path]);
+      if (result === undefined) return undefined;
+      // exit code は当てにならない。出力で判定する。
+      return { ok: result.ok && result.output.endsWith(": ok"), output: result.output };
+    },
+    async selectProfile(name) {
+      return await run(binary, ["--select-profile", name]);
+    },
+    async currentProfileName() {
+      const result = await run(binary, ["--show-current-profile-name"]);
+      if (result === undefined || !result.ok) return undefined;
+      return result.output;
+    },
+  };
+}
+
+/** `createKarabinerCli().lintComplexModifications` への委譲。既存の呼び出し口を残す。 */
 export async function lintComplexModifications(
   path: string,
-): Promise<{ readonly ok: boolean; readonly output: string } | undefined> {
+): Promise<KarabinerCliResult | undefined> {
+  return await createKarabinerCli().lintComplexModifications(path);
+}
+
+async function run(
+  binary: string,
+  args: readonly string[],
+): Promise<KarabinerCliResult | undefined> {
   try {
-    const { stdout, stderr } = await execFileAsync(KARABINER_CLI, [
-      "--lint-complex-modifications",
-      path,
-    ]);
-    const output = `${stdout}${stderr}`.trim();
-    return { ok: output.endsWith(": ok"), output };
+    const { stdout, stderr } = await execFileAsync(binary, [...args]);
+    return { ok: true, output: `${stdout}${stderr}`.trim() };
   } catch (error) {
     if (isMissingBinary(error)) return undefined;
-    const output = errorOutput(error);
-    return { ok: false, output };
+    return { ok: false, output: errorOutput(error) };
   }
 }
 
