@@ -144,7 +144,7 @@ panelへ表示する。動作selectは既存keycodeの分類を使い、キー�
 表示する。Tap/Holdの変更は盤面下のkeycode pickerから行い、選択した値は既存のcore編集関数へ
 渡す。pickerで表現しきれないcustom、macro、未分類表記のため、raw keycode入力も詳細内に残す。
 表示名（任意）はraw keycode式へ完全一致で割り当て、Enterまたはblurで`cornix/labels.yaml`へ保存する。
-空欄はその式の表示名を削除する。layerを指すkeycodeは参照先のlayer名と番号を表示する。
+空欄はその式の表示名を削除する。選択中の編集panel付近には対象ファイルとともに保存中・ローカル保存済み・保存失敗を表示し、失敗時は再試行できる。ここで示す保存はローカルworkspaceへの保存であり、実機への反映は別操作のApplyである。layerを指すkeycodeは参照先のlayer名と番号を表示する。
 
 <!-- @code src/ui/components/index.ts#KeycodePicker -->
 <!-- @code src/ui/keycode-compose.ts#applyPick -->
