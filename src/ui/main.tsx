@@ -43,6 +43,7 @@ import {
 import { serializeAcknowledgements } from "../workspace/acknowledgements.ts";
 import { CORNIX_LP_V112_SETTINGS } from "../workspace/settings.ts";
 import { createSaveQueue, type SaveQueue } from "../workspace/save-queue.ts";
+import { WorkspaceConflictError } from "../workspace/types.ts";
 import { pickWorkspace, restoreWorkspace } from "./browser-workspace.ts";
 import { initialMacKeymapYaml } from "./mac-workspace.ts";
 import { pickVilText } from "./browser-files.ts";
@@ -64,6 +65,7 @@ import {
   type WorkspaceProbe,
 } from "./workspace-probe.ts";
 import type { PickTarget } from "./keycode-compose.ts";
+import { chooseSaveCandidate } from "./save-state.ts";
 import { AppHeader } from "./components/AppHeader.tsx";
 import { EditTargetSelect } from "./components/EditTargetSelect.tsx";
 import {
@@ -118,7 +120,9 @@ function App(): React.JSX.Element {
   const [deviceRead, setDeviceRead] = useState<ReadDeviceResult | undefined>();
   const [deviceDefinitionDigest, setDeviceDefinitionDigest] = useState<string | undefined>();
   const [status, setStatus] = useState("workspaceを選択してください");
-  const [cornixSaveState, setCornixSaveState] = useState<SaveState>({ kind: "idle" });
+  const [keymapSaveState, setKeymapSaveState] = useState<SaveState>({ kind: "idle" });
+  const [labelsSaveState, setLabelsSaveState] = useState<SaveState>({ kind: "idle" });
+  const workspaceGeneration = useRef(0);
   const [macSaveStates, setMacSaveStates] = useState<Partial<Record<MacKeyboardLayout, SaveState>>>(
     {},
   );
@@ -152,6 +156,7 @@ function App(): React.JSX.Element {
   }
 
   function adoptWorkspace(model: WorkspaceModel, preserveTarget = false): void {
+    const generation = ++workspaceGeneration.current;
     saveQueue.current =
       model.cornix.kind === "ready"
         ? createSaveQueue({
@@ -159,11 +164,17 @@ function App(): React.JSX.Element {
             path: WORKSPACE_LAYOUT.keymap,
             token: model.cornix.token,
             onSaved: () => {
-              setCornixSaveState({ kind: "saved" });
+              if (workspaceGeneration.current !== generation) return;
+              setKeymapSaveState({ kind: "saved" });
               setStatus("keymap.yamlへ保存した");
             },
             onError: (error) => {
-              setCornixSaveState({ kind: "error", message: message(error) });
+              if (workspaceGeneration.current !== generation) return;
+              setKeymapSaveState(
+                error instanceof WorkspaceConflictError
+                  ? { kind: "conflict", message: message(error) }
+                  : { kind: "error", message: message(error) },
+              );
               setStatus(message(error));
             },
           })
@@ -172,10 +183,23 @@ function App(): React.JSX.Element {
       store: model.store,
       path: WORKSPACE_LAYOUT.labels,
       token: model.labelsToken,
-      onSaved: () => setStatus("cornix/labels.yamlへ保存した"),
-      onError: (error) => setStatus(message(error)),
+      onSaved: () => {
+        if (workspaceGeneration.current !== generation) return;
+        setLabelsSaveState({ kind: "saved" });
+        setStatus("cornix/labels.yamlへ保存した");
+      },
+      onError: (error) => {
+        if (workspaceGeneration.current !== generation) return;
+        setLabelsSaveState(
+          error instanceof WorkspaceConflictError
+            ? { kind: "conflict", message: message(error) }
+            : { kind: "error", message: message(error) },
+        );
+        setStatus(message(error));
+      },
     });
-    setCornixSaveState({ kind: "idle" });
+    setKeymapSaveState({ kind: "idle" });
+    setLabelsSaveState({ kind: "idle" });
     setMacSaveStates({});
     macSaveQueues.current = {};
     for (const layout of ["ansi", "jis"] as const) {
@@ -186,13 +210,18 @@ function App(): React.JSX.Element {
         path: state.path,
         token: state.token,
         onSaved: () => {
+          if (workspaceGeneration.current !== generation) return;
           setMacSaveStates((current) => ({ ...current, [layout]: { kind: "saved" } }));
           setStatus(`${state.path}へ保存した`);
         },
         onError: (error) => {
+          if (workspaceGeneration.current !== generation) return;
           setMacSaveStates((current) => ({
             ...current,
-            [layout]: { kind: "error", message: message(error) },
+            [layout]:
+              error instanceof WorkspaceConflictError
+                ? { kind: "conflict", message: message(error) }
+                : { kind: "error", message: message(error) },
           }));
           setStatus(message(error));
         },
@@ -453,13 +482,8 @@ function App(): React.JSX.Element {
   function save(document = cornix?.document): void {
     if (workspace === undefined || cornix === undefined || document === undefined) return;
     setWorkspace({ ...workspace, cornix: { ...cornix, document } });
-    setCornixSaveState({ kind: "saving" });
-    try {
-      saveQueue.current?.enqueue(serializeKeymapYaml(document, cornix.binding));
-    } catch (error) {
-      setCornixSaveState({ kind: "error", message: message(error) });
-      setStatus(message(error));
-    }
+    setKeymapSaveState({ kind: "saving" });
+    saveQueue.current?.enqueue(serializeKeymapYaml(document, cornix.binding));
   }
 
   function retryCornixSave(): void {
@@ -472,6 +496,23 @@ function App(): React.JSX.Element {
     saveMac(macLayout, macState.document);
   }
 
+  function retryLabelsSave(): void {
+    if (workspace === undefined) return;
+    setLabelsSaveState({ kind: "saving" });
+    labelsSaveQueue.current?.enqueue(serializeLabelsYaml(workspace.labels));
+  }
+
+  const cornixSaveView = (() => {
+    const selected = chooseSaveCandidate([
+      { target: "keymap", state: keymapSaveState, path: WORKSPACE_LAYOUT.keymap },
+      { target: "labels", state: labelsSaveState, path: WORKSPACE_LAYOUT.labels },
+    ]);
+    return {
+      ...selected,
+      onRetry: selected.target === "keymap" ? retryCornixSave : retryLabelsSave,
+    };
+  })();
+
   function editLabel(keycode: string, value: string): void {
     if (workspace === undefined) return;
     const keycodes = new Map(workspace.labels.keycodes);
@@ -479,22 +520,16 @@ function App(): React.JSX.Element {
     else keycodes.set(keycode, value);
     const labels: WorkspaceLabels = { ...workspace.labels, keycodes };
     setWorkspace({ ...workspace, labels });
-    try {
-      labelsSaveQueue.current?.enqueue(serializeLabelsYaml(labels));
-    } catch (error) {
-      setStatus(message(error));
-    }
+    setLabelsSaveState({ kind: "saving" });
+    labelsSaveQueue.current?.enqueue(serializeLabelsYaml(labels));
   }
 
   function editLayerLabel(layer: number, value: string): void {
     if (workspace === undefined) return;
     const labels = updateLayerLabel(workspace.labels, layer, value);
     setWorkspace({ ...workspace, labels });
-    try {
-      labelsSaveQueue.current?.enqueue(serializeLabelsYaml(labels));
-    } catch (error) {
-      setStatus(message(error));
-    }
+    setLabelsSaveState({ kind: "saving" });
+    labelsSaveQueue.current?.enqueue(serializeLabelsYaml(labels));
   }
 
   async function acquireDevice(): Promise<WebHidConnection | undefined> {
@@ -844,15 +879,7 @@ function App(): React.JSX.Element {
       mac: { ...workspace.mac, [layout]: { ...state, document } },
     });
     setMacSaveStates((current) => ({ ...current, [layout]: { kind: "saving" } }));
-    try {
-      macSaveQueues.current[layout]?.enqueue(serializeMacKeymapYaml(document));
-    } catch (error) {
-      setMacSaveStates((current) => ({
-        ...current,
-        [layout]: { kind: "error", message: message(error) },
-      }));
-      setStatus(message(error));
-    }
+    macSaveQueues.current[layout]?.enqueue(serializeMacKeymapYaml(document));
   }
 
   function editMacKey(targetLayer: number, keyCode: string, value: string): void {
@@ -961,8 +988,10 @@ function App(): React.JSX.Element {
                 onEditKey={editKey}
                 onEditEncoder={editEncoder}
                 onEditLabel={editLabel}
-                saveState={cornixSaveState}
-                onRetrySave={retryCornixSave}
+                saveState={cornixSaveView.state}
+                savePath={cornixSaveView.path}
+                onRetrySave={cornixSaveView.onRetry}
+                onReload={() => void reload()}
               />
             )
           }
@@ -1055,6 +1084,7 @@ function App(): React.JSX.Element {
               onClear={clearMacKey}
               saveState={macSaveStates[macLayout] ?? { kind: "idle" }}
               onRetrySave={retryMacSave}
+              onReload={() => void reload()}
             />
           ) : (
             <></>

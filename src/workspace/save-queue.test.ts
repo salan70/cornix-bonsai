@@ -34,10 +34,12 @@ function createStore(initial: string) {
 test("連続した編集は保存順序に関係なく最後の入力を残す", async () => {
   const store = createStore("a");
   const errors: unknown[] = [];
+  const saved: number[] = [];
   const queue = createSaveQueue({
     store,
     path: "keymap.yaml",
     token: await store.stat(),
+    onSaved: () => saved.push(saved.length),
     onError: (error) => errors.push(error),
   });
 
@@ -51,15 +53,18 @@ test("連続した編集は保存順序に関係なく最後の入力を残す",
   // 中間状態は畳んでよいが、最後の入力は必ず残る。自己 write を外部変更と誤検出しない。
   strictEqual(store.writes.at(-1), "abcd");
   strictEqual(store.writes.includes("ab"), true);
+  strictEqual(saved.length, 1);
 });
 
 test("外部変更を検出したら上書きせず、待ち中の保存も捨てる", async () => {
   const store = createStore("a");
   const errors: unknown[] = [];
+  const saved: number[] = [];
   const queue = createSaveQueue({
     store,
     path: "keymap.yaml",
     token: await store.stat(),
+    onSaved: () => saved.push(saved.length),
     onError: (error) => errors.push(error),
   });
 
@@ -72,6 +77,7 @@ test("外部変更を検出したら上書きせず、待ち中の保存も捨�
   strictEqual(errors[0] instanceof WorkspaceConflictError, true);
   strictEqual(store.content, "外部から書き換えた");
   deepStrictEqual(store.writes, []);
+  strictEqual(saved.length, 0);
 });
 
 test("保存成功のたびにtokenが1本の順序で更新される", async () => {

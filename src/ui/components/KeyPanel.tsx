@@ -30,6 +30,8 @@ export function KeyPanel({
   onEditLabel,
   saveState,
   onRetrySave,
+  savePath,
+  onReload,
 }: {
   readonly view: ReturnType<typeof buildKeymapView>;
   readonly definition: Parameters<typeof createKeycodeTable>[0];
@@ -44,6 +46,8 @@ export function KeyPanel({
   readonly onEditLabel: (keycode: string, value: string) => void;
   readonly saveState: SaveState;
   readonly onRetrySave: () => void;
+  readonly savePath: string;
+  readonly onReload: () => void;
 }): React.JSX.Element {
   const table = createKeycodeTable(definition, view.capacities);
   const input =
@@ -92,7 +96,13 @@ export function KeyPanel({
           )}
         </div>
         {input === undefined ? null : <div className="u-text-sm u-muted">物理位置を選択中</div>}
-        <SaveStatus state={saveState} path="keymap.yaml" onRetry={onRetrySave} />
+        <SaveStatus
+          state={saveState}
+          path={savePath}
+          applyHint="実機への反映は Apply。"
+          onRetry={onRetrySave}
+          onReload={onReload}
+        />
       </Section>
       {input === undefined ? null : (
         <>

@@ -6,7 +6,10 @@ import { Section as SectionComponent } from "./Section.tsx";
 import { Panel as PanelComponent } from "./Panel.tsx";
 import { Callout as CalloutComponent, CalloutLabel as CalloutLabelComponent } from "./Callout.tsx";
 import { FitText as FitTextComponent } from "./FitText.tsx";
-export { SaveStatus } from "./SaveStatus.tsx";
+import { SaveStatus as SaveStatusComponent } from "./SaveStatus.tsx";
+/** @doc docs/specs/design-system.md#react-primitive */
+export const SaveStatus = SaveStatusComponent;
+
 export type { SaveState } from "./SaveStatus.tsx";
 
 /** @doc docs/specs/design-system.md#react-primitive */
