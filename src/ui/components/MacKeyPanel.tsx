@@ -34,6 +34,7 @@ export function MacKeyPanel({
   onClear,
   saveState,
   onRetrySave,
+  onReload,
 }: {
   readonly document: MacKeymapDocument;
   readonly layer: number;
@@ -47,6 +48,7 @@ export function MacKeyPanel({
   readonly onClear: (layer: number, keyCode: string) => void;
   readonly saveState: SaveState;
   readonly onRetrySave: () => void;
+  readonly onReload: () => void;
 }): React.JSX.Element {
   const keyCode = selection?.kind === "macKey" ? selection.keyCode : undefined;
   const current = keyCode === undefined ? undefined : document.layers.get(layer)?.get(keyCode);
@@ -69,7 +71,13 @@ export function MacKeyPanel({
             {current === undefined ? "割り当てなし（素通し）" : "割り当てあり"}
           </div>
         )}
-        <SaveStatus state={saveState} path={path} onRetry={onRetrySave} />
+        <SaveStatus
+          state={saveState}
+          path={path}
+          applyHint="適用は cornix mac apply（CLI）。"
+          onRetry={onRetrySave}
+          onReload={onReload}
+        />
       </Section>
       {keyCode === undefined ? null : (
         <>

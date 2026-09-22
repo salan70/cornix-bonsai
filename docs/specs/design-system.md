@@ -64,6 +64,7 @@ componentへ分割される前の面として素の要素へ依存し続ける�
 <!-- @code src/ui/components/ui/index.ts#Panel -->
 <!-- @code src/ui/components/ui/index.ts#Callout -->
 <!-- @code src/ui/components/ui/index.ts#CalloutLabel -->
+<!-- @code src/ui/components/ui/index.ts#SaveStatus -->
 
 ## React primitive
 
@@ -79,6 +80,7 @@ primitiveのpropsだけを扱う。
 | `Section`                  | —                                                                                                           | side panelの区切りブロック（旧`.psec`）                                                                                                      |
 | `Panel`                    | `as`（`aside` / `section`）、`wide`                                                                         | side panel全般                                                                                                                               |
 | `Callout` / `CalloutLabel` | `as`（`div` / `section` / `button` / `label`）、`tone`: `neutral` / `warning` / `error` / `info`、`pushEnd` | 診断・banner・acknowledge行                                                                                                                  |
+| `SaveStatus`               | `state`、`path`、`applyHint`、`onRetry`、`onReload`                                                         | 選択中編集のローカル保存状態と実機適用導線の分離                                                                                             |
 
 `Callout`は`success` toneを持たない。`.row--success`（Apply前backupの確認行）は診断や
 bannerとは別の文脈で、汎用行`.row`のmodifierとして`features/apply.css`に残す。

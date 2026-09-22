@@ -28,7 +28,7 @@
     justify-content: space-between;
     gap: var(--space-5);
   }
-  .save-status {
+  .c-save-status {
     display: grid;
     gap: var(--space-1);
     margin-top: var(--space-4);
@@ -37,17 +37,18 @@
     background: var(--surface-2);
     font-size: var(--text-sm);
   }
-  .save-status__label { font-weight: var(--weight-semibold); }
-  .save-status__path { color: var(--muted); font-family: var(--font-mono); }
-  .save-status__hint { color: var(--muted); font-size: var(--text-xs); }
-  .save-status--saving { border-color: var(--accent-emphasis); }
-  .save-status--saved { border-color: var(--success); }
-  .save-status--error { border-color: var(--error); color: var(--error); }
-  .save-status--error .c-btn { justify-self: start; }
+  .c-save-status__label { font-weight: var(--weight-semibold); }
+  .c-save-status__path { color: var(--muted); font-family: var(--font-mono); }
+  .c-save-status__hint, .c-save-status__warning { color: var(--muted); font-size: var(--text-xs); }
+  .c-save-status__warning { color: var(--error); }
+  .c-save-status--saving { border-color: var(--accent-emphasis); }
+  .c-save-status--saved { border-color: var(--success); }
+  .c-save-status--error, .c-save-status--conflict { border-color: var(--error); color: var(--error); }
+  .c-save-status--error .c-btn, .c-save-status--conflict .c-btn { justify-self: start; }
   @media (prefers-reduced-motion: no-preference) {
-    .save-status--saving .save-status__label::before { content: ""; display: inline-block; width: .65em; height: .65em; margin-right: var(--space-2); border: var(--border-width-strong) solid currentColor; border-right-color: transparent; border-radius: 50%; animation: save-status-spin .8s linear infinite; }
+    .c-save-status--saving .c-save-status__label::before { content: ""; display: inline-block; width: .65em; height: .65em; margin-right: var(--space-2); border: var(--border-width-strong) solid currentColor; border-right-color: transparent; border-radius: 50%; animation: c-save-status-spin .8s linear infinite; }
   }
-  @keyframes save-status-spin { to { transform: rotate(360deg); } }
+  @keyframes c-save-status-spin { to { transform: rotate(360deg); } }
 
   /* legacy面: Behaviors / Referencesは素のtable / fieldset / label / ulを使う。
      docs/specs/design-system.md#legacy面 */

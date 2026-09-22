@@ -41,20 +41,24 @@ export function createSaveQueue(options: SaveQueueOptions): SaveQueue {
   let running: Promise<void> | undefined;
 
   async function run(): Promise<void> {
+    let wrote = false;
+    let failed = false;
     while (pending !== undefined) {
       const text = pending;
       pending = undefined;
       try {
         await writeTextIfUnchanged(options.store, options.path, text, token);
         token = (await options.store.stat(options.path)) ?? undefined;
-        options.onSaved?.();
+        wrote = true;
       } catch (error) {
+        failed = true;
         // 競合を検出したら以降の予約も捨てる。外部変更の取り込みは明示的な再読み込みで行う。
         pending = undefined;
         options.onError?.(error);
       }
     }
     running = undefined;
+    if (wrote && !failed) options.onSaved?.();
   }
 
   return {
