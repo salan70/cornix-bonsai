@@ -87,6 +87,7 @@ import { Overview } from "./components/Overview.tsx";
 import { References } from "./components/References.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { WorkspaceRecovery } from "./components/WorkspaceRecovery.tsx";
+import type { SaveState } from "./components/ui/index.ts";
 import "./styles/index.css";
 
 const themeStorage = browserThemeStorage();
@@ -117,6 +118,10 @@ function App(): React.JSX.Element {
   const [deviceRead, setDeviceRead] = useState<ReadDeviceResult | undefined>();
   const [deviceDefinitionDigest, setDeviceDefinitionDigest] = useState<string | undefined>();
   const [status, setStatus] = useState("workspaceを選択してください");
+  const [cornixSaveState, setCornixSaveState] = useState<SaveState>({ kind: "idle" });
+  const [macSaveStates, setMacSaveStates] = useState<Partial<Record<MacKeyboardLayout, SaveState>>>(
+    {},
+  );
   const [progress, setProgress] = useState<string | undefined>();
   const [lastReadRoundTrips, setLastReadRoundTrips] = useState(0);
   const [applyRoundTrips, setApplyRoundTrips] = useState(0);
@@ -153,8 +158,14 @@ function App(): React.JSX.Element {
             store: model.store,
             path: WORKSPACE_LAYOUT.keymap,
             token: model.cornix.token,
-            onSaved: () => setStatus("keymap.yamlへ保存した"),
-            onError: (error) => setStatus(message(error)),
+            onSaved: () => {
+              setCornixSaveState({ kind: "saved" });
+              setStatus("keymap.yamlへ保存した");
+            },
+            onError: (error) => {
+              setCornixSaveState({ kind: "error", message: message(error) });
+              setStatus(message(error));
+            },
           })
         : undefined;
     labelsSaveQueue.current = createSaveQueue({
@@ -164,6 +175,8 @@ function App(): React.JSX.Element {
       onSaved: () => setStatus("cornix/labels.yamlへ保存した"),
       onError: (error) => setStatus(message(error)),
     });
+    setCornixSaveState({ kind: "idle" });
+    setMacSaveStates({});
     macSaveQueues.current = {};
     for (const layout of ["ansi", "jis"] as const) {
       const state = model.mac[layout];
@@ -172,8 +185,17 @@ function App(): React.JSX.Element {
         store: model.store,
         path: state.path,
         token: state.token,
-        onSaved: () => setStatus(`${state.path}へ保存した`),
-        onError: (error) => setStatus(message(error)),
+        onSaved: () => {
+          setMacSaveStates((current) => ({ ...current, [layout]: { kind: "saved" } }));
+          setStatus(`${state.path}へ保存した`);
+        },
+        onError: (error) => {
+          setMacSaveStates((current) => ({
+            ...current,
+            [layout]: { kind: "error", message: message(error) },
+          }));
+          setStatus(message(error));
+        },
       });
     }
     setWorkspace(model);
@@ -431,11 +453,23 @@ function App(): React.JSX.Element {
   function save(document = cornix?.document): void {
     if (workspace === undefined || cornix === undefined || document === undefined) return;
     setWorkspace({ ...workspace, cornix: { ...cornix, document } });
+    setCornixSaveState({ kind: "saving" });
     try {
       saveQueue.current?.enqueue(serializeKeymapYaml(document, cornix.binding));
     } catch (error) {
+      setCornixSaveState({ kind: "error", message: message(error) });
       setStatus(message(error));
     }
+  }
+
+  function retryCornixSave(): void {
+    if (cornix === undefined) return;
+    save(cornix.document);
+  }
+
+  function retryMacSave(): void {
+    if (macLayout === undefined || macState?.kind !== "ready") return;
+    saveMac(macLayout, macState.document);
   }
 
   function editLabel(keycode: string, value: string): void {
@@ -809,9 +843,14 @@ function App(): React.JSX.Element {
       ...workspace,
       mac: { ...workspace.mac, [layout]: { ...state, document } },
     });
+    setMacSaveStates((current) => ({ ...current, [layout]: { kind: "saving" } }));
     try {
       macSaveQueues.current[layout]?.enqueue(serializeMacKeymapYaml(document));
     } catch (error) {
+      setMacSaveStates((current) => ({
+        ...current,
+        [layout]: { kind: "error", message: message(error) },
+      }));
       setStatus(message(error));
     }
   }
@@ -922,6 +961,8 @@ function App(): React.JSX.Element {
                 onEditKey={editKey}
                 onEditEncoder={editEncoder}
                 onEditLabel={editLabel}
+                saveState={cornixSaveState}
+                onRetrySave={retryCornixSave}
               />
             )
           }
@@ -1012,6 +1053,8 @@ function App(): React.JSX.Element {
               onPickTarget={setMacPickTarget}
               onEdit={editMacKey}
               onClear={clearMacKey}
+              saveState={macSaveStates[macLayout] ?? { kind: "idle" }}
+              onRetrySave={retryMacSave}
             />
           ) : (
             <></>

@@ -13,7 +13,7 @@ import {
   type PickTarget,
 } from "../keycode-compose.ts";
 import { PickTargetButtons } from "./PickTargetButtons.tsx";
-import { Field, Panel, Section } from "./ui/index.ts";
+import { Field, Panel, SaveStatus, Section, type SaveState } from "./ui/index.ts";
 
 /** @doc docs/specs/ui.md#side-panel-editing-controls */
 export function KeyPanel({
@@ -28,6 +28,8 @@ export function KeyPanel({
   onEditKey,
   onEditEncoder,
   onEditLabel,
+  saveState,
+  onRetrySave,
 }: {
   readonly view: ReturnType<typeof buildKeymapView>;
   readonly definition: Parameters<typeof createKeycodeTable>[0];
@@ -40,6 +42,8 @@ export function KeyPanel({
   readonly onEditKey: (value: string) => void;
   readonly onEditEncoder: (value: string) => void;
   readonly onEditLabel: (keycode: string, value: string) => void;
+  readonly saveState: SaveState;
+  readonly onRetrySave: () => void;
 }): React.JSX.Element {
   const table = createKeycodeTable(definition, view.capacities);
   const input =
@@ -88,6 +92,7 @@ export function KeyPanel({
           )}
         </div>
         {input === undefined ? null : <div className="u-text-sm u-muted">物理位置を選択中</div>}
+        <SaveStatus state={saveState} path="keymap.yaml" onRetry={onRetrySave} />
       </Section>
       {input === undefined ? null : (
         <>

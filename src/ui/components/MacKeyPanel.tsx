@@ -13,7 +13,7 @@ import { classifyKeycode } from "../../core/validation/keycode-vocabulary.ts";
 import { macKeycapLabel } from "../mac-keycap-labels.ts";
 import type { Selection } from "../types.ts";
 import { PickTargetButtons } from "./PickTargetButtons.tsx";
-import { Field, Panel, Section } from "./ui/index.ts";
+import { Field, Panel, SaveStatus, Section, type SaveState } from "./ui/index.ts";
 
 /**
  * Mac 盤面の side panel。KeyPanel と違い matrix 座標も encoder も持たず、位置は
@@ -32,6 +32,8 @@ export function MacKeyPanel({
   onPickTarget,
   onEdit,
   onClear,
+  saveState,
+  onRetrySave,
 }: {
   readonly document: MacKeymapDocument;
   readonly layer: number;
@@ -43,6 +45,8 @@ export function MacKeyPanel({
   readonly onPickTarget: (target: PickTarget) => void;
   readonly onEdit: (layer: number, keyCode: string, value: string) => void;
   readonly onClear: (layer: number, keyCode: string) => void;
+  readonly saveState: SaveState;
+  readonly onRetrySave: () => void;
 }): React.JSX.Element {
   const keyCode = selection?.kind === "macKey" ? selection.keyCode : undefined;
   const current = keyCode === undefined ? undefined : document.layers.get(layer)?.get(keyCode);
@@ -65,6 +69,7 @@ export function MacKeyPanel({
             {current === undefined ? "割り当てなし（素通し）" : "割り当てあり"}
           </div>
         )}
+        <SaveStatus state={saveState} path={path} onRetry={onRetrySave} />
       </Section>
       {keyCode === undefined ? null : (
         <>
