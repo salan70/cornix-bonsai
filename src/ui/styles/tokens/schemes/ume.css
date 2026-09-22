@@ -1,0 +1,67 @@
+/*
+ * variant `ume`（うめ）の配色。
+ * uiux-numa commit e15bc21 の生成物。直接編集しない。
+ * 値を変えるときは uiux-numa の shared/palettes.ts を直して再同期する。
+ */
+
+:root[data-scheme="ume"][data-theme="light"] {
+  --color-primary: #aa4c8f; /* 梅紫 */
+  --color-on-primary: #fffdf9;
+  --color-primary-text: #811863;
+  --color-primary-container: #f4d7ec;
+  --color-on-primary-container: #120d09;
+
+  --color-secondary: #006e54; /* 萌葱色 */
+  --color-on-secondary: #fffdf9;
+  --color-secondary-container: #d1faf0;
+  --color-on-secondary-container: #120d09;
+
+  --color-tertiary: #59b9c6; /* 新橋色 */
+  --color-on-tertiary: #120d09;
+  --color-tertiary-container: #d7f0f4;
+  --color-on-tertiary-container: #120d09;
+
+  --color-background: #f9f8f9;
+  --color-surface: #fefefe;
+  --color-on-surface: #1f1f1f;
+  --color-surface-container: #f1eff0;
+  --color-surface-variant: #e3dee1;
+  --color-on-surface-variant: #4d4d4d;
+  --color-outline: #757575;
+  --color-focus: #891a69;
+
+  --color-success: #357027;
+  --color-warning: #7e5726;
+  --color-error: #a52f40;
+}
+
+:root[data-scheme="ume"][data-theme="dark"]  {
+    --color-primary: #aa4c8f; /* 梅紫 */
+    --color-on-primary: #fffdf9;
+    --color-primary-text: #eda1d7;
+    --color-primary-container: #77225f;
+    --color-on-primary-container: #fffdf9;
+
+    --color-secondary: #006e54; /* 萌葱色 */
+    --color-on-secondary: #fffdf9;
+    --color-secondary-container: #108469;
+    --color-on-secondary-container: #fffdf9;
+
+    --color-tertiary: #59b9c6; /* 新橋色 */
+    --color-on-tertiary: #120d09;
+    --color-tertiary-container: #226d77;
+    --color-on-tertiary-container: #fffdf9;
+
+    --color-background: #1c191b;
+    --color-surface: #282427;
+    --color-on-surface: #f0f0f0;
+    --color-surface-container: #363034;
+    --color-surface-variant: #4c3e48;
+    --color-on-surface-variant: #c9c9c9;
+    --color-outline: #9c8b98;
+    --color-focus: #e887cc;
+
+    --color-success: #67ce4f;
+    --color-warning: #e6a34d;
+    --color-error: #f09599;
+  }

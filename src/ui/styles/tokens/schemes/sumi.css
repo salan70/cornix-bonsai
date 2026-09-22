@@ -1,0 +1,67 @@
+/*
+ * variant `sumi`（すみ）の配色。
+ * uiux-numa commit e15bc21 の生成物。直接編集しない。
+ * 値を変えるときは uiux-numa の shared/palettes.ts を直して再同期する。
+ */
+
+:root[data-scheme="sumi"][data-theme="light"] {
+  --color-primary: #2b2b2b; /* 蝋色 */
+  --color-on-primary: #fffdf9;
+  --color-primary-text: #4d4d4d;
+  --color-primary-container: #e6e6e6;
+  --color-on-primary-container: #120d09;
+
+  --color-secondary: #c9171e; /* 深緋 */
+  --color-on-secondary: #fffdf9;
+  --color-secondary-container: #f9d2d4;
+  --color-on-secondary-container: #120d09;
+
+  --color-tertiary: #e6b422; /* 黄金 */
+  --color-on-tertiary: #120d09;
+  --color-tertiary-container: #f9efd2;
+  --color-on-tertiary-container: #120d09;
+
+  --color-background: #f9f8f8;
+  --color-surface: #fefefe;
+  --color-on-surface: #1f1f1f;
+  --color-surface-container: #f0efef;
+  --color-surface-variant: #e3dede;
+  --color-on-surface-variant: #4d4d4d;
+  --color-outline: #757575;
+  --color-focus: #525252;
+
+  --color-success: #406e35;
+  --color-warning: #795a34;
+  --color-error: #9c3e37;
+}
+
+:root[data-scheme="sumi"][data-theme="dark"]  {
+    --color-primary: #2b2b2b; /* 蝋色 */
+    --color-on-primary: #fffdf9;
+    --color-primary-text: #c7c7c7;
+    --color-primary-container: #4d4d4d;
+    --color-on-primary-container: #fffdf9;
+
+    --color-secondary: #c9171e; /* 深緋 */
+    --color-on-secondary: #fffdf9;
+    --color-secondary-container: #861318;
+    --color-on-secondary-container: #fffdf9;
+
+    --color-tertiary: #e6b422; /* 黄金 */
+    --color-on-tertiary: #120d09;
+    --color-tertiary-container: #866913;
+    --color-on-tertiary-container: #fffdf9;
+
+    --color-background: #1b1a1a;
+    --color-surface: #272525;
+    --color-on-surface: #f0f0f0;
+    --color-surface-container: #343232;
+    --color-surface-variant: #4c3e3e;
+    --color-on-surface-variant: #c9c9c9;
+    --color-outline: #9c8b8b;
+    --color-focus: #b8b8b8;
+
+    --color-success: #78c866;
+    --color-warning: #dba564;
+    --color-error: #e59a91;
+  }

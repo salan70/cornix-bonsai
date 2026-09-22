@@ -3,6 +3,44 @@ export type ThemePreference = "system" | "light" | "dark";
 
 export type ResolvedTheme = "light" | "dark";
 
+/** @doc docs/specs/ui.md#color-scheme */
+export type SchemeChoice =
+  | "wasabi"
+  | "yuzu"
+  | "azuki"
+  | "aizome"
+  | "sumi"
+  | "fuji"
+  | "ume"
+  | "shinbashi"
+  | "kingyo"
+  | "tsukiyo";
+
+/** @doc docs/specs/ui.md#color-scheme */
+export interface SchemeDefinition {
+  readonly id: SchemeChoice;
+  readonly label: string;
+}
+
+/** @doc docs/specs/ui.md#color-scheme */
+export const SCHEMES: readonly SchemeDefinition[] = [
+  { id: "wasabi", label: "わさび" },
+  { id: "yuzu", label: "ゆず" },
+  { id: "azuki", label: "あずき" },
+  { id: "aizome", label: "藍染" },
+  { id: "sumi", label: "墨" },
+  { id: "fuji", label: "藤" },
+  { id: "ume", label: "梅" },
+  { id: "shinbashi", label: "新橋" },
+  { id: "kingyo", label: "金魚" },
+  { id: "tsukiyo", label: "月夜" },
+];
+
+/** @doc docs/specs/ui.md#color-scheme */
+export const DEFAULT_SCHEME: SchemeChoice = "wasabi";
+/** @doc docs/specs/ui.md#color-scheme */
+export const SCHEME_STORAGE_KEY = "cornix-bonsai.scheme";
+
 export const THEME_STORAGE_KEY = "cornix-bonsai.theme";
 
 interface ThemeStorage {
@@ -38,6 +76,31 @@ export function saveThemePreference(
   }
 }
 
+/** @doc docs/specs/ui.md#color-scheme */
+export function parseSchemeChoice(value: string | null | undefined): SchemeChoice {
+  return SCHEMES.some((scheme) => scheme.id === value) ? (value as SchemeChoice) : DEFAULT_SCHEME;
+}
+
+/** @doc docs/specs/ui.md#color-scheme */
+export function loadSchemeChoice(storage: ThemeStorage | undefined): SchemeChoice {
+  if (storage === undefined) return DEFAULT_SCHEME;
+  try {
+    return parseSchemeChoice(storage.getItem(SCHEME_STORAGE_KEY));
+  } catch {
+    return DEFAULT_SCHEME;
+  }
+}
+
+/** @doc docs/specs/ui.md#color-scheme */
+export function saveSchemeChoice(storage: ThemeStorage | undefined, scheme: SchemeChoice): void {
+  try {
+    storage?.setItem(SCHEME_STORAGE_KEY, scheme);
+  } catch {
+    // Storage access can be blocked by browser privacy settings. The in-memory
+    // selection remains active even when persistence is unavailable.
+  }
+}
+
 /** @doc docs/specs/ui.md#light-dark-theme */
 export function resolveTheme(preference: ThemePreference, systemDark: boolean): ResolvedTheme {
   return preference === "system" ? (systemDark ? "dark" : "light") : preference;
@@ -49,8 +112,19 @@ export function applyTheme(
   preference: ThemePreference,
   systemDark: boolean,
 ): ResolvedTheme {
+  return applyAppearance(root, preference, DEFAULT_SCHEME, systemDark);
+}
+
+/** @doc docs/specs/ui.md#color-scheme */
+export function applyAppearance(
+  root: Pick<HTMLElement, "dataset">,
+  preference: ThemePreference,
+  scheme: SchemeChoice,
+  systemDark: boolean,
+): ResolvedTheme {
   const resolved = resolveTheme(preference, systemDark);
   root.dataset.theme = resolved;
+  root.dataset.scheme = scheme;
   return resolved;
 }
 

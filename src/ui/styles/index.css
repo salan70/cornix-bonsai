@@ -1,6 +1,16 @@
 @layer reset, tokens, base, components, features, utilities;
 
 @import "./tokens/color.css" layer(tokens);
+@import "./tokens/schemes/wasabi.css" layer(tokens);
+@import "./tokens/schemes/yuzu.css" layer(tokens);
+@import "./tokens/schemes/azuki.css" layer(tokens);
+@import "./tokens/schemes/aizome.css" layer(tokens);
+@import "./tokens/schemes/sumi.css" layer(tokens);
+@import "./tokens/schemes/fuji.css" layer(tokens);
+@import "./tokens/schemes/ume.css" layer(tokens);
+@import "./tokens/schemes/shinbashi.css" layer(tokens);
+@import "./tokens/schemes/kingyo.css" layer(tokens);
+@import "./tokens/schemes/tsukiyo.css" layer(tokens);
 @import "./tokens/dimension.css" layer(tokens);
 @import "./tokens/typography.css" layer(tokens);
 @import "./tokens/motion.css" layer(tokens);

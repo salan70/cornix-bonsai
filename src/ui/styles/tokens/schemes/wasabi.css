@@ -1,0 +1,67 @@
+/*
+ * variant `wasabi`（わさび）の配色。
+ * uiux-numa commit e15bc21 の生成物。直接編集しない。
+ * 値を変えるときは uiux-numa の shared/palettes.ts を直して再同期する。
+ */
+
+:root[data-scheme="wasabi"][data-theme="light"] {
+  --color-primary: #aacf53; /* 萌黄 */
+  --color-on-primary: #120d09;
+  --color-primary-text: #516b14;
+  --color-primary-container: #ebf4d7;
+  --color-on-primary-container: #120d09;
+
+  --color-secondary: #aa4c8f; /* 梅紫 */
+  --color-on-secondary: #fffdf9;
+  --color-secondary-container: #f4d7ec;
+  --color-on-secondary-container: #120d09;
+
+  --color-tertiary: #165e83; /* 藍色 */
+  --color-on-tertiary: #fffdf9;
+  --color-tertiary-container: #d4ebf7;
+  --color-on-tertiary-container: #120d09;
+
+  --color-background: #f9f9f8;
+  --color-surface: #fefefe;
+  --color-on-surface: #1f1f1f;
+  --color-surface-container: #f0f1ef;
+  --color-surface-variant: #e1e3de;
+  --color-on-surface-variant: #4d4d4d;
+  --color-outline: #757575;
+  --color-focus: #68891a;
+
+  --color-success: #37722a;
+  --color-warning: #736029;
+  --color-error: #9d4228;
+}
+
+:root[data-scheme="wasabi"][data-theme="dark"]  {
+    --color-primary: #aacf53; /* 萌黄 */
+    --color-on-primary: #120d09;
+    --color-primary-text: #d6eda1;
+    --color-primary-container: #5e7722;
+    --color-on-primary-container: #fffdf9;
+
+    --color-secondary: #aa4c8f; /* 梅紫 */
+    --color-on-secondary: #fffdf9;
+    --color-secondary-container: #77225f;
+    --color-on-secondary-container: #fffdf9;
+
+    --color-tertiary: #165e83; /* 藍色 */
+    --color-on-tertiary: #fffdf9;
+    --color-tertiary-container: #185d81;
+    --color-on-tertiary-container: #fffdf9;
+
+    --color-background: #1b1c19;
+    --color-surface: #272824;
+    --color-on-surface: #f0f0f0;
+    --color-surface-container: #343630;
+    --color-surface-variant: #484c3e;
+    --color-on-surface-variant: #c9c9c9;
+    --color-outline: #979c8b;
+    --color-focus: #cbe887;
+
+    --color-success: #6fda57;
+    --color-warning: #dbb955;
+    --color-error: #f1a893;
+  }

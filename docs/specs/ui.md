@@ -17,16 +17,32 @@ UIはVite + React + TypeScriptで、外部router/storeを持たない。mutable�
 `light` / `dark`はOS設定の変更に影響されない。実効テーマは`document.documentElement`の
 `data-theme="light"` / `data-theme="dark"`へ反映し、CSS tokenを切り替える。
 
-画像から採取したpaletteと、それをUI状態へ使うための派生色は`src/ui/styles/tokens/color.css`で
-別の名前空間に定義する。画像由来色は補正せず、派生色はsampled値と誤認できない名前とコメントを
-付ける。寸法・タイポグラフィのtoken、cascade layer構成、React primitiveの契約は
-[design-system.md](./design-system.md)を参照する。
+semantic roleの値はuiux-numaからvendoringした`src/ui/styles/tokens/schemes/`に配色ごとに定義し、Cornix既存画面の名前は`src/ui/styles/tokens/color.css`のaliasで保つ。
+寸法・タイポグラフィのtoken、cascade layer構成、React primitiveの契約は[design-system.md](./design-system.md)を参照する。
 
 通常画面はneutral surfaceを主体とし、黄をprimary / selected、Lightの青とDarkのオレンジを
 secondary action / focus、Lightの緑とDarkのミントをconnected / successへ使う。keycapは通常、
 hover、selected、keyboard focus、disabledを識別できる状態にする。error、warning、success、
 connectionは文字、icon、borderなどを併用し、色だけを状態の識別手段にしない。本文・keycap・
 主要操作の文字は4.5:1、focusとcontrol境界は3:1以上のcontrastを保つ。
+
+<!-- @code src/ui/theme.ts#SchemeChoice -->
+<!-- @code src/ui/theme.ts#SchemeDefinition -->
+<!-- @code src/ui/theme.ts#SCHEMES -->
+<!-- @code src/ui/theme.ts#DEFAULT_SCHEME -->
+<!-- @code src/ui/theme.ts#SCHEME_STORAGE_KEY -->
+<!-- @code src/ui/theme.ts#parseSchemeChoice -->
+<!-- @code src/ui/theme.ts#loadSchemeChoice -->
+<!-- @code src/ui/theme.ts#saveSchemeChoice -->
+<!-- @code src/ui/theme.ts#applyAppearance -->
+
+## Color scheme
+
+配色は`wasabi` / `yuzu` / `azuki` / `aizome` / `sumi` / `fuji` / `ume` / `shinbashi` / `kingyo` / `tsukiyo`の10択で、初期値は`wasabi`である。
+選択は`cornix-bonsai.scheme`としてlocalStorageへ保存し、不正値または保存アクセス失敗時は`wasabi`へ戻る。
+実効配色は`document.documentElement`の`data-scheme`へ反映し、`data-theme`のlight / darkとは独立に切り替える。
+各schemeはprimary、secondary、tertiary、surface、outline、focus、success、warning、errorのsemantic roleをlight / darkの両方で持つ。
+配色の選択UIはheaderに常設し、現在の編集対象、keycap、picker、side panel、status、modalまで同じroleを参照する。
 
 <!-- @code src/ui/browser-workspace.ts#pickWorkspace -->
 <!-- @code src/ui/browser-workspace.ts#restoreWorkspace -->

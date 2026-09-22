@@ -8,6 +8,7 @@ const UI_PATH = fileURLToPath(new URL(".", import.meta.url));
 const STYLES_PATH = join(UI_PATH, "styles");
 const TOKENS_PATH = join(STYLES_PATH, "tokens");
 const COLOR_TOKEN_PATH = join(TOKENS_PATH, "color.css");
+const SCHEME_TOKEN_PATH = join(TOKENS_PATH, "schemes");
 
 /**
  * 幾何由来でtoken化できない宣言に付ける印。宣言と同じ行のコメント内に含む文字列で判定する
@@ -80,9 +81,9 @@ test("motion tokenはprefers-reduced-motionでdurationを0msへ落とす", () =>
   match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
-test("raw hexはstyles/tokens/color.cssにしか無い", () => {
+test("raw hexはstyles/tokens/color.cssとschemesにしか無い", () => {
   const offenders = styleFiles()
-    .filter((path) => path !== COLOR_TOKEN_PATH)
+    .filter((path) => path !== COLOR_TOKEN_PATH && !path.startsWith(`${SCHEME_TOKEN_PATH}/`))
     .flatMap((path) => {
       const values = readFileSync(path, "utf8").match(/#[0-9a-f]{3,8}\b/gi) ?? [];
       return values.map((value) => `${relative(UI_PATH, path)}: ${value}`);

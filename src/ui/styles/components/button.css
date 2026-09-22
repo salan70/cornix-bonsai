@@ -7,11 +7,17 @@
     min-height: var(--control-height-md);
     max-width: var(--btn-max-width);
     padding: 0 var(--space-5);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-pill);
     border: var(--border-width) solid var(--border-strong);
     background: var(--surface);
     color: var(--text);
     font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    transition:
+      background-color var(--duration-state) var(--easing-standard),
+      border-color var(--duration-state) var(--easing-standard),
+      color var(--duration-state) var(--easing-standard),
+      transform var(--duration-press) var(--easing-out);
   }
   .c-btn:hover {
     background: var(--surface-2);
@@ -55,5 +61,9 @@
     border-color: var(--border);
     background: var(--disabled-bg);
     opacity: 0.72;
+  }
+
+  .c-btn:not(:disabled):active {
+    transform: scale(0.98);
   }
 }

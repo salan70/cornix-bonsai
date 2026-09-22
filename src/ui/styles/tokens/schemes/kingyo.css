@@ -1,0 +1,67 @@
+/*
+ * variant `kingyo`（きんぎょ）の配色。
+ * uiux-numa commit e15bc21 の生成物。直接編集しない。
+ * 値を変えるときは uiux-numa の shared/palettes.ts を直して再同期する。
+ */
+
+:root[data-scheme="kingyo"][data-theme="light"] {
+  --color-primary: #ff7600; /* 鮮やかな朱色 */
+  --color-on-primary: #120d09;
+  --color-primary-text: #964703;
+  --color-primary-container: #fae4d1;
+  --color-on-primary-container: #120d09;
+
+  --color-secondary: #165e83; /* 藍色 */
+  --color-on-secondary: #fffdf9;
+  --color-secondary-container: #d4ebf7;
+  --color-on-secondary-container: #120d09;
+
+  --color-tertiary: #aacf53; /* 萌黄 */
+  --color-on-tertiary: #120d09;
+  --color-tertiary-container: #ebf4d7;
+  --color-on-tertiary-container: #120d09;
+
+  --color-background: #f9f9f8;
+  --color-surface: #fefefe;
+  --color-on-surface: #1f1f1f;
+  --color-surface-container: #f1f0ef;
+  --color-surface-variant: #e3e0de;
+  --color-on-surface-variant: #4d4d4d;
+  --color-outline: #757575;
+  --color-focus: #a04c03;
+
+  --color-success: #2b7218;
+  --color-warning: #825617;
+  --color-error: #a23817;
+}
+
+:root[data-scheme="kingyo"][data-theme="dark"]  {
+    --color-primary: #ff7600; /* 鮮やかな朱色 */
+    --color-on-primary: #120d09;
+    --color-primary-text: #fdc391;
+    --color-primary-container: #894810;
+    --color-on-primary-container: #fffdf9;
+
+    --color-secondary: #165e83; /* 藍色 */
+    --color-on-secondary: #fffdf9;
+    --color-secondary-container: #185d81;
+    --color-on-secondary-container: #fffdf9;
+
+    --color-tertiary: #aacf53; /* 萌黄 */
+    --color-on-tertiary: #120d09;
+    --color-tertiary-container: #5e7722;
+    --color-on-tertiary-container: #fffdf9;
+
+    --color-background: #1c1b19;
+    --color-surface: #282624;
+    --color-on-surface: #f0f0f0;
+    --color-surface-container: #363330;
+    --color-surface-variant: #4c443e;
+    --color-on-surface-variant: #c9c9c9;
+    --color-outline: #9c938b;
+    --color-focus: #fcb273;
+
+    --color-success: #58d736;
+    --color-warning: #f3a335;
+    --color-error: #f89a7f;
+  }

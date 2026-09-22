@@ -1,9 +1,12 @@
 # Design System
 
 寸法・タイポグラフィのtoken、CSSのcascade layer構成、React primitiveの契約を定義する。
-色tokenの契約は[ui.md](./ui.md#light--dark-theme)に残す。DocBridgeはTypeScriptの`export`宣言だけを
-symbol単位でlinkできるため、`styles/`配下のCSS token fileはfile単位のlink対象にできない。この節は
-それらのファイルへの直接linkを持たず、パスをprose内に記す。
+色tokenの契約は[ui.md](./ui.md#light--dark-theme)と[ui.md](./ui.md#color-scheme)に残す。
+DocBridgeはTypeScriptの`export`宣言だけをsymbol単位でlinkできるため、`styles/`配下のCSS token fileはfile単位のlink対象にできない。
+この節はそれらのファイルへの直接linkを持たず、パスをprose内に記す。
+
+Cornixの配色とタイポグラフィは、uiux-numaのchromatic-rail案を正本commit `e15bc21`からvendoringする。
+配色のrole値は`styles/tokens/schemes/`の10ファイル、互換aliasは`styles/tokens/color.css`、LINE Seed JPのfont-faceは`styles/tokens/typography.css`に置く。
 
 ## Token
 
@@ -11,10 +14,13 @@ space、radius、border-width、control-height、bar-height、panel-width、focu
 `styles/tokens/dimension.css`、font family / size / leading / weightは
 `styles/tokens/typography.css`、duration / easingは`styles/tokens/motion.css`に置く。
 
-- spaceは`--space-0`〜`--space-8`の4px刻み（`--space-1`のみ2pxの半段）
-- font-sizeは`--text-xs`（10px）〜`--text-xl`（18px）の6段
-- radiusは`--radius-sm` / `--radius-md` / `--radius-lg` / `--radius-full`の4段
+- spaceは`--space-0`〜`--space-8`の4px基準（`--space-1`のみ2pxの半段）
+- font-sizeはuiux foundationの`--font-size-sm`〜`--font-size-xl`と既存画面互換の`--text-xs`〜`--text-xl`を併設する
+- radiusは`--radius-sm` / `--radius-md` / `--radius-lg` / `--radius-full`に、mark / control / surface / pillの意味別aliasを加える
 - motionは`prefers-reduced-motion: reduce`で`--duration-*`を0msへ落とす
+
+schemeは`wasabi`を既定値とし、`yuzu` / `azuki` / `aizome` / `sumi` / `fuji` / `ume` / `shinbashi` / `kingyo` / `tsukiyo`を同じsemantic role契約で提供する。
+テーマのlight / darkとschemeを別軸にすることで、配色を変えてもsurface、text、primary、secondary、状態色の責務を維持する。
 
 ### 幾何由来の例外
 
@@ -118,7 +124,7 @@ keycap、picker cell、encoder slot、Button、Chipはbox sizeを固定し、収
 
 - `styles/components/**`と`styles/features/**`は、token fileと幾何由来の許可リストを除いて
   生のpx / remを含まない
-- raw hex（`#rrggbb`等）は`styles/tokens/color.css`にしか出現しない
+- raw hex（`#rrggbb`等）は`styles/tokens/color.css`と`styles/tokens/schemes/`にしか出現しない
 - `--space-*` / `--text-*` / `--radius-*`などtoken参照はすべて実在するtoken名を指す
 - CSSのどこにも`!important`が出現しない
 - CSSのclass selectorはTSX側のリテラル、または`keycodeClass()`が返す値

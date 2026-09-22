@@ -1,165 +1,62 @@
 :root {
+  /* uiux-numa material role aliases. Scheme values are vendored in schemes/*.css. */
+  --bg: var(--color-background);
+  --surface: var(--color-surface);
+  --surface-2: var(--color-surface-container);
+  --surface-3: var(--color-surface-variant);
+  --border: var(--color-surface-variant);
+  --border-strong: var(--color-outline);
+  --text: var(--color-on-surface);
+  --muted: var(--color-on-surface-variant);
+  --faint: var(--color-outline);
+
+  --accent: var(--color-primary);
+  --accent-hover: color-mix(in srgb, var(--color-primary) 88%, var(--color-on-primary));
+  --accent-soft: var(--color-primary-container);
+  --accent-emphasis: var(--color-primary-text);
+  --accent-contrast: var(--color-on-primary);
+  --secondary: var(--color-secondary);
+  --secondary-hover: color-mix(in srgb, var(--color-secondary) 88%, var(--color-on-secondary));
+  --secondary-soft: var(--color-secondary-container);
+  --secondary-contrast: var(--color-on-secondary);
+  --success: var(--color-success);
+  --success-soft: color-mix(in srgb, var(--color-success) 16%, var(--surface));
+  --success-text: var(--color-success);
+  --success-contrast: var(--color-on-surface);
+  --error: var(--color-error);
+  --error-soft: color-mix(in srgb, var(--color-error) 12%, var(--surface));
+  --warning: var(--color-warning);
+  --warning-border: var(--color-warning);
+  --warning-soft: color-mix(in srgb, var(--color-warning) 16%, var(--surface));
+  --info: var(--color-tertiary);
+  --info-soft: var(--color-tertiary-container);
+  --focus: var(--color-focus);
+  --focus-outer: var(--color-on-surface);
+  --focus-ring: var(--color-focus);
+
+  --key-bg: var(--color-surface);
+  --key-hover-bg: var(--color-surface-container);
+  --key-special-bg: var(--color-tertiary-container);
+  --key-text: var(--color-on-surface);
+  --key-muted: var(--color-on-surface-variant);
+  --disabled-bg: var(--color-surface-variant);
+  --disabled-text: var(--color-outline);
+
+  /* layer identity remains a product semantic; names and numbers remain the primary cue. */
+  --layer-link-0: var(--color-primary-text);
+  --layer-link-1: var(--color-secondary);
+  --layer-link-2: var(--color-tertiary);
+  --layer-link-3: var(--color-success);
+  --layer-link-4: var(--color-warning);
+  --layer-link-5: var(--color-error);
+  --layer-link-6: color-mix(in srgb, var(--color-primary) 70%, var(--color-secondary));
+  --layer-link-7: color-mix(in srgb, var(--color-tertiary) 70%, var(--color-secondary));
+}
+
+:root[data-theme="light"] {
   color-scheme: light;
-
-  /* Image-sampled colors. Keep these exact: they are the Issue #16 source palette. */
-  --palette-dark-darkest-charcoal: #383a3f;
-  --palette-dark-charcoal: #4c4e53;
-  --palette-dark-medium-charcoal: #5a5c61;
-  --palette-dark-gray-key: #868686;
-  --palette-dark-light-gray-key: #9b9b9b;
-  --palette-dark-yellow: #de9e04;
-  --palette-dark-yellow-highlight: #e8a619;
-  --palette-dark-orange: #f37252;
-  --palette-dark-mint: #68c2a8;
-  --palette-light-white-key: #efefef;
-  --palette-light-light-gray: #c6cbc9;
-  --palette-light-gray: #9ea19f;
-  --palette-light-yellow: #fac400;
-  --palette-light-blue: #4078e0;
-  --palette-light-blue-highlight: #5883e4;
-  --palette-light-green: #5cbc55;
-
-  /* Derived implementation colors. These are not sampled from either image. */
-  --derived-deep-ink: #0b0c0d;
-  --derived-light-border-strong: #737775;
-  --derived-light-accent-emphasis: #725a00;
-  --derived-light-error: #a83225;
-  --derived-light-warning: #725a00;
-  --derived-light-info: #285cb5;
-  --derived-light-success: #2d6b2a;
-  --derived-dark-border-strong: #9d9d9d;
-
-  /* Light semantic tokens. */
-  --bg: var(--palette-light-white-key);
-  --surface: var(--palette-light-white-key);
-  --surface-2: var(--palette-light-light-gray);
-  --surface-3: var(--palette-light-gray);
-  --border: var(--palette-light-light-gray);
-  --border-strong: var(--derived-light-border-strong);
-  --text: var(--palette-dark-darkest-charcoal);
-  --muted: var(--palette-dark-charcoal);
-  --faint: var(--palette-dark-medium-charcoal);
-  --accent: var(--palette-light-yellow);
-  --accent-hover: color-mix(
-    in srgb,
-    var(--palette-light-yellow) 88%,
-    var(--palette-dark-darkest-charcoal)
-  );
-  --accent-soft: color-mix(in srgb, var(--palette-light-yellow) 20%, var(--surface));
-  --accent-emphasis: var(--derived-light-accent-emphasis);
-  --accent-contrast: var(--palette-dark-darkest-charcoal);
-  --secondary: var(--palette-light-blue);
-  --secondary-hover: var(--palette-light-blue-highlight);
-  --secondary-soft: color-mix(in srgb, var(--palette-light-blue) 14%, var(--surface));
-  --secondary-contrast: var(--derived-deep-ink);
-  --success: var(--palette-light-green);
-  --success-soft: color-mix(in srgb, var(--palette-light-green) 16%, var(--surface));
-  --success-text: var(--derived-light-success);
-  --success-contrast: var(--derived-deep-ink);
-  --error: var(--derived-light-error);
-  --error-soft: color-mix(in srgb, var(--derived-light-error) 12%, var(--surface));
-  --warning: var(--derived-light-warning);
-  --warning-border: var(--derived-light-warning);
-  --warning-soft: color-mix(in srgb, var(--palette-light-yellow) 18%, var(--surface));
-  --info: var(--derived-light-info);
-  --info-soft: var(--secondary-soft);
-  --focus: var(--palette-light-blue);
-  --focus-outer: var(--palette-dark-darkest-charcoal);
-  --focus-ring: var(--focus);
-  --key-bg: var(--palette-light-white-key);
-  --key-hover-bg: color-mix(
-    in srgb,
-    var(--palette-light-light-gray) 45%,
-    var(--palette-light-white-key)
-  );
-  --key-special-bg: color-mix(
-    in srgb,
-    var(--palette-light-gray) 38%,
-    var(--palette-light-white-key)
-  );
-  --key-text: var(--palette-dark-darkest-charcoal);
-  --key-muted: var(--palette-dark-charcoal);
-  --disabled-bg: var(--palette-light-light-gray);
-  --disabled-text: var(--palette-dark-medium-charcoal);
-
-  /* Derived layer-link colors. The L number and layer name remain the identity. */
-  --layer-link-0: #7c3aed;
-  --layer-link-1: #2563eb;
-  --layer-link-2: #00897b;
-  --layer-link-3: #b45309;
-  --layer-link-4: #c026d3;
-  --layer-link-5: #15803d;
-  --layer-link-6: #c2410c;
-  --layer-link-7: #0369a1;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-
-  /* Derived dark-theme colors. These are not sampled from either image. */
-  --derived-dark-surface-3: color-mix(
-    in srgb,
-    var(--palette-dark-medium-charcoal) 72%,
-    var(--palette-dark-gray-key)
-  );
-  --derived-dark-secondary-hover: color-mix(
-    in srgb,
-    var(--palette-dark-orange) 84%,
-    var(--palette-light-white-key)
-  );
-  --derived-dark-error: #ffb4a9;
-  --derived-dark-warning: #f2c35b;
-
-  /* Dark semantic tokens. */
-  --bg: var(--palette-dark-darkest-charcoal);
-  --surface: var(--palette-dark-charcoal);
-  --surface-2: var(--palette-dark-medium-charcoal);
-  --surface-3: var(--derived-dark-surface-3);
-  --border: var(--palette-dark-gray-key);
-  --border-strong: var(--derived-dark-border-strong);
-  --text: var(--palette-light-white-key);
-  --muted: var(--palette-light-light-gray);
-  --faint: var(--palette-dark-light-gray-key);
-  --accent: var(--palette-dark-yellow);
-  --accent-hover: var(--palette-dark-yellow-highlight);
-  --accent-soft: color-mix(in srgb, var(--palette-dark-yellow) 20%, var(--surface));
-  --accent-emphasis: var(--palette-dark-yellow-highlight);
-  --accent-contrast: var(--palette-dark-darkest-charcoal);
-  --secondary: var(--palette-dark-orange);
-  --secondary-hover: var(--derived-dark-secondary-hover);
-  --secondary-soft: color-mix(in srgb, var(--palette-dark-orange) 16%, var(--surface));
-  --secondary-contrast: var(--derived-deep-ink);
-  --success: var(--palette-dark-mint);
-  --success-soft: color-mix(in srgb, var(--palette-dark-mint) 16%, var(--surface));
-  --success-text: var(--palette-dark-mint);
-  --success-contrast: var(--derived-deep-ink);
-  --error: var(--derived-dark-error);
-  --error-soft: color-mix(in srgb, var(--derived-dark-error) 14%, var(--surface));
-  --warning: var(--derived-dark-warning);
-  --warning-border: var(--palette-dark-yellow-highlight);
-  --warning-soft: color-mix(in srgb, var(--palette-dark-yellow) 16%, var(--surface));
-  --info: var(--palette-light-light-gray);
-  --info-soft: var(--surface-2);
-  --focus: var(--palette-dark-orange);
-  --focus-outer: var(--palette-light-white-key);
-  --focus-ring: var(--focus-outer);
-  --key-bg: var(--palette-dark-medium-charcoal);
-  --key-hover-bg: color-mix(
-    in srgb,
-    var(--palette-dark-medium-charcoal) 78%,
-    var(--palette-dark-gray-key)
-  );
-  --key-special-bg: var(--derived-dark-surface-3);
-  --key-text: var(--palette-light-white-key);
-  --key-muted: var(--palette-light-white-key);
-  --disabled-bg: var(--palette-dark-charcoal);
-  --disabled-text: var(--palette-dark-light-gray-key);
-  --layer-link-0: #c4b5fd;
-  --layer-link-1: #93c5fd;
-  --layer-link-2: #5eead4;
-  --layer-link-3: #fbbf24;
-  --layer-link-4: #f0abfc;
-  --layer-link-5: #86efac;
-  --layer-link-6: #fdba74;
-  --layer-link-7: #7dd3fc;
 }

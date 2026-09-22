@@ -1,0 +1,67 @@
+/*
+ * variant `fuji`（ふじ）の配色。
+ * uiux-numa commit e15bc21 の生成物。直接編集しない。
+ * 値を変えるときは uiux-numa の shared/palettes.ts を直して再同期する。
+ */
+
+:root[data-scheme="fuji"][data-theme="light"] {
+  --color-primary: #a59aca; /* 藤紫 */
+  --color-on-primary: #120d09;
+  --color-primary-text: #301881;
+  --color-primary-container: #ded7f4;
+  --color-on-primary-container: #120d09;
+
+  --color-secondary: #aacf53; /* 萌黄 */
+  --color-on-secondary: #120d09;
+  --color-secondary-container: #ebf4d7;
+  --color-on-secondary-container: #120d09;
+
+  --color-tertiary: #eb6101; /* 朱色 */
+  --color-on-tertiary: #120d09;
+  --color-tertiary-container: #fae2d1;
+  --color-on-tertiary-container: #120d09;
+
+  --color-background: #f8f8f9;
+  --color-surface: #fefefe;
+  --color-on-surface: #1f1f1f;
+  --color-surface-container: #efeff1;
+  --color-surface-variant: #dfdee3;
+  --color-on-surface-variant: #4d4d4d;
+  --color-outline: #757575;
+  --color-focus: #341a89;
+
+  --color-success: #306e50;
+  --color-warning: #7c582b;
+  --color-error: #a13442;
+}
+
+:root[data-scheme="fuji"][data-theme="dark"]  {
+    --color-primary: #a59aca; /* 藤紫 */
+    --color-on-primary: #120d09;
+    --color-primary-text: #b2a1ed;
+    --color-primary-container: #352277;
+    --color-on-primary-container: #fffdf9;
+
+    --color-secondary: #aacf53; /* 萌黄 */
+    --color-on-secondary: #120d09;
+    --color-secondary-container: #5e7722;
+    --color-on-secondary-container: #fffdf9;
+
+    --color-tertiary: #eb6101; /* 朱色 */
+    --color-on-tertiary: #120d09;
+    --color-tertiary-container: #894210;
+    --color-on-tertiary-container: #fffdf9;
+
+    --color-background: #1a191c;
+    --color-surface: #252428;
+    --color-on-surface: #f0f0f0;
+    --color-surface-container: #313036;
+    --color-surface-variant: #413e4c;
+    --color-on-surface-variant: #c9c9c9;
+    --color-outline: #8f8b9c;
+    --color-focus: #9d87e8;
+
+    --color-success: #5dc793;
+    --color-warning: #dfa154;
+    --color-error: #ec9296;
+  }

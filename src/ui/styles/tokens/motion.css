@@ -1,11 +1,20 @@
 :root {
-  --duration-fast: 100ms;
-  --duration-base: 160ms;
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  /* uiux-numa の motion foundation。 */
+  --duration-state: 120ms;
+  --duration-press: 160ms;
+  --easing-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --easing-out: cubic-bezier(0, 0, 0.58, 1);
+
+  /* 既存 feature CSS の互換 alias。 */
+  --duration-fast: var(--duration-state);
+  --duration-base: var(--duration-press);
+  --ease-standard: var(--easing-standard);
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
+    --duration-state: 0ms;
+    --duration-press: 0ms;
     --duration-fast: 0ms;
     --duration-base: 0ms;
   }

@@ -1,0 +1,67 @@
+/*
+ * variant `shinbashi`（しんばし）の配色。
+ * uiux-numa commit e15bc21 の生成物。直接編集しない。
+ * 値を変えるときは uiux-numa の shared/palettes.ts を直して再同期する。
+ */
+
+:root[data-scheme="shinbashi"][data-theme="light"] {
+  --color-primary: #59b9c6; /* 新橋色 */
+  --color-on-primary: #120d09;
+  --color-primary-text: #176c78;
+  --color-primary-container: #d7f0f4;
+  --color-on-primary-container: #120d09;
+
+  --color-secondary: #f19072; /* 東雲色 */
+  --color-on-secondary: #120d09;
+  --color-secondary-container: #f9dbd2;
+  --color-on-secondary-container: #120d09;
+
+  --color-tertiary: #674196; /* 菖蒲色 */
+  --color-on-tertiary: #fffdf9;
+  --color-tertiary-container: #e4d7f4;
+  --color-on-tertiary-container: #120d09;
+
+  --color-background: #f8f9f9;
+  --color-surface: #fefefe;
+  --color-on-surface: #1f1f1f;
+  --color-surface-container: #eff0f1;
+  --color-surface-variant: #dee2e3;
+  --color-on-surface-variant: #4d4d4d;
+  --color-outline: #757575;
+  --color-focus: #1a7c89;
+
+  --color-success: #356f52;
+  --color-warning: #71602f;
+  --color-error: #a13945;
+}
+
+:root[data-scheme="shinbashi"][data-theme="dark"]  {
+    --color-primary: #59b9c6; /* 新橋色 */
+    --color-on-primary: #120d09;
+    --color-primary-text: #a1e4ed;
+    --color-primary-container: #226d77;
+    --color-on-primary-container: #fffdf9;
+
+    --color-secondary: #f19072; /* 東雲色 */
+    --color-on-secondary: #120d09;
+    --color-secondary-container: #872d12;
+    --color-on-secondary-container: #fffdf9;
+
+    --color-tertiary: #674196; /* 菖蒲色 */
+    --color-on-tertiary: #fffdf9;
+    --color-tertiary-container: #482277;
+    --color-on-tertiary-container: #fffdf9;
+
+    --color-background: #191c1c;
+    --color-surface: #242828;
+    --color-on-surface: #f0f0f0;
+    --color-surface-container: #303536;
+    --color-surface-variant: #3e4a4c;
+    --color-on-surface-variant: #c9c9c9;
+    --color-outline: #8b9a9c;
+    --color-focus: #87dde8;
+
+    --color-success: #69d29e;
+    --color-warning: #d5b65f;
+    --color-error: #eca3a5;
+  }

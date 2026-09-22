@@ -1,0 +1,67 @@
+/*
+ * variant `tsukiyo`（つきよ）の配色。
+ * uiux-numa commit e15bc21 の生成物。直接編集しない。
+ * 値を変えるときは uiux-numa の shared/palettes.ts を直して再同期する。
+ */
+
+:root[data-scheme="tsukiyo"][data-theme="light"] {
+  --color-primary: #192f60; /* 紺青 */
+  --color-on-primary: #fffdf9;
+  --color-primary-text: #163883;
+  --color-primary-container: #d7e0f4;
+  --color-on-primary-container: #120d09;
+
+  --color-secondary: #e6b422; /* 黄金 */
+  --color-on-secondary: #120d09;
+  --color-secondary-container: #f9efd2;
+  --color-on-secondary-container: #120d09;
+
+  --color-tertiary: #006e54; /* 萌葱色 */
+  --color-on-tertiary: #fffdf9;
+  --color-tertiary-container: #d1faf0;
+  --color-on-tertiary-container: #120d09;
+
+  --color-background: #f8f8f9;
+  --color-surface: #fefefe;
+  --color-on-surface: #1f1f1f;
+  --color-surface-container: #efeff1;
+  --color-surface-variant: #dee0e3;
+  --color-on-surface-variant: #4d4d4d;
+  --color-outline: #757575;
+  --color-focus: #183c8b;
+
+  --color-success: #26704e;
+  --color-warning: #805721;
+  --color-error: #a92a3e;
+}
+
+:root[data-scheme="tsukiyo"][data-theme="dark"]  {
+    --color-primary: #192f60; /* 紺青 */
+    --color-on-primary: #fffdf9;
+    --color-primary-text: #9fb8ef;
+    --color-primary-container: #203c79;
+    --color-on-primary-container: #fffdf9;
+
+    --color-secondary: #e6b422; /* 黄金 */
+    --color-on-secondary: #120d09;
+    --color-secondary-container: #866913;
+    --color-on-secondary-container: #fffdf9;
+
+    --color-tertiary: #006e54; /* 萌葱色 */
+    --color-on-tertiary: #fffdf9;
+    --color-tertiary-container: #108469;
+    --color-on-tertiary-container: #fffdf9;
+
+    --color-background: #191a1c;
+    --color-surface: #242528;
+    --color-on-surface: #f0f0f0;
+    --color-surface-container: #303236;
+    --color-surface-variant: #3e424c;
+    --color-on-surface-variant: #c9c9c9;
+    --color-outline: #8b919c;
+    --color-focus: #85a4ea;
+
+    --color-success: #4dce93;
+    --color-warning: #e9a144;
+    --color-error: #f39398;
+  }

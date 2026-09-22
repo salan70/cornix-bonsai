@@ -1,0 +1,67 @@
+/*
+ * variant `yuzu`（ゆず）の配色。
+ * uiux-numa commit e15bc21 の生成物。直接編集しない。
+ * 値を変えるときは uiux-numa の shared/palettes.ts を直して再同期する。
+ */
+
+:root[data-scheme="yuzu"][data-theme="light"] {
+  --color-primary: #fabf14; /* 鬱金色 */
+  --color-on-primary: #120d09;
+  --color-primary-text: #7d5e03;
+  --color-primary-container: #faefd1;
+  --color-on-primary-container: #120d09;
+
+  --color-secondary: #316745; /* 千歳緑 */
+  --color-on-secondary: #fffdf9;
+  --color-secondary-container: #d7f4e2;
+  --color-on-secondary-container: #120d09;
+
+  --color-tertiary: #674196; /* 菖蒲色 */
+  --color-on-tertiary: #fffdf9;
+  --color-tertiary-container: #e4d7f4;
+  --color-on-tertiary-container: #120d09;
+
+  --color-background: #f9f9f8;
+  --color-surface: #fefefe;
+  --color-on-surface: #1f1f1f;
+  --color-surface-container: #f1f0ef;
+  --color-surface-variant: #e3e1de;
+  --color-on-surface-variant: #4d4d4d;
+  --color-outline: #757575;
+  --color-focus: #a07803;
+
+  --color-success: #39712c;
+  --color-warning: #775e2b;
+  --color-error: #9b442a;
+}
+
+:root[data-scheme="yuzu"][data-theme="dark"]  {
+    --color-primary: #fabf14; /* 鬱金色 */
+    --color-on-primary: #120d09;
+    --color-primary-text: #fde191;
+    --color-primary-container: #896a10;
+    --color-on-primary-container: #fffdf9;
+
+    --color-secondary: #316745; /* 千歳緑 */
+    --color-on-secondary: #fffdf9;
+    --color-secondary-container: #227741;
+    --color-on-secondary-container: #fffdf9;
+
+    --color-tertiary: #674196; /* 菖蒲色 */
+    --color-on-tertiary: #fffdf9;
+    --color-tertiary-container: #482277;
+    --color-on-tertiary-container: #fffdf9;
+
+    --color-background: #1c1b19;
+    --color-surface: #282724;
+    --color-on-surface: #f0f0f0;
+    --color-surface-container: #363430;
+    --color-surface-variant: #4c483e;
+    --color-on-surface-variant: #c9c9c9;
+    --color-outline: #9c988b;
+    --color-focus: #fcd973;
+
+    --color-success: #70d559;
+    --color-warning: #deb257;
+    --color-error: #efa48e;
+  }

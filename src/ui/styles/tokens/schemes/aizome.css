@@ -1,0 +1,67 @@
+/*
+ * variant `aizome`（あいぞめ）の配色。
+ * uiux-numa commit e15bc21 の生成物。直接編集しない。
+ * 値を変えるときは uiux-numa の shared/palettes.ts を直して再同期する。
+ */
+
+:root[data-scheme="aizome"][data-theme="light"] {
+  --color-primary: #165e83; /* 藍色 */
+  --color-on-primary: #fffdf9;
+  --color-primary-text: #0d618c;
+  --color-primary-container: #d4ebf7;
+  --color-on-primary-container: #120d09;
+
+  --color-secondary: #bf783a; /* 琥珀色 */
+  --color-on-secondary: #120d09;
+  --color-secondary-container: #f4e5d7;
+  --color-on-secondary-container: #120d09;
+
+  --color-tertiary: #aa4c8f; /* 梅紫 */
+  --color-on-tertiary: #fffdf9;
+  --color-tertiary-container: #f4d7ec;
+  --color-on-tertiary-container: #120d09;
+
+  --color-background: #f8f9f9;
+  --color-surface: #fefefe;
+  --color-on-surface: #1f1f1f;
+  --color-surface-container: #eff0f1;
+  --color-surface-variant: #dee1e3;
+  --color-on-surface-variant: #4d4d4d;
+  --color-outline: #757575;
+  --color-focus: #0e6796;
+
+  --color-success: #2e7050;
+  --color-warning: #725f29;
+  --color-error: #a53241;
+}
+
+:root[data-scheme="aizome"][data-theme="dark"]  {
+    --color-primary: #165e83; /* 藍色 */
+    --color-on-primary: #fffdf9;
+    --color-primary-text: #98d6f6;
+    --color-primary-container: #185d81;
+    --color-on-primary-container: #fffdf9;
+
+    --color-secondary: #bf783a; /* 琥珀色 */
+    --color-on-secondary: #120d09;
+    --color-secondary-container: #774a22;
+    --color-on-secondary-container: #fffdf9;
+
+    --color-tertiary: #aa4c8f; /* 梅紫 */
+    --color-on-tertiary: #fffdf9;
+    --color-tertiary-container: #77225f;
+    --color-on-tertiary-container: #fffdf9;
+
+    --color-background: #191b1c;
+    --color-surface: #242728;
+    --color-on-surface: #f0f0f0;
+    --color-surface-container: #303436;
+    --color-surface-variant: #3e474c;
+    --color-on-surface-variant: #c9c9c9;
+    --color-outline: #8b979c;
+    --color-focus: #7ccbf3;
+
+    --color-success: #5cd199;
+    --color-warning: #d4b352;
+    --color-error: #f09c9f;
+  }

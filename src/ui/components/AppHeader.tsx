@@ -1,6 +1,6 @@
 import type { WebHidConnection } from "../../device/webhid.ts";
 import { buildInfo, formatBuildTime } from "../build-info.ts";
-import type { ThemePreference } from "../theme.ts";
+import { SCHEMES, type SchemeChoice, type ThemePreference } from "../theme.ts";
 import { Button, Chip } from "./ui/index.ts";
 
 /** @doc docs/specs/ui.md#header-and-status */
@@ -17,6 +17,8 @@ export function AppHeader({
   onRead,
   themePreference,
   onThemePreferenceChange,
+  schemeChoice,
+  onSchemeChoiceChange,
   canReload,
   canEditCornix,
 }: {
@@ -32,6 +34,8 @@ export function AppHeader({
   readonly onRead: () => void;
   readonly themePreference: ThemePreference;
   readonly onThemePreferenceChange: (preference: ThemePreference) => void;
+  readonly schemeChoice: SchemeChoice;
+  readonly onSchemeChoiceChange: (scheme: SchemeChoice) => void;
   readonly canReload: boolean;
   readonly canEditCornix: boolean;
 }): React.JSX.Element {
@@ -92,6 +96,20 @@ export function AppHeader({
             <option value="system">システム</option>
             <option value="light">ライト</option>
             <option value="dark">ダーク</option>
+          </select>
+        </label>
+        <label className="theme-control">
+          <span>配色</span>
+          <select
+            aria-label="配色"
+            value={schemeChoice}
+            onChange={(event) => onSchemeChoiceChange(event.target.value as SchemeChoice)}
+          >
+            {SCHEMES.map((scheme) => (
+              <option value={scheme.id} key={scheme.id}>
+                {scheme.label}
+              </option>
+            ))}
           </select>
         </label>
       </div>

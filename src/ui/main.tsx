@@ -69,11 +69,14 @@ import { chooseSaveCandidate } from "./save-state.ts";
 import { AppHeader } from "./components/AppHeader.tsx";
 import { EditTargetSelect } from "./components/EditTargetSelect.tsx";
 import {
-  applyTheme,
+  applyAppearance,
   browserSystemDark,
   browserThemeStorage,
+  loadSchemeChoice,
   loadThemePreference,
+  saveSchemeChoice,
   saveThemePreference,
+  type SchemeChoice,
   subscribeToSystemTheme,
   type ThemePreference,
 } from "./theme.ts";
@@ -94,9 +97,15 @@ import "./styles/index.css";
 
 const themeStorage = browserThemeStorage();
 const initialThemePreference = loadThemePreference(themeStorage);
+const initialSchemeChoice = loadSchemeChoice(themeStorage);
 const USER_GUIDE_URL =
   "https://github.com/salan70/cornix-bonsai/blob/main/docs/user-guide/README.md";
-applyTheme(document.documentElement, initialThemePreference, browserSystemDark());
+applyAppearance(
+  document.documentElement,
+  initialThemePreference,
+  initialSchemeChoice,
+  browserSystemDark(),
+);
 
 function App(): React.JSX.Element {
   const [workspace, setWorkspace] = useState<WorkspaceModel | undefined>();
@@ -135,6 +144,7 @@ function App(): React.JSX.Element {
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [diagnosticFilter, setDiagnosticFilter] = useState<Severity | undefined>();
   const [themePreference, setThemePreference] = useState<ThemePreference>(initialThemePreference);
+  const [schemeChoice, setSchemeChoice] = useState<SchemeChoice>(initialSchemeChoice);
   const cornixEditorRef = useRef<HTMLInputElement>(null);
   const macEditorRef = useRef<HTMLInputElement>(null);
   const applyCancellation = useRef(false);
@@ -143,16 +153,23 @@ function App(): React.JSX.Element {
   const macSaveQueues = useRef<Partial<Record<MacKeyboardLayout, SaveQueue>>>({});
 
   useEffect(() => {
-    const applyCurrentTheme = (systemDark: boolean): void => {
-      applyTheme(document.documentElement, themePreference, systemDark);
+    const applyCurrentAppearance = (systemDark: boolean): void => {
+      applyAppearance(document.documentElement, themePreference, schemeChoice, systemDark);
     };
-    applyCurrentTheme(browserSystemDark());
-    return subscribeToSystemTheme(themePreference, (systemDark) => applyCurrentTheme(systemDark));
-  }, [themePreference]);
+    applyCurrentAppearance(browserSystemDark());
+    return subscribeToSystemTheme(themePreference, (systemDark) =>
+      applyCurrentAppearance(systemDark),
+    );
+  }, [schemeChoice, themePreference]);
 
   function changeThemePreference(preference: ThemePreference): void {
     setThemePreference(preference);
     saveThemePreference(themeStorage, preference);
+  }
+
+  function changeSchemeChoice(scheme: SchemeChoice): void {
+    setSchemeChoice(scheme);
+    saveSchemeChoice(themeStorage, scheme);
   }
 
   function adoptWorkspace(model: WorkspaceModel, preserveTarget = false): void {
@@ -1109,6 +1126,8 @@ function App(): React.JSX.Element {
         onRead={() => void readDevice()}
         themePreference={themePreference}
         onThemePreferenceChange={changeThemePreference}
+        schemeChoice={schemeChoice}
+        onSchemeChoiceChange={changeSchemeChoice}
         canReload={workspace !== undefined}
         canEditCornix={cornix !== undefined}
       />

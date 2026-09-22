@@ -1,0 +1,67 @@
+/*
+ * variant `azuki`（あずき）の配色。
+ * uiux-numa commit e15bc21 の生成物。直接編集しない。
+ * 値を変えるときは uiux-numa の shared/palettes.ts を直して再同期する。
+ */
+
+:root[data-scheme="azuki"][data-theme="light"] {
+  --color-primary: #96514d; /* 小豆色 */
+  --color-on-primary: #fffdf9;
+  --color-primary-text: #811e18;
+  --color-primary-container: #f4d9d7;
+  --color-on-primary-container: #120d09;
+
+  --color-secondary: #006e54; /* 萌葱色 */
+  --color-on-secondary: #fffdf9;
+  --color-secondary-container: #d1faf0;
+  --color-on-secondary-container: #120d09;
+
+  --color-tertiary: #e6b422; /* 黄金 */
+  --color-on-tertiary: #120d09;
+  --color-tertiary-container: #f9efd2;
+  --color-on-tertiary-container: #120d09;
+
+  --color-background: #f9f8f8;
+  --color-surface: #fefefe;
+  --color-on-surface: #1f1f1f;
+  --color-surface-container: #f1efef;
+  --color-surface-variant: #e3dede;
+  --color-on-surface-variant: #4d4d4d;
+  --color-outline: #757575;
+  --color-focus: #89201a;
+
+  --color-success: #337025;
+  --color-warning: #7e5724;
+  --color-error: #a72d2c;
+}
+
+:root[data-scheme="azuki"][data-theme="dark"]  {
+    --color-primary: #96514d; /* 小豆色 */
+    --color-on-primary: #fffdf9;
+    --color-primary-text: #eda5a1;
+    --color-primary-container: #772722;
+    --color-on-primary-container: #fffdf9;
+
+    --color-secondary: #006e54; /* 萌葱色 */
+    --color-on-secondary: #fffdf9;
+    --color-secondary-container: #108469;
+    --color-on-secondary-container: #fffdf9;
+
+    --color-tertiary: #e6b422; /* 黄金 */
+    --color-on-tertiary: #120d09;
+    --color-tertiary-container: #866913;
+    --color-on-tertiary-container: #fffdf9;
+
+    --color-background: #1c1919;
+    --color-surface: #282424;
+    --color-on-surface: #f0f0f0;
+    --color-surface-container: #363130;
+    --color-surface-variant: #4c3f3e;
+    --color-on-surface-variant: #c9c9c9;
+    --color-outline: #9c8c8b;
+    --color-focus: #e88c87;
+
+    --color-success: #64ce4b;
+    --color-warning: #e7a249;
+    --color-error: #f1958c;
+  }

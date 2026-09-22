@@ -182,4 +182,192 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  /* chromatic-rail: paletteを変えても構造と意味が揺れないCornixの主レイアウト。 */
+  .app-shell {
+    display: grid;
+    grid-template-columns: var(--rail-width) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "header header"
+      "target target"
+      "rail content"
+      "status status";
+    background: var(--bg);
+  }
+
+  .hdr {
+    grid-area: header;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border-top: var(--border-width-accent) solid var(--accent);
+    border-bottom-color: var(--border-strong);
+    box-shadow: inset 0 calc(var(--border-width) * -1) 0 var(--accent-soft);
+  }
+
+  .brand {
+    min-width: max-content;
+    color: var(--text);
+  }
+
+  .brand-mark {
+    display: inline-grid;
+    place-items: center;
+    width: var(--control-height-md);
+    height: var(--control-height-md);
+    border-radius: var(--radius-mark);
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-size: var(--text-lg);
+  }
+
+  .ws {
+    min-width: 0;
+    padding-left: var(--space-5);
+    border-left: var(--border-width) solid var(--border);
+  }
+
+  .header-actions {
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .target-bar {
+    grid-area: target;
+    background: var(--accent-soft);
+    border-bottom-color: var(--accent);
+  }
+
+  .target-bar label {
+    color: var(--accent-emphasis);
+    font-weight: var(--weight-semibold);
+  }
+
+  .target-bar select {
+    border-color: var(--accent-emphasis);
+    background: var(--surface);
+  }
+
+  .tabs {
+    grid-area: rail;
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-4);
+    background: var(--accent);
+    border-right: var(--border-width) solid var(--accent-emphasis);
+    border-bottom: 0;
+  }
+
+  .tabs button,
+  .tabs-guide {
+    min-height: var(--control-height-lg);
+    justify-content: flex-start;
+    padding: 0 var(--space-5);
+    border: var(--border-width-strong) solid transparent;
+    border-radius: var(--radius-control);
+    color: var(--accent-contrast);
+    font-weight: var(--weight-semibold);
+    text-decoration: none;
+  }
+
+  .tabs button:hover,
+  .tabs-guide:hover {
+    background: color-mix(in srgb, var(--accent-contrast) 16%, transparent);
+    color: var(--accent-contrast);
+  }
+
+  .tabs button.is-active {
+    border-color: var(--accent-contrast);
+    background: var(--accent-contrast);
+    color: var(--accent-emphasis);
+  }
+
+  .tabs-guide {
+    min-height: var(--control-height-md);
+    margin-top: auto;
+    color: var(--accent-contrast);
+    font-size: var(--text-sm);
+  }
+
+  .main-content,
+  .empty-state {
+    grid-area: content;
+    min-width: 0;
+    min-height: 0;
+    background: var(--bg);
+  }
+
+  .empty-state {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: var(--space-4);
+    padding: var(--space-8);
+  }
+
+  .empty-state h1,
+  .empty-state p {
+    max-width: var(--recovery-max-width);
+    margin: 0;
+  }
+
+  .status {
+    grid-area: status;
+    background: var(--secondary-soft);
+    border-top-color: var(--secondary);
+  }
+
+  .status .c-btn--primary {
+    background: var(--secondary);
+    border-color: var(--secondary);
+  }
+
+  @media (max-width: 60rem) /* geometric: railを上段へ送るresponsive breakpoint */ {
+    .app-shell {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "header"
+        "target"
+        "rail"
+        "content"
+        "status";
+    }
+
+    .tabs {
+      flex-direction: row;
+      align-items: center;
+      overflow-x: auto;
+      padding: var(--space-3) var(--space-4);
+      border-right: 0;
+      border-bottom: var(--border-width) solid var(--accent-emphasis);
+    }
+
+    .tabs button,
+    .tabs-guide {
+      flex: 0 0 auto;
+      min-height: var(--control-height-md);
+      justify-content: center;
+    }
+
+    .tabs-guide {
+      margin-top: 0;
+      margin-left: auto;
+    }
+
+    .hdr {
+      align-items: flex-start;
+    }
+
+    .header-actions {
+      width: 100%;
+      margin-left: 0;
+      justify-content: flex-start;
+    }
+  }
 }
