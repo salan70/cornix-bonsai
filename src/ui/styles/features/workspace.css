@@ -1,11 +1,16 @@
 @layer features {
   .main-content {
+    grid-area: main;
+    min-width: 0;
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
+    overflow: auto;
   }
   .empty-state {
+    grid-area: main;
+    min-width: 0;
     flex: 1;
     padding: var(--space-8) var(--space-6);
     text-align: center;

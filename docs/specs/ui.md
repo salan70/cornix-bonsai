@@ -70,7 +70,7 @@ UIは読み込み失敗を例外の文字列のまま出さず、`keymap.yaml`�
 
 ## 5 tab
 
-常設headerの直下に編集対象ドロップダウンを置く。
+常設headerの下に編集対象ドロップダウンとタブをまとめたナビゲーションレールを置く。
 項目は`Cornix LP`と`Mac キーボード（ANSI / JIS）`であり、配列を選ぶ専用UIは置かない。
 選んだ対象のタブ列へ入れ替える。
 Cornixは`Keymap` / `Overview` / `Behaviors` / `References`、Macは`Keymap` / `References`である。
@@ -94,8 +94,7 @@ Applyが全operationのverifyを終えたら実機をfull readし直し、curren
 ## Header and status
 
 headerはCornix Bonsaiのbrand、workspace path、接続状態chipを常設する。
-artifactの再読み込み、backup復元、`.vil`読込・書出に加えて、WebHIDの接続・切断・実機readと
-workspace directoryの切替を同じ行へ置く。
+workspace directoryの切替を主操作としてheaderに置き、artifactの再読み込み、backup復元、`.vil`読込・書出、WebHIDの接続・切断・実機readは補助メニューへまとめる。
 Cornixが`ready`でないときは`.vil`読込・書出とbackup復元を無効化する。
 再読込はdirectoryが開いていれば使える。
 接続状態は色だけに頼らず、未接続または製品名を文字で示す。

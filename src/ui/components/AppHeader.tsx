@@ -52,36 +52,48 @@ export function AppHeader({
         <b className="u-mono">{workspaceName ?? "未選択"}</b>
       </div>
       <div className="header-actions">
-        <div className="header-group">
+        <div className="header-group header-group--connection">
           <Chip connected={device !== undefined} dot aria-live="polite">
             {device === undefined ? "未接続" : `${device.info.productName} に接続済み`}
           </Chip>
-          <Button onClick={onConnect}>接続</Button>
-          <Button onClick={onDisconnect} disabled={device === undefined}>
-            切断
-          </Button>
-          <Button onClick={onRead} disabled={device === undefined}>
-            実機から再読み込み
-          </Button>
         </div>
-        <div className="chrome-divider" aria-hidden="true" />
-        <div className="header-group">
+        <div className="header-primary-actions">
           <Button onClick={onOpenWorkspace}>Workspace</Button>
-          <Button onClick={onImportVil} disabled={!canEditCornix}>
-            VIL読込
-          </Button>
-          <Button onClick={onExportVil} disabled={!canEditCornix}>
-            VIL書出
-          </Button>
-          <Button onClick={onReload} disabled={!canReload}>
-            再読込
-          </Button>
+          <details className="header-menu">
+            <summary>その他</summary>
+            <div className="header-menu__content">
+              <section className="header-menu__section" aria-labelledby="header-menu-device">
+                <span className="header-menu__label" id="header-menu-device">
+                  接続
+                </span>
+                <Button onClick={onConnect}>接続</Button>
+                <Button onClick={onDisconnect} disabled={device === undefined}>
+                  切断
+                </Button>
+                <Button onClick={onRead} disabled={device === undefined}>
+                  実機から再読み込み
+                </Button>
+              </section>
+              <section className="header-menu__section" aria-labelledby="header-menu-workspace">
+                <span className="header-menu__label" id="header-menu-workspace">
+                  Workspace
+                </span>
+                <Button onClick={onImportVil} disabled={!canEditCornix}>
+                  VIL読込
+                </Button>
+                <Button onClick={onExportVil} disabled={!canEditCornix}>
+                  VIL書出
+                </Button>
+                <Button onClick={onReload} disabled={!canReload}>
+                  再読込
+                </Button>
+                <Button variant="ghost" onClick={onRestoreBackup} disabled={!canEditCornix}>
+                  backup から復元
+                </Button>
+              </section>
+            </div>
+          </details>
         </div>
-        <div className="chrome-divider" aria-hidden="true" />
-        <Button variant="ghost" onClick={onRestoreBackup} disabled={!canEditCornix}>
-          backup から復元
-        </Button>
-        <div className="chrome-divider" aria-hidden="true" />
         <label className="theme-control">
           <span>テーマ</span>
           <select

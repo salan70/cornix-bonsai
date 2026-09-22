@@ -53,6 +53,9 @@
   --recovery-max-width: 44rem;
   --target-select-min-width: 22rem;
   --target-select-max-width: 36rem;
+  --rail-width: 13rem;
+  --header-menu-min-width: 15rem;
+  --mobile-main-min-height: 24rem;
   --btn-max-width: 220px;
   --chip-max-width: 200px;
 

@@ -1112,37 +1112,41 @@ function App(): React.JSX.Element {
         canReload={workspace !== undefined}
         canEditCornix={cornix !== undefined}
       />
-      {workspace === undefined ? null : (
-        <EditTargetSelect target={editTarget} mac={workspace.mac} onChange={setEditTarget} />
-      )}
-      <nav className="tabs" aria-label="main tabs">
-        {(editTarget.kind === "cornix"
-          ? (["Keymap", "Overview", "Behaviors", "References"] as const)
-          : (["Keymap", "References"] as const)
-        ).map((name) => (
-          <button
-            className={
-              (editTarget.kind === "cornix" ? cornixTab : macTab) === name ? "is-active" : ""
-            }
-            onClick={() =>
-              editTarget.kind === "cornix"
-                ? setCornixTab(name as CornixTab)
-                : setMacTab(name as MacTab)
-            }
-            key={name}
+      <nav className="rail" aria-label="編集画面">
+        {workspace === undefined ? null : (
+          <EditTargetSelect target={editTarget} mac={workspace.mac} onChange={setEditTarget} />
+        )}
+        <div className="tabs">
+          {(editTarget.kind === "cornix"
+            ? (["Keymap", "Overview", "Behaviors", "References"] as const)
+            : (["Keymap", "References"] as const)
+          ).map((name) => {
+            const activeTab = editTarget.kind === "cornix" ? cornixTab : macTab;
+            return (
+              <button
+                className={activeTab === name ? "is-active" : ""}
+                aria-current={activeTab === name ? "page" : undefined}
+                onClick={() =>
+                  editTarget.kind === "cornix"
+                    ? setCornixTab(name as CornixTab)
+                    : setMacTab(name as MacTab)
+                }
+                key={name}
+              >
+                {name}
+              </button>
+            );
+          })}
+          <a
+            className="tabs-guide"
+            href={USER_GUIDE_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="利用者ガイドを新しいタブで開く"
           >
-            {name}
-          </button>
-        ))}
-        <a
-          className="tabs-guide"
-          href={USER_GUIDE_URL}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="利用者ガイドを新しいタブで開く"
-        >
-          利用者ガイド
-        </a>
+            利用者ガイド
+          </a>
+        </div>
       </nav>
       {workspace === undefined ? (
         <main className="empty-state">
