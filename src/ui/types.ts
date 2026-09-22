@@ -5,9 +5,8 @@ export type EditTarget =
   | { readonly kind: "cornix" }
   | { readonly kind: "mac"; readonly layout: MacKeyboardLayout };
 
-export type CornixTab = "Keymap" | "Overview" | "Behaviors" | "References";
-
-export type MacTab = "Keymap" | "References";
+/** @doc docs/specs/ui.md#target-work-navigation */
+export type WorkTask = "keymap" | "overview" | "behaviors" | "validation";
 
 export type Selection =
   | { readonly kind: "key"; readonly row: number; readonly col: number }

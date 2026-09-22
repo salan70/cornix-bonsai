@@ -67,13 +67,16 @@ UIは読み込み失敗を例外の文字列のまま出さず、`keymap.yaml`�
 それ以外を区別して、それぞれの復旧操作を提示する。
 
 <!-- @code src/ui/components/index.ts#EditTargetSelect -->
+<!-- @code src/ui/types.ts#WorkTask -->
 
-## 5 tab
+## Target + Work navigation
 
-常設headerの下に編集対象ドロップダウンとタブをまとめたナビゲーションレールを置く。
-項目は`Cornix LP`と`Mac キーボード（ANSI / JIS）`であり、配列を選ぶ専用UIは置かない。
-選んだ対象のタブ列へ入れ替える。
-Cornixは`Keymap` / `Overview` / `Behaviors` / `References`、Macは`Keymap` / `References`である。
+常設headerの下に編集対象カードと共通の作業項目を置いたナビゲーションレールを置く。
+編集対象は`Cornix LP`、`Mac ANSI`、`Mac JIS`を常時表示し、選択中のカードを面と境界で示す。
+作業項目は`キー割り当て` / `全体マップ` / `動作定義` / `検証`の順に固定する。
+選んだ対象で利用できない作業は位置を動かさず、無効状態と利用できない理由を表示する。
+対象変更で現在の作業が利用できなくなった場合は`キー割り当て`へ移動し、statusへ理由を出す。
+既存のCornix / Mac専用コンポーネントは作業項目の内容として再利用する。
 tab navigationの右端には利用者ガイドへの外部linkを置き、新しいtabで操作・安全・復旧手順を開く。
 Keymapはdefinitionの座標をHTML/CSSの絶対配置へ投影し、encoderを専用帯へ分ける。選択中の
 key / encoderのraw keycodeをside panelで編集し、盤面は方向キー、Enter、Escで操作できる。

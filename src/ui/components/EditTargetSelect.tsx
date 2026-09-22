@@ -2,9 +2,9 @@ import type { MacWorkspaceByLayout } from "../mac-workspace.ts";
 import { macScopeLabel } from "../mac-workspace.ts";
 import type { EditTarget } from "../types.ts";
 
-/** header 直下の編集対象ドロップダウン。項目が配列ごとになる。
+/** 左レールに常時表示する編集対象リスト。項目が配列ごとになる。
  *
- * @doc docs/specs/ui.md#5-tab
+ * @doc docs/specs/ui.md#target-work-navigation
  */
 export function EditTargetSelect({
   target,
@@ -15,27 +15,51 @@ export function EditTargetSelect({
   readonly mac: MacWorkspaceByLayout;
   readonly onChange: (target: EditTarget) => void;
 }): React.JSX.Element {
-  const value = target.kind === "cornix" ? "cornix" : `mac:${target.layout}`;
   return (
-    <div className="target-bar">
-      <label>
-        <span>編集対象</span>
-        <select
-          aria-label="編集対象"
-          value={value}
-          onChange={(event) => onChange(parseEditTarget(event.target.value))}
-        >
-          <option value="cornix">Cornix LP（実機）</option>
-          <option value="mac:ansi">Mac キーボード（ANSI）— {macScopeLabel(mac.ansi)}</option>
-          <option value="mac:jis">Mac キーボード（JIS）— {macScopeLabel(mac.jis)}</option>
-        </select>
-      </label>
+    <div className="target-list" aria-label="編集対象">
+      <p>編集対象</p>
+      <TargetButton
+        active={target.kind === "cornix"}
+        label="Cornix LP"
+        detail="実機設定 · keymap.yaml"
+        onClick={() => onChange({ kind: "cornix" })}
+      />
+      <TargetButton
+        active={target.kind === "mac" && target.layout === "ansi"}
+        label="Mac ANSI"
+        detail={`ローカル設定 · ${macScopeLabel(mac.ansi)}`}
+        onClick={() => onChange({ kind: "mac", layout: "ansi" })}
+      />
+      <TargetButton
+        active={target.kind === "mac" && target.layout === "jis"}
+        label="Mac JIS"
+        detail={`ローカル設定 · ${macScopeLabel(mac.jis)}`}
+        onClick={() => onChange({ kind: "mac", layout: "jis" })}
+      />
     </div>
   );
 }
 
-function parseEditTarget(value: string): EditTarget {
-  if (value === "mac:ansi") return { kind: "mac", layout: "ansi" };
-  if (value === "mac:jis") return { kind: "mac", layout: "jis" };
-  return { kind: "cornix" };
+function TargetButton({
+  active,
+  label,
+  detail,
+  onClick,
+}: {
+  readonly active: boolean;
+  readonly label: string;
+  readonly detail: string;
+  readonly onClick: () => void;
+}): React.JSX.Element {
+  return (
+    <button
+      type="button"
+      className={active ? "is-active" : ""}
+      aria-pressed={active}
+      onClick={onClick}
+    >
+      <strong>{label}</strong>
+      <small>{detail}</small>
+    </button>
+  );
 }

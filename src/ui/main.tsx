@@ -54,7 +54,7 @@ import {
   serializeBrowserVil,
   generateBrowserKarabinerFromDocument,
 } from "./browser-export.ts";
-import type { CornixTab, EditTarget, MacTab, Selection } from "./types.ts";
+import type { EditTarget, Selection, WorkTask } from "./types.ts";
 import {
   cornixIssue,
   defaultEditTarget,
@@ -96,14 +96,19 @@ const themeStorage = browserThemeStorage();
 const initialThemePreference = loadThemePreference(themeStorage);
 const USER_GUIDE_URL =
   "https://github.com/salan70/cornix-bonsai/blob/main/docs/user-guide/README.md";
+const workTasks: readonly { id: WorkTask; label: string; cornix: boolean; mac: boolean }[] = [
+  { id: "keymap", label: "キー割り当て", cornix: true, mac: true },
+  { id: "overview", label: "全体マップ", cornix: true, mac: false },
+  { id: "behaviors", label: "動作定義", cornix: true, mac: false },
+  { id: "validation", label: "検証", cornix: true, mac: true },
+];
 applyTheme(document.documentElement, initialThemePreference, browserSystemDark());
 
 function App(): React.JSX.Element {
   const [workspace, setWorkspace] = useState<WorkspaceModel | undefined>();
   const [issue, setIssue] = useState<WorkspaceIssue | undefined>();
   const [editTarget, setEditTarget] = useState<EditTarget>({ kind: "cornix" });
-  const [cornixTab, setCornixTab] = useState<CornixTab>("Keymap");
-  const [macTab, setMacTab] = useState<MacTab>("Keymap");
+  const [workTask, setWorkTask] = useState<WorkTask>("keymap");
   const [layer, setLayer] = useState(0);
   const [macLayers, setMacLayers] = useState({ ansi: 0, jis: 0 });
   const [cornixSelection, setCornixSelection] = useState<Selection | undefined>();
@@ -153,6 +158,14 @@ function App(): React.JSX.Element {
   function changeThemePreference(preference: ThemePreference): void {
     setThemePreference(preference);
     saveThemePreference(themeStorage, preference);
+  }
+
+  function changeEditTarget(target: EditTarget): void {
+    setEditTarget(target);
+    if (target.kind === "mac" && (workTask === "overview" || workTask === "behaviors")) {
+      setWorkTask("keymap");
+      setStatus("この対象では利用できない作業のため、キー割り当てへ移動した");
+    }
   }
 
   function adoptWorkspace(model: WorkspaceModel, preserveTarget = false): void {
@@ -944,7 +957,7 @@ function App(): React.JSX.Element {
       );
     }
     if (cornix === undefined || view === undefined) return null;
-    if (cornixTab === "Keymap") {
+    if (workTask === "keymap") {
       return (
         <KeymapTab
           view={view}
@@ -998,7 +1011,7 @@ function App(): React.JSX.Element {
         />
       );
     }
-    if (cornixTab === "Overview") {
+    if (workTask === "overview") {
       return (
         <Overview
           document={cornix.document}
@@ -1012,7 +1025,7 @@ function App(): React.JSX.Element {
         />
       );
     }
-    if (cornixTab === "Behaviors") {
+    if (workTask === "behaviors") {
       return (
         <Behaviors
           document={cornix.document}
@@ -1034,7 +1047,7 @@ function App(): React.JSX.Element {
 
   function renderMacMain(): React.ReactNode {
     if (macLayout === undefined || workspace === undefined) return null;
-    if (macTab === "References") {
+    if (workTask === "validation") {
       return <MacReferences layout={macLayout} mac={workspace.mac[macLayout]} />;
     }
     return (
@@ -1112,28 +1125,24 @@ function App(): React.JSX.Element {
         canReload={workspace !== undefined}
         canEditCornix={cornix !== undefined}
       />
-      <nav className="rail" aria-label="編集画面">
+      <nav className="rail" aria-label="編集対象と作業">
         {workspace === undefined ? null : (
-          <EditTargetSelect target={editTarget} mac={workspace.mac} onChange={setEditTarget} />
+          <EditTargetSelect target={editTarget} mac={workspace.mac} onChange={changeEditTarget} />
         )}
         <div className="tabs">
-          {(editTarget.kind === "cornix"
-            ? (["Keymap", "Overview", "Behaviors", "References"] as const)
-            : (["Keymap", "References"] as const)
-          ).map((name) => {
-            const activeTab = editTarget.kind === "cornix" ? cornixTab : macTab;
+          {workTasks.map((item, index) => {
+            const available = editTarget.kind === "cornix" ? item.cornix : item.mac;
             return (
               <button
-                className={activeTab === name ? "is-active" : ""}
-                aria-current={activeTab === name ? "page" : undefined}
-                onClick={() =>
-                  editTarget.kind === "cornix"
-                    ? setCornixTab(name as CornixTab)
-                    : setMacTab(name as MacTab)
-                }
-                key={name}
+                className={`${workTask === item.id ? "is-active" : ""} ${available ? "" : "is-disabled"}`}
+                aria-current={workTask === item.id ? "page" : undefined}
+                aria-disabled={!available}
+                onClick={() => available && setWorkTask(item.id)}
+                key={item.id}
               >
-                {name}
+                <span aria-hidden="true">0{index + 1}</span>
+                <strong>{item.label}</strong>
+                {!available ? <small>この対象では利用できません</small> : null}
               </button>
             );
           })}

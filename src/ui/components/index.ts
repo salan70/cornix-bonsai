@@ -13,7 +13,7 @@ import { References as ReferencesComponent } from "./References.js";
 import { StatusBar as StatusBarComponent } from "./StatusBar.js";
 import { WorkspaceRecovery as WorkspaceRecoveryComponent } from "./WorkspaceRecovery.js";
 
-/** @doc docs/specs/ui.md#5-tab */
+/** @doc docs/specs/ui.md#target-work-navigation */
 export const EditTargetSelect = EditTargetSelectComponent;
 
 /** @doc docs/specs/ui.md#header-and-status */
