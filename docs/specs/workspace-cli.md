@@ -82,7 +82,7 @@ keycodes:
 
 ## 表示名の仕様
 
-表示名はUIのKeyPanelから編集し、空欄でそのraw式のentryを削除する。名前が無い場合はkeycodeの既定表示へ
+表示名はUIの編集パネル（Inspector）から編集し、空欄でそのraw式のentryを削除する。名前が無い場合はkeycodeの既定表示へ
 fallbackする。SVG/PDFでは名前とraw式を併記する。
 
 <!-- @code src/workspace/layout.ts#definitionDigest -->

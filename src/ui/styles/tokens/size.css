@@ -1,0 +1,11 @@
+/* 出典: salan70/uiux-numa d2900ee tokens/size/size.css。uiux-numa 側の生成物を写したもので、直接編集しない。 */
+/* size.tokens.json から生成する。直接編集しない。 */
+:root {
+  --size-control-height-sm: 2rem;
+  --size-control-height-md: 2.5rem;
+  --size-control-height-lg: 3rem;
+  --size-control-min-width-sm: 4.5rem;
+  --size-control-min-width-md: 6rem;
+  --size-control-min-width-lg: 7.5rem;
+  --size-target-min: 1.5rem;
+}

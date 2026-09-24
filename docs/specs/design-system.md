@@ -1,31 +1,30 @@
 # Design System
 
-寸法・タイポグラフィのtoken、CSSのcascade layer構成、React primitiveの契約を定義する。
-色tokenの契約は[ui.md](./ui.md#light--dark-theme)に残す。DocBridgeはTypeScriptの`export`宣言だけを
-symbol単位でlinkできるため、`styles/`配下のCSS token fileはfile単位のlink対象にできない。この節は
-それらのファイルへの直接linkを持たず、パスをprose内に記す。
+寸法と書体の token、CSS の cascade layer 構成、Button と FitText の契約を定義する。
+色 token の契約は [ui.md](./ui.md#light--dark-theme) に残す。
+DocBridge は TypeScript の `export` 宣言だけを symbol 単位で link できるため、`styles/` 配下の CSS はファイル単位の link 対象にできない。
+この節はそれらのファイルへの直接 link を持たず、パスを本文に記す。
 
 ## Token
 
-space、radius、border-width、control-height、bar-height、panel-width、focus-ring、z-indexは
-`styles/tokens/dimension.css`、font family / size / leading / weightは
-`styles/tokens/typography.css`、duration / easingは`styles/tokens/motion.css`に置く。
+寸法と書体と動きの token は uiux-numa の `tokens/`（commit `d2900ee`）の生成物を `src/ui/styles/tokens/` へそのまま写す。
+写したファイルは space、radius、border、size、typography、motion、fonts の 7 つで、各ファイルの先頭に出典を記し、直接編集しない。
+値を変えるときは uiux-numa 側で生成し直してから写し直す。
+書体は LINE Seed JP の Regular と Bold で、woff2 と OFL を `src/ui/styles/tokens/fonts/` に置く。
 
-- spaceは`--space-0`〜`--space-8`の4px刻み（`--space-1`のみ2pxの半段）
-- font-sizeは`--text-xs`（10px）〜`--text-xl`（18px）の6段
-- radiusは`--radius-sm` / `--radius-md` / `--radius-lg` / `--radius-full`の4段
-- motionは`prefers-reduced-motion: reduce`で`--duration-*`を0msへ落とす
+uiux-numa の token に無い本体固有の寸法（骨格の幅、パネルの大きさ、keycap の角丸、小さな部品の大きさ、等幅の書体、小さい文字の段）は `src/ui/styles/tokens/layout.css` に置く。
+値は uiux-numa の `experiments/cornix-workbench` の `board-desk` のモックから写した。
+色は `src/ui/styles/tokens/color.css` だけが定義する（[ui.md](./ui.md#light--dark-theme)）。
 
 ### 幾何由来の例外
 
-盤面とkeycode pickerは実行時に幅を実測して倍率を決めるため、token化の対象から外れる。
+盤面と mini 盤面は実行時に大きさを実測して倍率を決めるため、token 化の対象から外れる。
 
-- keycapの`--cap-font` / `--cap-sub-font`は`useBoardScale`が返す`scale.unit`から算出する
-  （[ui.md](./ui.md#keymap-editor)）
-- `.picker`の`--pk`はcontainer queryの`100cqw`から、`.overview-grid`の
-  `grid-template-columns`は`overviewColumns()`の結果から、それぞれJS/CSSの計算式で決まる
+- keycap の `--cap-font` / `--cap-sub-font` は、`useStageScale` と `useBoardScale` が返す 1u の px から TSX が算出する（[ui.md](./ui.md#keymap-editor)）
+- 盤面と mini 盤面のキーの位置と大きさ、picker の cell の位置と幅は TSX の inline style で与える
+- `@media` の breakpoint（1100px）は CSS の値として残し、同じ行へ `geometric` の印を付ける
 
-これらの宣言は`design-system.test.ts`の直値検出から明示的に除外する。
+`geometric` の印がある行は `design-system.test.ts` の直値検出から外す。
 
 ## Cascade layer
 
@@ -33,94 +32,56 @@ space、radius、border-width、control-height、bar-height、panel-width、focu
 @layer reset, tokens, base, components, features, utilities;
 ```
 
-- `reset`: box-sizing、bodyのmarginなど、外観を持たない最小限の正規化
-- `tokens`: `styles/tokens/*.css`の`:root`宣言
-- `base`: 要素セレクタへの正規化のみ。`button`は`cursor: pointer`など状態だけを持ち、
-  色・境界線・paddingは持たない。`input` / `select` / `textarea`は例外で、要素セレクタのまま
-  外観を持つ（下記「legacy面」を参照）
-- `components`: `c-`接頭辞のclass。Button、Chip、Tag、Field、Section、Panel、Calloutなど
-  再利用可能な部品の外観
-- `features`: 画面固有のclass（`.keymap-layout` `.overview-*` `.pk-*`など）。既存の命名を
-  維持し、リネームはしない
-- `utilities`: `u-`接頭辞の1属性class（`u-text-sm`、`u-muted`など）
+- `reset`: box-sizing、余白と list の正規化など、外観を持たない最小限の正規化
+- `tokens`: `styles/tokens/*.css` の `:root` 宣言と `@font-face`
+- `base`: 要素 selector への正規化だけを置く。`body` の色と書体、focus の輪、`code` の書体を持つ
+- `components`: 複数の画面で使う部品。いまは Button だけ
+- `features`: 画面の部位ごとの class。`shell.css`（header、rail、机、status bar）、`board.css`、`picker.css`、`inspector.css`、`panel.css`、`apply.css`、`workspace.css`
+- `utilities`: 1 目的の class（`visually-hidden`、`spacer`、`muted`、`hint`）と、reduced motion で全ての動きを止める規則
 
-`base`が外観を持たないため、素の`<button>`に依存する箇所は明示的な外観classが必須になる。
-`.pk` `.key` `.tab` `.sev` `.picker-target button` `.layer-tabs button`
-`.overview-layer-name`はいずれも自前で外観を定義しており、`base`の正規化（`cursor` /
-`font: inherit`）だけを共有する。
+`utilities` は最後の layer なので、reduced motion の規則は `components` と `features` の `transition` と `animation` より優先される。
 
-### legacy面
+keycode の種類の class（`kind-*`）は面の色の custom property（`--key-bg` / `--key-fg`）だけを決める。
+選択中の表示は背景を直接上書きするため、種類の class と詳細度を競わない。
+役割色の組（`tone-*`）も `--tone` / `--on-tone` / `--tone-soft` / `--on-tone-soft` の custom property だけを決める。
 
-Behaviors、References、WorkspaceRecoveryの一部（`<input>` `<label>` `<fieldset>` `<ul>`）は
-componentへ分割される前の面として素の要素へ依存し続ける。`input` `select` `textarea`の外観は
-`components`層で要素セレクタのまま定義し、この面を壊さない。新しい編集UIをこれらの画面に足す
-場合は、React primitiveへ移行してから追加する。
+<!-- @code src/ui/components/index.ts#Button -->
 
-<!-- @code src/ui/components/ui/index.ts#Button -->
-<!-- @code src/ui/components/ui/index.ts#Chip -->
-<!-- @code src/ui/components/ui/index.ts#Tag -->
-<!-- @code src/ui/components/ui/index.ts#Field -->
-<!-- @code src/ui/components/ui/index.ts#Section -->
-<!-- @code src/ui/components/ui/index.ts#Panel -->
-<!-- @code src/ui/components/ui/index.ts#Callout -->
-<!-- @code src/ui/components/ui/index.ts#CalloutLabel -->
-<!-- @code src/ui/components/ui/index.ts#SaveStatus -->
+## Button
 
-## React primitive
+Button は uiux-numa の `experiments/button`（採用 variant は `pill-action`、maturity は candidate）を写した。
+役割は `primary` / `secondary` / `quiet` / `danger`、大きさは `small` / `medium` / `large` の 3 段である。
+形はカプセルで、精密ポインタの hover では全体を 1.03 倍、押下では 0.97 倍にし、reduced motion ではどちらも止める。
+disabled は薄くして押せないことを示し、理由は隣の文字で出す。
+`quiet` は面と枠を持たず、下線で操作できることを示す。
+見本ページ用の class と、本体で使わない loading と icon の枠は写していない。
 
-`src/ui/components/ui/`に置く。class名の語彙を知る場所をここへ集約し、feature component側は
-primitiveのpropsだけを扱う。
-
-| primitive                  | props                                                                                                       | 用途                                                                                                                                         |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Button`                   | `variant`: `neutral` / `primary` / `secondary` / `ghost`                                                    | header、status bar、modal footerの操作                                                                                                       |
-| `Chip`                     | `as`（`span` / `button`）、`selected`、`connected`、`faint`、`dot`                                          | 接続状態、layer選択                                                                                                                          |
-| `Tag`                      | `variant`: `neutral` / `add` / `change` / `remove`                                                          | diffのadd/change/remove表示                                                                                                                  |
-| `Field`                    | `label`、`as`（`div` / `label`）                                                                            | labelと入力を1組で扱う。label textを常に`<span class="c-field-label">`へ束ね、`.field label`が子孫に存在せず不達だった不整合を構造で解消する |
-| `Section`                  | —                                                                                                           | side panelの区切りブロック（旧`.psec`）                                                                                                      |
-| `Panel`                    | `as`（`aside` / `section`）、`wide`                                                                         | side panel全般                                                                                                                               |
-| `Callout` / `CalloutLabel` | `as`（`div` / `section` / `button` / `label`）、`tone`: `neutral` / `warning` / `error` / `info`、`pushEnd` | 診断・banner・acknowledge行                                                                                                                  |
-| `SaveStatus`               | `state`、`path`、`applyHint`、`onRetry`、`onReload`                                                         | 選択中編集のローカル保存状態と実機適用導線の分離                                                                                             |
-
-`Callout`は`success` toneを持たない。`.row--success`（Apply前backupの確認行）は診断や
-bannerとは別の文脈で、汎用行`.row`のmodifierとして`features/apply.css`に残す。
-
-menu / dropdown / icon libraryはこの作業では追加しない。
-
-<!-- @code src/ui/components/ui/index.ts#FitText -->
+<!-- @code src/ui/components/index.ts#FitText -->
 <!-- @code src/ui/fit-text-bus.ts#subscribeFit -->
 <!-- @code src/ui/fit-text-bus.ts#notifyFit -->
 <!-- @code src/ui/fit-text-bus.ts#observeFitContainer -->
 
 ## FitText: サイズ固定・文字を縮小
 
-keycap、picker cell、encoder slot、Button、Chipはbox sizeを固定し、収まらない文字は
-`FitText`がfont-sizeを段階的に縮めて収める（ellipsisでの切り詰めを既定にしない）。
+keycap、picker の cell、mini 盤面のキーは box の大きさを固定し、収まらない文字は `FitText` が font-size を段階的に縮めて収める。
 
-- 基準sizeは呼び出し側のCSSが決め、`FitText`は`--fit-scale`という掛け算係数だけを持つ。
-  例: `.keycap-main { font-size: calc(var(--cap-font) * var(--fit-scale, 1)); }`
-- 測定は`el.parentElement`のpadding込みcontent boxに対して行う。dot付きのChipのように
-  兄弟要素と幅を分け合う場合は、`c-chip-label-box`のような専用wrapperをflex itemにして
-  `min-width: 0`を与え、測定対象の親を兄弟の影響を受けない箱にする
-- 縮小は`MIN_SCALE`（0.55）を下限とする。それでも収まらない場合は`overflow: hidden` /
-  `text-overflow: ellipsis`が最終fallbackになる
-- 盤面のscale変更（`useBoardScale`）やwindow resizeでは`fit-text-bus.ts`の`notifyFit()`が
-  再計測を促す。keycode pickerの`.pk`のようにCSS container queryだけでsizeが決まり
-  Reactのpropsが変わらない場所は、`observeFitContainer()`でcontainerを直接observeする
-- `Button`は`--btn-max-width`、`Chip`は`--chip-max-width`でbox幅の上限を持つ。
-  ApplyDialogの確認ボタン（`完了` ⇔ `n 件を実機へ書き込む`）やlayer名（`Chip`・
-  ユーザーが自由に命名できる）のように内容の長さが変わる箇所で、boxが伸縮せず
-  文字だけが縮む
+- 基準の大きさは呼び出し側の CSS が決め、`FitText` は `--fit-scale` という掛け算の係数だけを持つ。例: `.keycap-main { font-size: calc(var(--cap-font) * var(--fit-scale, 1)); }`
+- 測定は `el.parentElement` の padding を除いた content box に対して行う
+- 縮小は `MIN_SCALE`（0.55）を下限とし、それでも収まらない場合は `overflow: hidden` と `text-overflow: ellipsis` が最終の fallback になる
+- 盤面の倍率の変更と window の resize では `fit-text-bus.ts` の `notifyFit()` が再計測を促す
+- picker のように大きさが百分率だけで決まり React の props が変わらない場所は、`observeFitContainer()` で container を直接 observe する
 
 ## 機械検証
 
-`src/ui/design-system.test.ts`が以下を検証する。
+`src/ui/design-system.test.ts` と `src/ui/theme.test.ts` が以下を検証する。
 
-- `styles/components/**`と`styles/features/**`は、token fileと幾何由来の許可リストを除いて
-  生のpx / remを含まない
-- raw hex（`#rrggbb`等）は`styles/tokens/color.css`にしか出現しない
-- `--space-*` / `--text-*` / `--radius-*`などtoken参照はすべて実在するtoken名を指す
-- CSSのどこにも`!important`が出現しない
-- CSSのclass selectorはTSX側のリテラル、または`keycodeClass()`が返す値
-  （`mod` `mod-tap` `layer` `layer-tap` `tapdance` `custom` `none` `basic`）のいずれかに
-  対応する。対応しないclassは死んだ別名として扱う
+- uiux-numa から写した token ファイルが出典 commit と編集禁止の注記を持ち、各 family の段を持つ
+- `index.css` の先頭で layer の順を宣言し、token 以外の CSS はいずれかの layer に入る
+- raw hex（`#rrggbb` 等）は `styles/tokens/color.css` にしか出現しない
+- token 以外の CSS は、`geometric` の印がある行を除いて生の px / rem を含まない
+- CSS のどこにも `!important` が出現しない
+- CSS と TSX が参照する custom property は、CSS のどこかで定義されるか、TSX が実行時に与える
+- CSS の class selector は TSX のリテラルの class 名か、`keycodeClass()` の値から作る `kind-*` に対応する。対応しない class は死んだ別名として扱う
+- reduced motion では全ての `transition` と `animation` を止め、Button の hover の拡大も止める
+- `color.css` は pop-toy の 24 役割を Light と Dark の両方に持ち、派生 token は役割色だけを参照する
+- 本文と主要な操作の文字は 4.5:1、focus と操作の境界は 3:1 以上のコントラストを保つ

@@ -1,12 +1,15 @@
+/* 出典: salan70/uiux-numa d2900ee tokens/motion/motion.css。uiux-numa 側の生成物を写したもので、直接編集しない。 */
+/* motion.tokens.json から生成する。直接編集しない。 */
 :root {
-  --duration-fast: 100ms;
-  --duration-base: 160ms;
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --duration-fast: 0ms;
-    --duration-base: 0ms;
-  }
+  --duration-80: 80ms;
+  --duration-120: 120ms;
+  --duration-160: 160ms;
+  --duration-900: 900ms;
+  --duration-state: 120ms;
+  --duration-press: 160ms;
+  --duration-entrance: 900ms;
+  --duration-stagger: 80ms;
+  --easing-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --easing-out: cubic-bezier(0, 0, 0.58, 1);
+  --easing-entrance: cubic-bezier(0.22, 1, 0.36, 1);
 }

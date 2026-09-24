@@ -1,22 +1,33 @@
 @layer utilities {
-  .u-grow {
-    flex-grow: 1;
+  .visually-hidden {
+    position: absolute;
+    width: var(--border-width-thin);
+    height: var(--border-width-thin);
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
-  .u-mono {
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
+  .spacer {
+    flex: 1;
   }
-  .u-muted {
-    color: var(--muted);
+  .muted {
+    color: var(--color-on-surface-variant);
   }
-  .u-text-sm {
-    font-size: var(--text-sm);
-    line-height: var(--leading-normal);
+  .hint {
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-size-xs);
   }
-  .u-text-error {
-    color: var(--error);
-  }
-  .u-push-end {
-    margin-top: auto;
+
+  /*
+   * reduced motion では、どの部品の動きも止める。
+   * utilities は最後の layer なので、components / features の transition と animation より優先される。
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition: none;
+      animation: none;
+    }
   }
 }

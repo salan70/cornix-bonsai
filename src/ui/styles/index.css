@@ -1,29 +1,26 @@
 @layer reset, tokens, base, components, features, utilities;
 
-@import "./tokens/color.css" layer(tokens);
-@import "./tokens/dimension.css" layer(tokens);
+@import "./tokens/space.css" layer(tokens);
+@import "./tokens/radius.css" layer(tokens);
+@import "./tokens/border.css" layer(tokens);
+@import "./tokens/size.css" layer(tokens);
 @import "./tokens/typography.css" layer(tokens);
 @import "./tokens/motion.css" layer(tokens);
+@import "./tokens/fonts.css" layer(tokens);
+@import "./tokens/color.css" layer(tokens);
+@import "./tokens/layout.css" layer(tokens);
 
 @import "./reset.css";
 @import "./base.css";
 
 @import "./components/button.css";
-@import "./components/chip.css";
-@import "./components/tag.css";
-@import "./components/field.css";
-@import "./components/section.css";
-@import "./components/panel.css";
-@import "./components/callout.css";
-@import "./components/form.css";
 
-@import "./features/chrome.css";
-@import "./features/keymap.css";
-@import "./features/mac.css";
+@import "./features/shell.css";
+@import "./features/board.css";
 @import "./features/picker.css";
-@import "./features/overview.css";
+@import "./features/inspector.css";
+@import "./features/panel.css";
 @import "./features/apply.css";
-@import "./features/diagnostics.css";
 @import "./features/workspace.css";
 
 @import "./utilities.css";

@@ -1,0 +1,233 @@
+/* 盤面。Cornix LP の盤面と encoder の帯、Mac の盤面、keycode の種類ごとの面。 */
+@layer features {
+  /* 盤面の台。大きさは机の grid が外から決め、盤面の倍率はこの要素の実測から導く。 */
+  .stage {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: var(--radius-card);
+    background:
+      radial-gradient(
+          circle at var(--layout-stage-dot-size) var(--layout-stage-dot-size),
+          var(--color-stage-dot) var(--layout-stage-dot-size),
+          transparent 0
+        )
+        0 0 / var(--layout-stage-dot-gap) var(--layout-stage-dot-gap),
+      var(--color-surface-container);
+  }
+  .board-fit {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-rows: auto auto;
+    align-content: safe center;
+    justify-items: center;
+    gap: var(--space-300);
+    padding: var(--space-300);
+    overflow: auto;
+  }
+  .board {
+    position: relative;
+    flex: none;
+  }
+
+  /* keycode の種類。面の色だけを決め、選択や差分の表示は各部品が上書きする。 */
+  .kind-basic {
+    --key-bg: var(--color-key-basic);
+    --key-fg: var(--color-on-key-basic);
+  }
+  .kind-mod,
+  .kind-mod-tap {
+    --key-bg: var(--color-key-mod);
+    --key-fg: var(--color-on-key-mod);
+  }
+  .kind-layer,
+  .kind-layer-tap {
+    --key-bg: var(--color-key-layer);
+    --key-fg: var(--color-on-key-layer);
+  }
+  .kind-tapdance {
+    --key-bg: var(--color-key-tapdance);
+    --key-fg: var(--color-on-key-tapdance);
+  }
+  .kind-custom {
+    --key-bg: var(--color-key-custom);
+    --key-fg: var(--color-on-key-custom);
+  }
+  .kind-none,
+  .kind-passthrough {
+    --key-bg: transparent;
+    --key-fg: var(--color-on-surface-variant);
+  }
+
+  .key {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--border-width-thin);
+    min-width: 0;
+    padding: var(--space-50);
+    overflow: hidden;
+    border: var(--border-width-thick) solid var(--color-key-edge);
+    border-radius: var(--radius-key);
+    background: var(--key-bg, var(--color-surface));
+    color: var(--key-fg, var(--color-on-surface));
+    box-shadow: inset 0 calc(var(--border-width-thick) * -1.5) 0 var(--color-key-shadow);
+    line-height: var(--font-line-height-tight);
+    text-align: center;
+    transition:
+      transform var(--duration-state) var(--easing-standard),
+      box-shadow var(--duration-state) var(--easing-standard);
+  }
+  .key:hover {
+    box-shadow: inset 0 calc(var(--border-width-thick) * -1.5) 0 var(--color-key-shadow-strong);
+  }
+  .key.kind-none {
+    border-style: dashed;
+    box-shadow: none;
+  }
+  .key.kind-passthrough {
+    border-style: dashed;
+    box-shadow: none;
+    font-weight: var(--font-weight-regular);
+  }
+  .keycap-main {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    font-size: calc(var(--cap-font, var(--font-size-xs)) * var(--fit-scale, 1));
+    font-weight: var(--font-weight-bold);
+    line-height: var(--font-line-height-tight);
+    text-overflow: ellipsis;
+    white-space: pre-line;
+  }
+  .keycap-sub {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    font-size: calc(var(--cap-sub-font, var(--font-size-2xs)) * var(--fit-scale, 1));
+    line-height: var(--font-line-height-tight);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.85;
+  }
+  .kind-passthrough .keycap-main {
+    font-weight: var(--font-weight-regular);
+  }
+
+  /*
+   * 選択中。種類ごとの面（.kind-*）は変数だけを決めるので、ここで背景を直接上書きすれば種類に関係なく同じ見た目になる。
+   * 黄の塗りは白の面に 1.61:1 しかないため、面の外に太い二重の輪を必ず付ける。
+   */
+  .key.is-selected,
+  .slot.is-selected {
+    z-index: 2;
+    border-color: var(--color-on-surface);
+    border-style: solid;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    box-shadow:
+      0 0 0 var(--ring-gap) var(--color-surface),
+      0 0 0 var(--ring-width) var(--color-on-surface);
+  }
+  .key-diff {
+    position: absolute;
+    top: var(--space-50);
+    right: var(--space-50);
+    width: var(--size-dot);
+    height: var(--size-dot);
+    border: var(--border-width-thick) solid var(--color-surface);
+    border-radius: var(--radius-full);
+    background: var(--color-diff-dot);
+    box-sizing: content-box;
+  }
+  .key-diag {
+    position: absolute;
+    top: var(--space-50);
+    left: var(--space-50);
+    display: grid;
+    width: var(--size-badge);
+    height: var(--size-badge);
+    place-items: center;
+    border-radius: var(--radius-full);
+    background: var(--color-warning);
+    color: var(--color-surface);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+  }
+  .key-diag.is-error {
+    border-radius: var(--radius-xs);
+    background: var(--color-error);
+  }
+
+  /* encoder の帯。物理キーとは混ぜず、盤面の下へ本数分を並べる。 */
+  .encoders {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-200);
+    justify-content: center;
+  }
+  .encoder {
+    display: flex;
+    align-items: center;
+    gap: var(--space-150);
+    padding: var(--space-100) var(--space-150) var(--space-100) var(--space-300);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+  }
+  .encoder-name {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-150);
+    font-weight: var(--font-weight-bold);
+    white-space: nowrap;
+  }
+  .encoder-dial {
+    width: var(--size-dial);
+    height: var(--size-dial);
+    border: var(--border-width-thick) solid var(--color-tertiary);
+    border-radius: var(--radius-full);
+    box-shadow: inset 0 0 0 var(--border-width-thin) var(--color-tertiary);
+  }
+  .slot {
+    position: relative;
+    display: grid;
+    min-width: var(--layout-encoder-slot-min);
+    max-width: var(--layout-encoder-slot-min);
+    min-height: var(--size-control-height-sm);
+    padding: 0 var(--space-200);
+    overflow: hidden;
+    border: var(--border-width-thick) solid var(--color-key-edge);
+    border-radius: var(--radius-sm);
+    background: var(--key-bg, var(--color-surface-container));
+    color: var(--key-fg, var(--color-on-surface));
+    text-align: start;
+  }
+  .slot.kind-none {
+    border-style: dashed;
+  }
+  .slot-dir {
+    font-size: var(--font-size-xs);
+    opacity: 0.85;
+    white-space: nowrap;
+  }
+  .slot-value {
+    overflow: hidden;
+    font-weight: var(--font-weight-bold);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .slot .key-diff {
+    top: var(--space-100);
+    right: var(--space-100);
+  }
+  @media (max-width: 1100px) /* geometric: breakpoint */ {
+    .encoder {
+      padding-inline-start: var(--space-200);
+    }
+  }
+}

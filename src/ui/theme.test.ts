@@ -17,69 +17,125 @@ const TEST_PATH = fileURLToPath(import.meta.url);
 const UI_PATH = fileURLToPath(new URL(".", import.meta.url));
 const css = readFileSync(TOKEN_PATH, "utf8");
 
-const SAMPLED_PALETTE = Object.freeze({
-  "--palette-dark-darkest-charcoal": "#383a3f",
-  "--palette-dark-charcoal": "#4c4e53",
-  "--palette-dark-medium-charcoal": "#5a5c61",
-  "--palette-dark-gray-key": "#868686",
-  "--palette-dark-light-gray-key": "#9b9b9b",
-  "--palette-dark-yellow": "#de9e04",
-  "--palette-dark-yellow-highlight": "#e8a619",
-  "--palette-dark-orange": "#f37252",
-  "--palette-dark-mint": "#68c2a8",
-  "--palette-light-white-key": "#efefef",
-  "--palette-light-light-gray": "#c6cbc9",
-  "--palette-light-gray": "#9ea19f",
-  "--palette-light-yellow": "#fac400",
-  "--palette-light-blue": "#4078e0",
-  "--palette-light-blue-highlight": "#5883e4",
-  "--palette-light-green": "#5cbc55",
-});
+/** pop-toy の 24 役割。値は uiux-numa の生成物を写したもので、ここでは名前と対比だけを確かめる。 */
+const ROLES = [
+  "primary",
+  "on-primary",
+  "primary-text",
+  "primary-container",
+  "on-primary-container",
+  "secondary",
+  "on-secondary",
+  "secondary-container",
+  "on-secondary-container",
+  "tertiary",
+  "on-tertiary",
+  "tertiary-container",
+  "on-tertiary-container",
+  "background",
+  "surface",
+  "on-surface",
+  "surface-container",
+  "surface-variant",
+  "on-surface-variant",
+  "outline",
+  "focus",
+  "success",
+  "warning",
+  "error",
+] as const;
 
-test("Issue #16の画像由来paletteを補正せずtoken化する", () => {
-  const { light } = themeTokens();
-  deepStrictEqual(
-    Object.fromEntries(Object.keys(SAMPLED_PALETTE).map((name) => [name, light.get(name)])),
-    SAMPLED_PALETTE,
-  );
-  match(css, /Image-sampled colors/);
-  match(css, /Derived implementation colors/);
-});
-
-test("実効theme属性でLightとDarkのsemantic tokenを切り替える", () => {
+test("pop-toyの24役割をLightとDarkの両方にhexで持ち、出典commitを記録する", () => {
   const { light, dark } = themeTokens();
-  match(css, /:root\[data-theme="dark"\]/);
+  for (const role of ROLES) {
+    match(light.get(`--color-${role}`) ?? "", /^#[0-9a-f]{6}$/i, `Light --color-${role}`);
+    match(dark.get(`--color-${role}`) ?? "", /^#[0-9a-f]{6}$/i, `Dark --color-${role}`);
+  }
+  match(css, /salan70\/uiux-numa d2900ee/);
+  match(css, /pop-toy\/scheme\.css/);
+});
+
+test("明暗はtheme.tsが決めるdata-theme属性で切り替え、media queryに依存しない", () => {
+  match(css, /:root,\s*:root\[data-theme="light"\]\s*\{/);
+  match(css, /:root\[data-theme="dark"\]\s*\{/);
+  ok(
+    !css.replace(/\/\*[\s\S]*?\*\//g, "").includes("prefers-color-scheme"),
+    "color.cssはprefers-color-schemeを使わない",
+  );
+  const { light, dark } = themeTokens();
   strictEqual(light.get("color-scheme"), "light");
   strictEqual(dark.get("color-scheme"), "dark");
-  strictEqual(resolveHex(light, "--bg"), "#efefef");
-  strictEqual(resolveHex(light, "--accent"), "#fac400");
-  strictEqual(resolveHex(light, "--secondary"), "#4078e0");
-  strictEqual(resolveHex(light, "--success"), "#5cbc55");
-  strictEqual(resolveHex(dark, "--bg"), "#383a3f");
-  strictEqual(resolveHex(dark, "--accent"), "#de9e04");
-  strictEqual(resolveHex(dark, "--secondary"), "#f37252");
-  strictEqual(resolveHex(dark, "--success"), "#68c2a8");
 });
 
-test("文字・主要操作・keycap・focusのコントラストを確保する", () => {
+test("本体固有の派生tokenは役割色だけから作り、hexを増やさない", () => {
+  const derived = derivedBlock();
+  ok(derived.includes("--color-key-mod:"), "keycodeの種類の派生tokenが必要");
+  ok(derived.includes("--color-diff-dot:"), "差分の印の派生tokenが必要");
+  deepStrictEqual(derived.match(/#[0-9a-f]{3,8}\b/gi) ?? [], []);
+  for (const [, value] of declarations(derived)) {
+    for (const reference of value.matchAll(/var\((--[a-z0-9-]+)\)/g)) {
+      ok(
+        ROLES.some((role) => reference[1] === `--color-${role}`),
+        `派生tokenが役割色以外を参照している: ${reference[1]}`,
+      );
+    }
+  }
+});
+
+test("文字は4.5:1、focusと操作の境界は3:1以上のコントラストを保つ", () => {
   const { light, dark } = themeTokens();
   for (const [name, tokens] of [
     ["Light", light],
     ["Dark", dark],
   ] as const) {
-    assertContrast(tokens, "--text", "--bg", 4.5, `${name}本文`);
-    assertContrast(tokens, "--accent-contrast", "--accent", 4.5, `${name} primary`);
-    assertContrast(tokens, "--secondary-contrast", "--secondary", 4.5, `${name} secondary`);
-    assertContrast(tokens, "--success-contrast", "--success", 4.5, `${name} success`);
-    assertContrast(tokens, "--key-text", "--key-bg", 4.5, `${name} keycap`);
-    assertContrast(tokens, "--key-muted", "--key-bg", 4.5, `${name} keycap detail`);
-    assertContrast(tokens, "--border-strong", "--surface", 3, `${name} control border`);
+    const text: readonly (readonly [string, string])[] = [
+      ["on-surface", "surface"],
+      ["on-surface", "background"],
+      ["on-surface", "surface-container"],
+      ["on-surface-variant", "surface"],
+      ["on-surface-variant", "surface-container"],
+      ["on-surface-variant", "background"],
+      ["primary-text", "surface"],
+      ["primary-text", "surface-container"],
+      ["on-primary", "primary"],
+      ["on-secondary", "secondary"],
+      ["on-tertiary", "tertiary"],
+      ["on-primary-container", "primary-container"],
+      ["on-secondary-container", "secondary-container"],
+      ["on-tertiary-container", "tertiary-container"],
+      ["on-surface", "surface-variant"],
+      ["success", "surface"],
+      ["warning", "surface"],
+      ["error", "surface"],
+      ["success", "surface-container"],
+      ["warning", "surface-container"],
+      ["error", "surface-container"],
+      ["surface", "warning"],
+      ["surface", "error"],
+      ["surface", "success"],
+      ["surface", "on-surface"],
+    ];
+    for (const [foreground, background] of text)
+      assertContrast(tokens, foreground, background, 4.5, `${name} ${foreground} / ${background}`);
+    for (const background of ["surface", "background", "surface-container"])
+      assertContrast(tokens, "focus", background, 3, `${name} focus / ${background}`);
+    assertContrast(tokens, "outline", "surface", 3, `${name} control border`);
+    assertContrast(
+      tokens,
+      "outline",
+      "surface-container",
+      3,
+      `${name} control border on container`,
+    );
   }
-  assertContrast(light, "--focus", "--key-bg", 3, "Light focus");
-  assertContrast(dark, "--focus-outer", "--key-bg", 3, "Dark focus outer ring");
 });
 
-test("raw hexはpaletteとderived tokenの定義元以外へ置かない", () => {
+test("Lightの黄の塗りは白の面に3:1未満なので、選択の目印を塗りだけに頼れないことを記録する", () => {
+  const { light } = themeTokens();
+  ok(contrast(hexOf(light, "primary"), hexOf(light, "surface")) < 3);
+});
+
+test("raw hexはcolor.css以外へ置かない", () => {
   const offenders = uiFiles(UI_PATH)
     .filter((path) => path !== TOKEN_PATH && path !== TEST_PATH)
     .flatMap((path) => {
@@ -146,13 +202,17 @@ function themeTokens(): {
   readonly light: Map<string, string>;
   readonly dark: Map<string, string>;
 } {
-  const lightBlock = css.match(/^:root\s*\{([\s\S]*?)\n\}/m)?.[1];
+  const lightBlock = css.match(/:root,\s*:root\[data-theme="light"\]\s*\{([\s\S]*?)\n\}/)?.[1];
   const darkBlock = css.match(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1];
   ok(lightBlock !== undefined, "Light token blockが必要");
   ok(darkBlock !== undefined, "Dark token blockが必要");
-  const light = declarations(lightBlock);
-  const dark = new Map([...light, ...declarations(darkBlock)]);
-  return { light, dark };
+  return { light: declarations(lightBlock), dark: declarations(darkBlock) };
+}
+
+function derivedBlock(): string {
+  const block = css.match(/\n:root\s*\{([\s\S]*?)\n\}/)?.[1];
+  ok(block !== undefined, "派生token blockが必要");
+  return block;
 }
 
 function declarations(block: string): Map<string, string> {
@@ -167,19 +227,10 @@ function declarations(block: string): Map<string, string> {
   return result;
 }
 
-function resolveHex(
-  tokens: ReadonlyMap<string, string>,
-  name: string,
-  seen = new Set<string>(),
-): string {
-  ok(!seen.has(name), `${name}の循環参照`);
-  seen.add(name);
-  const value = tokens.get(name);
-  if (value === undefined) throw new Error(`${name}が必要`);
-  if (/^#[0-9a-f]{6}$/i.test(value)) return value.toLowerCase();
-  const reference = value.match(/^var\((--[a-z0-9-]+)\)$/)?.[1];
-  ok(reference !== undefined, `${name}は直接のhexまたはvar参照である必要がある: ${value}`);
-  return resolveHex(tokens, reference, seen);
+function hexOf(tokens: ReadonlyMap<string, string>, role: string): string {
+  const value = tokens.get(`--color-${role}`);
+  ok(value !== undefined && /^#[0-9a-f]{6}$/i.test(value), `--color-${role}はhexである必要がある`);
+  return value.toLowerCase();
 }
 
 function assertContrast(
@@ -189,7 +240,7 @@ function assertContrast(
   minimum: number,
   label: string,
 ): void {
-  const ratio = contrast(resolveHex(tokens, foreground), resolveHex(tokens, background));
+  const ratio = contrast(hexOf(tokens, foreground), hexOf(tokens, background));
   ok(ratio >= minimum, `${label}: ${ratio.toFixed(2)} < ${minimum}`);
 }
 

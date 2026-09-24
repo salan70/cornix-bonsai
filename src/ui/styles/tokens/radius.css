@@ -1,0 +1,12 @@
+/* 出典: salan70/uiux-numa d2900ee tokens/radius/radius.css。uiux-numa 側の生成物を写したもので、直接編集しない。 */
+/* radius.tokens.json から生成する。直接編集しない。 */
+:root {
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-full: 9999px;
+  --radius-mark: 0.125rem;
+  --radius-control: 0.375rem;
+  --radius-surface: 0.625rem;
+  --radius-pill: 9999px;
+}

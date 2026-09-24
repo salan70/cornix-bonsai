@@ -1,0 +1,17 @@
+/* 出典: salan70/uiux-numa d2900ee tokens/typography/fonts.css。直接編集しない。ライセンスは fonts/OFL.txt。 */
+/* LINE Seed JP v20260828。配布元とライセンスは README.md を参照する。 */
+@font-face {
+  font-family: "LINE Seed JP";
+  src: url("./fonts/LINESeedJP-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "LINE Seed JP";
+  src: url("./fonts/LINESeedJP-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

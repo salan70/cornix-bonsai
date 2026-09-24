@@ -1,0 +1,214 @@
+/* 編集パネル。選択中のキー、適用先、raw と表示名、保存状態。 */
+@layer features {
+  .inspector {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-300);
+    min-width: 0;
+    min-height: 0;
+    padding: var(--space-400);
+    overflow-y: auto;
+    border: var(--border-width-thick) solid var(--color-surface-variant);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+  .panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-200);
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-title {
+    font-size: var(--font-size-md);
+  }
+  .selected {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-300);
+    align-items: center;
+  }
+  .cap {
+    display: grid;
+    width: var(--size-cap);
+    height: var(--size-cap);
+    place-items: center;
+    align-content: center;
+    padding: var(--space-50);
+    overflow: hidden;
+    border: var(--border-width-thick) solid var(--color-on-surface);
+    border-radius: var(--radius-tile);
+    background: var(--key-bg, var(--color-surface));
+    color: var(--key-fg, var(--color-on-surface));
+    box-shadow: inset 0 calc(var(--border-width-thick) * -2) 0 var(--color-key-shadow);
+    line-height: var(--font-line-height-tight);
+    text-align: center;
+  }
+  .cap.kind-none,
+  .cap.kind-passthrough {
+    border-style: dashed;
+  }
+  .cap .keycap-main {
+    font-size: calc(var(--font-size-cap) * var(--fit-scale, 1));
+  }
+  .cap .keycap-sub {
+    font-size: calc(var(--font-size-xs) * var(--fit-scale, 1));
+  }
+  .raw {
+    display: block;
+    overflow-wrap: anywhere;
+    font-weight: var(--font-weight-bold);
+  }
+  .behavior {
+    color: var(--color-on-surface-variant);
+    overflow-wrap: anywhere;
+  }
+  .seg {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-100);
+    padding: var(--space-100);
+    border-radius: var(--radius-tile);
+    background: var(--color-surface-container);
+  }
+  .seg legend {
+    margin-bottom: var(--space-150);
+    padding: 0;
+    font-weight: var(--font-weight-bold);
+  }
+  .seg label {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    padding: var(--space-150) var(--space-200);
+    border: var(--border-width-thick) solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .seg input {
+    position: absolute;
+    opacity: 0;
+  }
+  .seg label:has(input:focus-visible) {
+    outline: var(--border-width-thick) solid var(--color-focus);
+    outline-offset: var(--space-50);
+  }
+  .seg label.is-on {
+    border-color: var(--color-on-surface);
+    background: var(--color-surface);
+  }
+  .seg-label {
+    font-weight: var(--font-weight-bold);
+  }
+  .seg-value {
+    overflow: hidden;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-size-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .field {
+    display: grid;
+    gap: var(--space-100);
+    min-width: 0;
+  }
+  .field > label,
+  .field > span {
+    font-weight: var(--font-weight-bold);
+  }
+  .field-row {
+    display: flex;
+    gap: var(--space-200);
+    min-width: 0;
+  }
+  .field input,
+  .field select,
+  .num input,
+  .ov-name {
+    min-width: 0;
+    min-height: var(--size-control-height-sm);
+    padding: 0 var(--space-300);
+    border: var(--border-width-thick) solid var(--color-outline);
+    border-radius: var(--radius-control);
+    background: var(--color-surface);
+  }
+  .field-row input {
+    flex: 1;
+  }
+  .details summary {
+    font-weight: var(--font-weight-bold);
+  }
+  .details[open] {
+    display: grid;
+    gap: var(--space-300);
+  }
+  .kv {
+    display: grid;
+    grid-template-columns: var(--layout-kv-label) minmax(0, 1fr);
+    gap: var(--space-100) var(--space-300);
+  }
+  .kv dt {
+    color: var(--color-on-surface-variant);
+  }
+  .kv dd {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* 保存状態。状態は色に加えて記号と文言で示す。 */
+  .save {
+    display: grid;
+    gap: var(--space-150);
+    margin-top: auto;
+    padding: var(--space-300);
+    border: var(--border-width-thick) solid var(--color-surface-variant);
+    border-radius: var(--radius-tile);
+  }
+  .save-line {
+    display: flex;
+    gap: var(--space-200);
+    align-items: center;
+  }
+  .save-icon {
+    display: grid;
+    flex: none;
+    width: var(--size-save-icon);
+    height: var(--size-save-icon);
+    place-items: center;
+    border-radius: var(--radius-full);
+    background: var(--color-surface-container);
+    font-weight: var(--font-weight-bold);
+  }
+  .save-file code {
+    overflow-wrap: anywhere;
+  }
+  .save.is-saved {
+    border-color: var(--color-success);
+  }
+  .save.is-saved .save-line {
+    color: var(--color-success);
+  }
+  .save.is-saving .save-icon {
+    animation: save-spin 1s linear infinite;
+  }
+  .save.is-error,
+  .save.is-conflict {
+    border-color: var(--color-error);
+  }
+  .save.is-error .save-line,
+  .save.is-conflict .save-line {
+    color: var(--color-error);
+  }
+  .save-note {
+    color: var(--color-on-surface-variant);
+  }
+  .save-warning {
+    color: var(--color-error);
+    font-weight: var(--font-weight-bold);
+  }
+  @keyframes save-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}

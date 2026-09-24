@@ -1,29 +1,28 @@
 @layer base {
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-sans);
-    font-size: var(--text-base);
-    line-height: var(--leading-normal);
+    background: var(--color-background);
+    color: var(--color-on-surface);
+    font-family: var(--font-family-sans);
+    font-size: var(--typography-caption-font-size);
+    line-height: var(--font-line-height-ui);
     -webkit-font-smoothing: antialiased;
   }
-  button,
-  input,
-  select {
+  :where(button, input, select, textarea) {
     font: inherit;
+    color: inherit;
   }
-  button {
+  :where(button:not(:disabled), select, summary) {
     cursor: pointer;
   }
-  button:disabled {
+  :where(button:disabled) {
     cursor: not-allowed;
   }
-  :where(button, input, select, textarea):focus-visible {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
+  :focus-visible {
+    outline: var(--border-width-thick) solid var(--color-focus);
+    outline-offset: var(--focus-offset);
   }
-  code {
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
+  :where(code, kbd, pre) {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-code);
   }
 }

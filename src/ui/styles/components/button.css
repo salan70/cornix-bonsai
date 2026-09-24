@@ -1,59 +1,113 @@
+/*
+ * Button。salan70/uiux-numa d2900ee の experiments/button（採用 variant は pill-action）を写した。
+ * shared/button.css の役割とサイズに、variants/pill-action/variant.css のカプセル形と押下反応を重ねている。
+ * 見本ページ用の .button-showcase と、本体で使わない loading・icon の枠は写していない。
+ */
 @layer components {
-  .c-btn {
+  .button {
+    --button-bg: var(--color-primary);
+    --button-fg: var(--color-on-primary);
+    --button-border: var(--color-primary);
+    --button-padding-inline: var(--space-500);
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-2);
-    min-height: var(--control-height-md);
-    max-width: var(--btn-max-width);
-    padding: 0 var(--space-5);
-    border-radius: var(--radius-md);
-    border: var(--border-width) solid var(--border-strong);
-    background: var(--surface);
-    color: var(--text);
-    font-size: var(--text-md);
-  }
-  .c-btn:hover {
-    background: var(--surface-2);
-  }
-  .c-btn-label {
-    display: block;
-    min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
+    gap: var(--space-150);
+    min-height: var(--size-control-height-md);
+    padding: 0 var(--button-padding-inline);
+    border: var(--border-width-thin) solid var(--button-border);
+    border-radius: var(--radius-pill);
+    color: var(--button-fg);
+    background: var(--button-bg);
+    font-family: var(--typography-control-font-family);
+    font-size: var(--typography-control-font-size);
+    font-weight: var(--typography-control-font-weight);
+    line-height: var(--typography-control-line-height);
+    text-align: center;
     white-space: nowrap;
-    text-overflow: ellipsis;
-    font-size: calc(1em * var(--fit-scale, 1));
+    transition:
+      color var(--duration-state) var(--easing-standard),
+      background-color var(--duration-state) var(--easing-standard),
+      border-color var(--duration-state) var(--easing-standard),
+      transform var(--duration-press) var(--easing-out);
   }
-  .c-btn--primary {
-    background: var(--accent);
-    border-color: var(--accent-emphasis);
-    color: var(--accent-contrast);
+
+  .button--small {
+    --button-padding-inline: var(--space-300);
+    min-inline-size: var(--size-control-min-width-sm);
+    min-height: var(--size-control-height-sm);
+    font-size: var(--typography-caption-font-size);
   }
-  .c-btn--primary:hover {
-    background: var(--accent-hover);
+
+  .button--medium {
+    --button-padding-inline: var(--space-500);
+    min-inline-size: var(--size-control-min-width-md);
+    min-height: var(--size-control-height-md);
   }
-  .c-btn--secondary {
-    background: var(--secondary);
-    border-color: var(--secondary);
-    color: var(--secondary-contrast);
+
+  .button--large {
+    --button-padding-inline: var(--space-600);
+    min-inline-size: var(--size-control-min-width-lg);
+    min-height: var(--size-control-height-lg);
   }
-  .c-btn--secondary:hover {
-    background: var(--secondary-hover);
+
+  .button--secondary {
+    --button-bg: transparent;
+    --button-fg: var(--color-on-surface);
+    --button-border: var(--color-outline);
   }
-  .c-btn--ghost {
-    background: transparent;
-    border-color: transparent;
-    color: var(--muted);
+
+  .button--quiet {
+    --button-bg: transparent;
+    --button-fg: var(--color-primary-text);
+    --button-border: transparent;
+    min-inline-size: auto;
+    min-height: var(--size-target-min);
+    padding: 0;
+    font-weight: var(--font-weight-regular);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
   }
-  .c-btn--ghost:hover {
-    background: var(--surface-2);
-    color: var(--text);
+
+  .button--danger {
+    --button-bg: transparent;
+    --button-fg: var(--color-error);
+    --button-border: var(--color-error);
   }
-  .c-btn:disabled {
-    color: var(--disabled-text);
-    border-color: var(--border);
-    background: var(--disabled-bg);
-    opacity: 0.72;
+
+  .button:focus-visible {
+    outline: var(--border-width-thick) solid var(--color-focus);
+    outline-offset: var(--space-50);
+  }
+
+  .button:disabled {
+    filter: grayscale(0.25);
+    opacity: 0.5;
+  }
+
+  /* hover ではボタン全体を 1.03 倍にし、影は付けない。精密ポインタに限る。 */
+  @media (hover: hover) and (pointer: fine) {
+    .button:not(:disabled):hover {
+      transform: scale(1.03);
+    }
+    .button--quiet:not(:disabled):hover {
+      transform: none;
+    }
+  }
+
+  .button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+
+  .button--quiet:not(:disabled):active {
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .button:not(:disabled):hover,
+    .button:not(:disabled):active {
+      transform: none;
+    }
   }
 }

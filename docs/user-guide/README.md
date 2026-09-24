@@ -35,16 +35,16 @@ CLI はリポジトリを clone し、Nix 環境から実行します。
 ### 既存の workspace を開く
 
 1. [Web UI](https://salan70.github.io/cornix-bonsai/) を Chrome または Chromium で開きます。
-2. `Workspaceを開く` を選び、`keymap.yaml` のあるディレクトリを指定します。
-3. キーを選択し、Keymap 画面の編集パネルや keycode picker で設定を変更します。
-4. 画面下部の表示で、`keymap.yamlへ保存した` と表示されたことを確認します。
-5. 実機と同期する場合は、`接続`、`実機から再読み込み` の順に実行します。
+2. `Workspace を開く` を選び、`keymap.yaml` のあるディレクトリを指定します。
+3. 盤面のキーを選択し、盤面の下の keycode picker や右側の編集パネルで設定を変更します。
+4. 編集パネルの下と画面下部に `ローカル保存済み` と表示されたことを確認します。
+5. 実機と同期する場合は、左端の `実機` を開き、`接続（機器を選ぶ）`、`実機から読み込む` の順に実行します。
 6. 差分を確認し、問題がなければ `実機へ Apply…` へ進みます。
 
 ### 実機読み取りから workspace を新規作成する
 
-1. Web UI で `Workspaceを開く` を選び、空のディレクトリを指定します。
-2. `keymap.yamlが無い` と表示されたら、`実機readでworkspaceを作成` を選びます。
+1. Web UI で `Workspace を開く` を選び、空のディレクトリを指定します。
+2. `keymap.yaml が無い` と表示されたら、`実機 read で workspace を作成` を選びます。
 3. デバイス選択画面で、対象の Cornix LP を選びます。
 4. 読み取りが完了するまで接続を外さずに待ちます。
 5. `keymap.yaml` と definition ファイルの生成を確認します。

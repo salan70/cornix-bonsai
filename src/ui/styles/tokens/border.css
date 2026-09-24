@@ -1,0 +1,6 @@
+/* 出典: salan70/uiux-numa d2900ee tokens/border/border.css。uiux-numa 側の生成物を写したもので、直接編集しない。 */
+/* border.tokens.json から生成する。直接編集しない。 */
+:root {
+  --border-width-thin: 1px;
+  --border-width-thick: 2px;
+}

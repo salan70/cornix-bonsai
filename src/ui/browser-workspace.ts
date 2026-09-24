@@ -101,16 +101,37 @@ export async function pickWorkspace(): Promise<BrowserWorkspaceStore> {
   return new BrowserWorkspaceStore(directory);
 }
 
+/**
+ * 前回開いた directory の復帰結果。権限の再確認はユーザー操作の中でしか求められないため、
+ * `prompt` は確認を求める関数だけを返し、呼び出し側がボタンの押下で呼ぶ。
+ */
+export type RestoredWorkspace =
+  | { readonly kind: "granted"; readonly store: BrowserWorkspaceStore }
+  | {
+      readonly kind: "prompt";
+      readonly name: string;
+      readonly request: () => Promise<BrowserWorkspaceStore | undefined>;
+    };
+
 /** @doc docs/specs/ui.md#workspace入口 */
-export async function restoreWorkspace(): Promise<BrowserWorkspaceStore | undefined> {
+export async function restoreWorkspace(): Promise<RestoredWorkspace | undefined> {
   const directory = await loadDirectory();
   if (directory === undefined) return undefined;
   const query =
     directory.queryPermission === undefined
       ? "granted"
       : await directory.queryPermission({ mode: "readwrite" });
-  if (query !== "granted") return undefined;
-  return new BrowserWorkspaceStore(directory);
+  if (query === "granted") return { kind: "granted", store: new BrowserWorkspaceStore(directory) };
+  if (query !== "prompt" || directory.requestPermission === undefined) return undefined;
+  const requestPermission = directory.requestPermission.bind(directory);
+  return {
+    kind: "prompt",
+    name: directory.name,
+    request: async () =>
+      (await requestPermission({ mode: "readwrite" })) === "granted"
+        ? new BrowserWorkspaceStore(directory)
+        : undefined,
+  };
 }
 
 async function saveDirectory(directory: DirectoryHandleLike): Promise<void> {

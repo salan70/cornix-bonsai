@@ -1,0 +1,76 @@
+/*
+ * Cornix Bonsai 固有の寸法と書体。uiux-numa の token（space / radius / border / size / typography / motion）に無い値だけを置く。
+ * 値は uiux-numa d2900ee の experiments/cornix-workbench board-desk のモックから写した。
+ */
+:root {
+  /* 骨格。1024 × 768 でも横スクロールを出さない幅に抑える。 */
+  --layout-rail-width: 5.25rem;
+  --layout-inspector-width: 19.5rem;
+  --layout-inspector-width-narrow: 16.5rem;
+  --layout-status-min-height: 3.25rem;
+  --layout-header-stripe: 0.3125rem;
+  --layout-workspace-name-max: 15rem;
+  --layout-workspace-name-max-narrow: 9rem;
+  --layout-app-min-height: 36rem;
+
+  /* 画面中央のパネルと Apply の modal。 */
+  --layout-panel-width: 68rem;
+  --layout-panel-height: 46rem;
+  --layout-panel-margin: 4rem;
+  --layout-apply-width: 52rem;
+  --layout-apply-margin: 3rem;
+  --layout-gate-width: 30rem;
+  --layout-recovery-width: 44rem;
+
+  /* パネル内の並び。 */
+  --layout-card-min: 22rem;
+  --layout-behavior-min: 20rem;
+  --layout-step-min: 18rem;
+  --layout-kv-label: 7rem;
+  --layout-diag-severity: 5.5rem;
+  --layout-encoder-slot-min: 4.75rem;
+  --layout-picker-row: 1.75rem;
+  --layout-picker-row-narrow: 1.5rem;
+  --layout-stage-dot-gap: 1.125rem;
+  --layout-stage-dot-size: 0.0625rem;
+
+  /* 角丸。部品の大きさに合わせて段を分ける。 */
+  --radius-card: 1.25rem;
+  --radius-tile: 1rem;
+  --radius-key: 0.55rem;
+  --radius-key-small: 0.4rem;
+  --radius-mini: 0.25rem;
+  --radius-icon: 0.6rem;
+  --radius-gate: 1.75rem;
+
+  /* 小さな部品の大きさ。 */
+  --size-dot: 0.55rem;
+  --size-logo: 2.25rem;
+  --size-logo-large: 4rem;
+  --size-rail-icon: 2rem;
+  --size-cap: 3.75rem;
+  --size-step-no: 1.6rem;
+  --size-save-icon: 1.4rem;
+  --size-badge: 0.95rem;
+  --size-count: 1.25rem;
+  --size-dial: 1.1rem;
+  --size-layer-badge: 2.25rem;
+
+  /* 選択中のキーを囲む二重の輪と、focus の輪の外側の余白。 */
+  --ring-gap: 0.1875rem;
+  --ring-width: 0.375rem;
+  --focus-offset: 0.1875rem;
+  --border-width-accent: 0.375rem;
+
+  /* 書体。uiux-numa の typography に無い小さい段と等幅だけを足す。 */
+  --font-family-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --font-size-xs: 0.75rem;
+  --font-size-2xs: 0.6875rem;
+  --font-size-code: 0.8125rem;
+  --font-size-icon: 1.05rem;
+  --font-size-cap: 1.25rem;
+  --font-size-logo-large: 2rem;
+
+  /* modal の影。 */
+  --shadow-panel: 0 1.5rem 3.75rem var(--color-shadow);
+}

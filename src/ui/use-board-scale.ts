@@ -77,3 +77,59 @@ export function useBoardScale(
 
   return { ref, scale: { unit, gap: Math.max(preset.minGap, Math.round(unit * preset.gapRatio)) } };
 }
+
+/**
+ * 盤面の台（stage）の幅と高さを実測し、盤面全体が収まる1uのpx倍率を返す。
+ *
+ * `ref`は大きさが外から決まる要素（grid の行と列で決まる台）へ付ける。盤面自身の大きさで高さが決まる要素を
+ * 測ると、倍率が自分の出力へ依存するためである。`reserveRef`の要素（encoder の帯）の高さと、台の padding と
+ * 行間は盤面に使えない高さとして引く。帯の高さは倍率に依らない。
+ *
+ * @doc docs/specs/ui.md#keymap-editor
+ */
+export function useStageScale(
+  metrics: BoardMetrics,
+  preset: BoardScalePreset,
+  reserveRef?: React.RefObject<HTMLElement | null>,
+): {
+  readonly ref: React.RefObject<HTMLDivElement | null>;
+  readonly scale: BoardScale;
+} {
+  const ref = useRef<HTMLDivElement>(null);
+  const [available, setAvailable] = useState({ width: 0, height: 0 });
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (element === null) return;
+    const measure = (): void => {
+      const style = window.getComputedStyle(element);
+      const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+      const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+      const reserve = reserveRef?.current;
+      const reserved =
+        reserve === null || reserve === undefined
+          ? 0
+          : reserve.offsetHeight + (parseFloat(style.rowGap) || 0);
+      const next = {
+        width: Math.max(0, element.clientWidth - padX),
+        height: Math.max(0, element.clientHeight - padY - reserved),
+      };
+      setAvailable((current) =>
+        current.width === next.width && current.height === next.height ? current : next,
+      );
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    if (reserveRef?.current) observer.observe(reserveRef.current);
+    measure();
+    return () => observer.disconnect();
+  }, [reserveRef]);
+
+  const unit = fitUnit(metrics, available, { min: preset.minUnit, max: preset.maxUnit });
+
+  useLayoutEffect(() => {
+    notifyFit();
+  }, [unit]);
+
+  return { ref, scale: { unit, gap: Math.max(preset.minGap, Math.round(unit * preset.gapRatio)) } };
+}

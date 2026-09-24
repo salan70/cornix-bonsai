@@ -1,102 +1,126 @@
-import type { DiagnosticSummary } from "../../core/validation/types.ts";
-import { Button } from "./ui/index.ts";
+import type { DiagnosticSummary, Severity } from "../../core/validation/types.ts";
+import type { RoundTripProgress } from "../../device/protocol.ts";
+import { SEVERITY_VIEW } from "../diagnostics.ts";
+import type { SaveState } from "../save-state.ts";
+import { Button } from "./Button.tsx";
+
+const SAVE_TEXT: Readonly<Record<SaveState["kind"], string>> = {
+  idle: "変更なし",
+  saving: "保存中…",
+  saved: "ローカル保存済み",
+  error: "保存に失敗",
+  conflict: "外部変更のため保存できない",
+};
+
+const SAVE_CLASS: Readonly<Record<SaveState["kind"], string>> = {
+  idle: "status-save is-idle",
+  saving: "status-save is-saving",
+  saved: "status-save is-saved",
+  error: "status-save is-error",
+  conflict: "status-save is-conflict",
+};
+
+const SEVERITY_CLASS: Readonly<Record<Severity, string>> = {
+  error: "sev sev-error",
+  warning: "sev sev-warning",
+  information: "sev sev-information",
+};
 
 export type StatusBarMode =
   | {
       readonly kind: "cornix";
-      readonly savePath: string;
+      readonly read: boolean;
       readonly changedCount: number;
-      readonly canApply: boolean;
+      readonly applyBlockedReason: string | undefined;
       readonly onApply: () => void;
     }
   | {
       readonly kind: "mac";
-      readonly savePath: string;
       readonly canExport: boolean;
       readonly onExportKarabiner: () => void;
     };
 
-/** @doc docs/specs/ui.md#header-and-status */
+/**
+ * 画面下の status bar。診断の件数、保存状態と保存先、通知、実機との差分と Apply の入口。
+ *
+ * Apply を開始できないときはボタンを無効にし、理由を文字で並べる。Mac では Apply を出さず、適用は CLI だと示す。
+ */
 export function StatusBar({
   summary,
-  status,
-  mode,
   onSeverity,
+  save,
+  savePath,
+  message,
+  progress,
+  mode,
 }: {
   readonly summary: DiagnosticSummary;
-  readonly status: string;
+  readonly onSeverity: (severity: Severity) => void;
+  readonly save: SaveState;
+  readonly savePath: string;
+  readonly message: string;
+  readonly progress: RoundTripProgress | undefined;
   readonly mode: StatusBarMode;
-  readonly onSeverity?: (severity: keyof DiagnosticSummary) => void;
 }): React.JSX.Element {
+  const text =
+    progress === undefined
+      ? message
+      : `${progress.label}（往復 ${progress.count}${progress.total === undefined ? "" : ` / ${progress.total}`} 回）`;
   return (
     <footer className="status">
-      <SeverityButton severity="error" label="エラー" count={summary.error} onClick={onSeverity} />
-      <SeverityButton
-        severity="warning"
-        label="警告"
-        count={summary.warning}
-        onClick={onSeverity}
-      />
-      <SeverityButton
-        severity="information"
-        label="情報"
-        count={summary.information}
-        onClick={onSeverity}
-      />
-      <div className="chrome-divider" aria-hidden="true" />
-      {mode.kind === "cornix" ? (
-        <span className="u-text-sm u-muted">
-          実機との差分 <b>{mode.changedCount}</b> 件
-        </span>
-      ) : (
-        <span className="u-text-sm u-muted">適用は cornix mac apply（CLI）</span>
-      )}
-      <span className="status-message">{status}</span>
-      <span className="u-text-sm u-muted">
-        保存先 <span className="u-mono">{mode.savePath}</span>
+      <div className="sev-group">
+        {(["error", "warning", "information"] as const).map((severity) => (
+          <button
+            key={severity}
+            type="button"
+            data-severity={severity}
+            className={SEVERITY_CLASS[severity]}
+            aria-label={`${SEVERITY_VIEW[severity].label} ${summary[severity]} 件。検証を開く`}
+            onClick={() => onSeverity(severity)}
+          >
+            <span aria-hidden="true">{SEVERITY_VIEW[severity].icon}</span> {summary[severity]}
+          </button>
+        ))}
+      </div>
+      <span className={SAVE_CLASS[save.kind]} data-save={save.kind}>
+        {SAVE_TEXT[save.kind]} <code>{savePath}</code>
+      </span>
+      <span className="status-msg" role="status" aria-live="polite" title={text}>
+        {text}
       </span>
       {mode.kind === "cornix" ? (
         <>
-          <Button disabled={mode.changedCount === 0}>差分を見る</Button>
-          <Button variant="primary" onClick={mode.onApply} disabled={!mode.canApply}>
+          <span className="status-diff muted">
+            {mode.read ? `実機との差分 ${mode.changedCount} 件` : "実機の差分は未読込"}
+          </span>
+          <Button
+            size="small"
+            data-apply
+            disabled={mode.applyBlockedReason !== undefined}
+            aria-describedby={mode.applyBlockedReason === undefined ? undefined : "apply-reason"}
+            onClick={mode.onApply}
+          >
             実機へ Apply…
           </Button>
+          {mode.applyBlockedReason === undefined ? null : (
+            <span id="apply-reason" className="status-why">
+              {mode.applyBlockedReason}
+            </span>
+          )}
         </>
       ) : (
-        <Button onClick={mode.onExportKarabiner} disabled={!mode.canExport}>
-          Karabiner assetを書き出す
-        </Button>
+        <>
+          <span className="status-diff muted">適用は CLI の cornix mac apply</span>
+          <Button
+            size="small"
+            appearance="secondary"
+            disabled={!mode.canExport}
+            onClick={mode.onExportKarabiner}
+          >
+            Karabiner asset を書き出す
+          </Button>
+        </>
       )}
     </footer>
-  );
-}
-
-function SeverityButton({
-  severity,
-  label,
-  count,
-  onClick,
-}: {
-  readonly severity: "error" | "warning" | "information";
-  readonly label: string;
-  readonly count: number;
-  readonly onClick: ((severity: keyof DiagnosticSummary) => void) | undefined;
-}): React.JSX.Element {
-  const key = severity;
-  const className =
-    severity === "error" ? "sev--error" : severity === "warning" ? "sev--warning" : "sev--info";
-  return (
-    <button
-      className={`sev ${className} ${count === 0 ? "is-zero" : ""}`}
-      onClick={() => onClick?.(key)}
-      aria-label={`${label} ${count}件`}
-    >
-      <span aria-hidden="true">
-        {severity === "error" ? "⛔" : severity === "warning" ? "⚠" : "ⓘ"}
-      </span>
-      <span>
-        {label} {count}
-      </span>
-    </button>
   );
 }

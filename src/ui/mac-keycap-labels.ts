@@ -61,7 +61,7 @@ const JIS_ONLY: Readonly<Record<string, string>> = {
 /**
  * 盤面キャップの表示名。文字・数字・F キーは名前から導出し、それ以外は配列別の表で引く。
  *
- * @doc docs/specs/ui.md#mac-tab
+ * @doc docs/specs/ui.md#mac-board
  */
 export function macKeycapLabel(keyCode: string, layout: MacKeyboardLayout): string {
   if (/^[a-z]$/.test(keyCode)) return keyCode.toUpperCase();

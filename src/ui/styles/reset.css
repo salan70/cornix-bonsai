@@ -1,8 +1,21 @@
 @layer reset {
-  * {
+  *,
+  *::before,
+  *::after {
     box-sizing: border-box;
   }
   body {
     margin: 0;
+  }
+  :where(h1, h2, h3, p, ul, ol, dl, dd, fieldset, figure) {
+    margin: 0;
+  }
+  :where(ul, ol) {
+    padding: 0;
+    list-style: none;
+  }
+  :where(fieldset) {
+    padding: 0;
+    border: 0;
   }
 }

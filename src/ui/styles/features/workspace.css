@@ -1,55 +1,60 @@
+/* workspace の入口と、読み込めなかった対象の復旧。 */
 @layer features {
-  .main-content {
-    grid-area: main;
-    min-width: 0;
-    flex: 1;
+  .gate {
+    grid-area: desk;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: var(--space-400);
     min-height: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: auto;
+    padding: var(--space-600);
+    overflow-y: auto;
+    background:
+      linear-gradient(135deg, var(--color-primary-container), transparent 40%),
+      linear-gradient(315deg, var(--color-secondary-container), transparent 45%),
+      var(--color-background);
   }
-  .empty-state {
-    grid-area: main;
-    min-width: 0;
-    flex: 1;
-    padding: var(--space-8) var(--space-6);
-    text-align: center;
+  .gate-card {
+    display: grid;
+    gap: var(--space-400);
+    justify-items: start;
+    max-width: var(--layout-gate-width);
+    padding: var(--space-1000);
+    border: var(--border-width-thick) solid var(--color-on-surface);
+    border-radius: var(--radius-gate);
+    background: var(--color-surface);
   }
-  .empty-state > p {
-    color: var(--muted);
+  .gate-card h1 {
+    font-size: var(--typography-title-font-size);
   }
   .recovery {
-    max-width: var(--recovery-max-width);
-    margin: var(--space-7) auto 0;
-    padding: var(--space-6) var(--space-7);
-    text-align: left;
-    border: var(--border-width) solid var(--border);
-    border-left: var(--border-width-accent) solid var(--accent);
-    background: var(--surface);
     display: grid;
-    gap: var(--space-5);
+    align-content: center;
+    justify-items: start;
+    gap: var(--space-400);
+    max-width: var(--layout-recovery-width);
+    min-height: 0;
+    padding: var(--space-1000);
+    overflow-y: auto;
+    border: var(--border-width-thick) solid var(--color-warning);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+  .center > .recovery {
+    grid-row: 1 / -1;
+    max-width: none;
   }
   .recovery h2 {
-    margin: 0;
-    font-size: var(--text-lg);
+    color: var(--color-warning);
+    font-size: var(--typography-heading-font-size);
   }
-  .recovery p {
-    margin: 0;
+  .recovery.is-error {
+    border-color: var(--color-error);
   }
-  .recovery-detail {
-    color: var(--muted);
-    font-size: var(--text-md);
+  .recovery.is-error h2 {
+    color: var(--color-error);
   }
-  .recovery-detail code {
+  .recovery .kv code {
     overflow-wrap: anywhere;
-  }
-  .recovery-actions {
-    display: flex;
-    gap: var(--space-4);
-  }
-  .main-content > .c-panel {
-    width: auto;
-    margin: var(--space-7);
-    border: var(--border-width) solid var(--border);
   }
 }

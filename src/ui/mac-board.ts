@@ -16,7 +16,7 @@ export interface MacBoardEntry {
   readonly keycode: string | undefined;
 }
 
-/** @doc docs/specs/ui.md#mac-tab */
+/** @doc docs/specs/ui.md#mac-board */
 export function macBoardEntries(
   document: MacKeymapDocument,
   layer: number,

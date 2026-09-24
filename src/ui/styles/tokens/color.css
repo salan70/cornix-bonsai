@@ -1,165 +1,105 @@
-:root {
+/*
+ * 配色の唯一の定義元。raw hex はこのファイルにだけ置く。
+ *
+ * 24 役割の値は salan70/uiux-numa d2900ee の
+ * experiments/color-schemes-material/variants/pop-toy/scheme.css（shared/palettes.ts の生成物）を写した。
+ * 値は補正しない。変えるときは uiux-numa 側で生成し直してから写す。
+ * 出典は prefers-color-scheme で明暗を切り替えるが、本体は theme.ts が <html data-theme> を決めるため属性で切り替える。
+ */
+
+:root,
+:root[data-theme="light"] {
   color-scheme: light;
 
-  /* Image-sampled colors. Keep these exact: they are the Issue #16 source palette. */
-  --palette-dark-darkest-charcoal: #383a3f;
-  --palette-dark-charcoal: #4c4e53;
-  --palette-dark-medium-charcoal: #5a5c61;
-  --palette-dark-gray-key: #868686;
-  --palette-dark-light-gray-key: #9b9b9b;
-  --palette-dark-yellow: #de9e04;
-  --palette-dark-yellow-highlight: #e8a619;
-  --palette-dark-orange: #f37252;
-  --palette-dark-mint: #68c2a8;
-  --palette-light-white-key: #efefef;
-  --palette-light-light-gray: #c6cbc9;
-  --palette-light-gray: #9ea19f;
-  --palette-light-yellow: #fac400;
-  --palette-light-blue: #4078e0;
-  --palette-light-blue-highlight: #5883e4;
-  --palette-light-green: #5cbc55;
+  --color-primary: #fac400; /* キーキャップの黄 */
+  --color-on-primary: #120d09;
+  --color-primary-text: #785f02;
+  --color-primary-container: #faf1d1;
+  --color-on-primary-container: #120d09;
 
-  /* Derived implementation colors. These are not sampled from either image. */
-  --derived-deep-ink: #0b0c0d;
-  --derived-light-border-strong: #737775;
-  --derived-light-accent-emphasis: #725a00;
-  --derived-light-error: #a83225;
-  --derived-light-warning: #725a00;
-  --derived-light-info: #285cb5;
-  --derived-light-success: #2d6b2a;
-  --derived-dark-border-strong: #9d9d9d;
+  --color-secondary: #4078e0; /* キーキャップの青 */
+  --color-on-secondary: #120d09;
+  --color-secondary-container: #d4e0f7;
+  --color-on-secondary-container: #120d09;
 
-  /* Light semantic tokens. */
-  --bg: var(--palette-light-white-key);
-  --surface: var(--palette-light-white-key);
-  --surface-2: var(--palette-light-light-gray);
-  --surface-3: var(--palette-light-gray);
-  --border: var(--palette-light-light-gray);
-  --border-strong: var(--derived-light-border-strong);
-  --text: var(--palette-dark-darkest-charcoal);
-  --muted: var(--palette-dark-charcoal);
-  --faint: var(--palette-dark-medium-charcoal);
-  --accent: var(--palette-light-yellow);
-  --accent-hover: color-mix(
-    in srgb,
-    var(--palette-light-yellow) 88%,
-    var(--palette-dark-darkest-charcoal)
-  );
-  --accent-soft: color-mix(in srgb, var(--palette-light-yellow) 20%, var(--surface));
-  --accent-emphasis: var(--derived-light-accent-emphasis);
-  --accent-contrast: var(--palette-dark-darkest-charcoal);
-  --secondary: var(--palette-light-blue);
-  --secondary-hover: var(--palette-light-blue-highlight);
-  --secondary-soft: color-mix(in srgb, var(--palette-light-blue) 14%, var(--surface));
-  --secondary-contrast: var(--derived-deep-ink);
-  --success: var(--palette-light-green);
-  --success-soft: color-mix(in srgb, var(--palette-light-green) 16%, var(--surface));
-  --success-text: var(--derived-light-success);
-  --success-contrast: var(--derived-deep-ink);
-  --error: var(--derived-light-error);
-  --error-soft: color-mix(in srgb, var(--derived-light-error) 12%, var(--surface));
-  --warning: var(--derived-light-warning);
-  --warning-border: var(--derived-light-warning);
-  --warning-soft: color-mix(in srgb, var(--palette-light-yellow) 18%, var(--surface));
-  --info: var(--derived-light-info);
-  --info-soft: var(--secondary-soft);
-  --focus: var(--palette-light-blue);
-  --focus-outer: var(--palette-dark-darkest-charcoal);
-  --focus-ring: var(--focus);
-  --key-bg: var(--palette-light-white-key);
-  --key-hover-bg: color-mix(
-    in srgb,
-    var(--palette-light-light-gray) 45%,
-    var(--palette-light-white-key)
-  );
-  --key-special-bg: color-mix(
-    in srgb,
-    var(--palette-light-gray) 38%,
-    var(--palette-light-white-key)
-  );
-  --key-text: var(--palette-dark-darkest-charcoal);
-  --key-muted: var(--palette-dark-charcoal);
-  --disabled-bg: var(--palette-light-light-gray);
-  --disabled-text: var(--palette-dark-medium-charcoal);
+  --color-tertiary: #f37252; /* ノブの赤橙 */
+  --color-on-tertiary: #120d09;
+  --color-tertiary-container: #fad9d1;
+  --color-on-tertiary-container: #120d09;
 
-  /* Derived layer-link colors. The L number and layer name remain the identity. */
-  --layer-link-0: #7c3aed;
-  --layer-link-1: #2563eb;
-  --layer-link-2: #00897b;
-  --layer-link-3: #b45309;
-  --layer-link-4: #c026d3;
-  --layer-link-5: #15803d;
-  --layer-link-6: #c2410c;
-  --layer-link-7: #0369a1;
+  --color-background: #f8f9f9;
+  --color-surface: #fefefe;
+  --color-on-surface: #1f1f1f;
+  --color-surface-container: #eff0f0;
+  --color-surface-variant: #dee3e0;
+  --color-on-surface-variant: #4d4d4d;
+  --color-outline: #757575;
+  --color-focus: #9b7a03;
+
+  --color-success: #2e731d;
+  --color-warning: #795d1c;
+  --color-error: #a23b1b;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  /* Derived dark-theme colors. These are not sampled from either image. */
-  --derived-dark-surface-3: color-mix(
-    in srgb,
-    var(--palette-dark-medium-charcoal) 72%,
-    var(--palette-dark-gray-key)
-  );
-  --derived-dark-secondary-hover: color-mix(
-    in srgb,
-    var(--palette-dark-orange) 84%,
-    var(--palette-light-white-key)
-  );
-  --derived-dark-error: #ffb4a9;
-  --derived-dark-warning: #f2c35b;
+  --color-primary: #fac400; /* キーキャップの黄 */
+  --color-on-primary: #120d09;
+  --color-primary-text: #fde591;
+  --color-primary-container: #896f10;
+  --color-on-primary-container: #fffdf9;
 
-  /* Dark semantic tokens. */
-  --bg: var(--palette-dark-darkest-charcoal);
-  --surface: var(--palette-dark-charcoal);
-  --surface-2: var(--palette-dark-medium-charcoal);
-  --surface-3: var(--derived-dark-surface-3);
-  --border: var(--palette-dark-gray-key);
-  --border-strong: var(--derived-dark-border-strong);
-  --text: var(--palette-light-white-key);
-  --muted: var(--palette-light-light-gray);
-  --faint: var(--palette-dark-light-gray-key);
-  --accent: var(--palette-dark-yellow);
-  --accent-hover: var(--palette-dark-yellow-highlight);
-  --accent-soft: color-mix(in srgb, var(--palette-dark-yellow) 20%, var(--surface));
-  --accent-emphasis: var(--palette-dark-yellow-highlight);
-  --accent-contrast: var(--palette-dark-darkest-charcoal);
-  --secondary: var(--palette-dark-orange);
-  --secondary-hover: var(--derived-dark-secondary-hover);
-  --secondary-soft: color-mix(in srgb, var(--palette-dark-orange) 16%, var(--surface));
-  --secondary-contrast: var(--derived-deep-ink);
-  --success: var(--palette-dark-mint);
-  --success-soft: color-mix(in srgb, var(--palette-dark-mint) 16%, var(--surface));
-  --success-text: var(--palette-dark-mint);
-  --success-contrast: var(--derived-deep-ink);
-  --error: var(--derived-dark-error);
-  --error-soft: color-mix(in srgb, var(--derived-dark-error) 14%, var(--surface));
-  --warning: var(--derived-dark-warning);
-  --warning-border: var(--palette-dark-yellow-highlight);
-  --warning-soft: color-mix(in srgb, var(--palette-dark-yellow) 16%, var(--surface));
-  --info: var(--palette-light-light-gray);
-  --info-soft: var(--surface-2);
-  --focus: var(--palette-dark-orange);
-  --focus-outer: var(--palette-light-white-key);
-  --focus-ring: var(--focus-outer);
-  --key-bg: var(--palette-dark-medium-charcoal);
-  --key-hover-bg: color-mix(
-    in srgb,
-    var(--palette-dark-medium-charcoal) 78%,
-    var(--palette-dark-gray-key)
-  );
-  --key-special-bg: var(--derived-dark-surface-3);
-  --key-text: var(--palette-light-white-key);
-  --key-muted: var(--palette-light-white-key);
-  --disabled-bg: var(--palette-dark-charcoal);
-  --disabled-text: var(--palette-dark-light-gray-key);
-  --layer-link-0: #c4b5fd;
-  --layer-link-1: #93c5fd;
-  --layer-link-2: #5eead4;
-  --layer-link-3: #fbbf24;
-  --layer-link-4: #f0abfc;
-  --layer-link-5: #86efac;
-  --layer-link-6: #fdba74;
-  --layer-link-7: #7dd3fc;
+  --color-secondary: #4078e0; /* キーキャップの青 */
+  --color-on-secondary: #120d09;
+  --color-secondary-container: #183d81;
+  --color-on-secondary-container: #fffdf9;
+
+  --color-tertiary: #f37252; /* ノブの赤橙 */
+  --color-on-tertiary: #120d09;
+  --color-tertiary-container: #892810;
+  --color-on-tertiary-container: #fffdf9;
+
+  --color-background: #1a1b1b;
+  --color-surface: #252726;
+  --color-on-surface: #f0f0f0;
+  --color-surface-container: #323433;
+  --color-surface-variant: #3e4c43;
+  --color-on-surface-variant: #c9c9c9;
+  --color-outline: #8b9c91;
+  --color-focus: #fcdf73;
+
+  --color-success: #5fdb3f;
+  --color-warning: #e5b23d;
+  --color-error: #f7a289;
+}
+
+/*
+ * Cornix Bonsai 固有の派生 token。上の 24 役割だけから作り、hex を増やさない。
+ * keycode の種類は強調色（primary / secondary / tertiary）の container で塗り分ける。
+ * 良し悪しの色（success / warning / error）は種類にも layer にも使わない。
+ * 種類は keycap の文字（役割名、modifier 記号、layer 名）でも読めるため、色は補助の手がかりにとどまる。
+ */
+:root {
+  --color-key-basic: var(--color-surface);
+  --color-on-key-basic: var(--color-on-surface);
+  --color-key-mod: var(--color-secondary-container);
+  --color-on-key-mod: var(--color-on-secondary-container);
+  --color-key-layer: var(--color-tertiary-container);
+  --color-on-key-layer: var(--color-on-tertiary-container);
+  --color-key-tapdance: var(--color-primary-container);
+  --color-on-key-tapdance: var(--color-on-primary-container);
+  --color-key-custom: var(--color-surface-variant);
+  --color-on-key-custom: var(--color-on-surface);
+  --color-key-edge: color-mix(in srgb, var(--color-on-surface) 14%, transparent);
+  --color-key-shadow: color-mix(in srgb, var(--color-on-surface) 12%, transparent);
+  --color-key-shadow-strong: color-mix(in srgb, var(--color-on-surface) 24%, transparent);
+
+  /* 実機との差分の印。良し悪しではないので強調色の青を使い、形（点）でも示す。 */
+  --color-diff-dot: var(--color-secondary);
+
+  /* 盤面の台の点描と、modal の背後を覆う幕。 */
+  --color-stage-dot: color-mix(in srgb, var(--color-on-surface) 10%, transparent);
+  --color-scrim: color-mix(in srgb, var(--color-on-primary) 45%, transparent);
+  --color-shadow: color-mix(in srgb, var(--color-on-primary) 28%, transparent);
 }

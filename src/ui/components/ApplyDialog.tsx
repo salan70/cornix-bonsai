@@ -1,12 +1,34 @@
 import { useEffect, useRef } from "react";
-import type { DiffEntry } from "../../core/diff/diff.ts";
 import type { ApplyState, WriteOperation } from "../../core/apply/plan.ts";
-import type { evaluateApplyGate } from "../../core/validation/gate.ts";
+import type { DiffEntry } from "../../core/diff/diff.ts";
+import type { ApplyGateWithEvidence } from "../../core/validation/gate.ts";
 import { keycodeLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
-import { Button, Callout, Tag, type TagVariant } from "./ui/index.ts";
+import { WORKSPACE_LAYOUT } from "../../workspace/layout.ts";
+import { abortReasonLabel } from "../apply-gate.ts";
+import { SEVERITY_VIEW, subjectLabel } from "../diagnostics.ts";
+import type { ApplyStep } from "../state/use-apply.ts";
+import { Button } from "./Button.tsx";
 
-/** @doc docs/specs/ui.md#apply-modal-steps */
+const STEPS = ["backup", "差分確認", "確認", "書き込み", "結果"] as const;
+
+const CHANGE_VIEW: Readonly<
+  Record<DiffEntry["change"], { readonly label: string; readonly className: string }>
+> = {
+  added: { label: "追加", className: "tag tag-add" },
+  changed: { label: "変更", className: "tag tag-change" },
+  removed: { label: "削除", className: "tag tag-remove" },
+  notationOnly: { label: "表記", className: "tag" },
+};
+
+/**
+ * 実機への Apply。backup → 差分確認 → 確認 → 書き込み → 結果の線形の modal。
+ *
+ * 書き込みを始める前はキャンセルでき、始めた後は「中断」だけを出す。Esc は書き込み中は何もしない。
+ * 完了は「実機に反映した」とだけ言い、電源を切った後に残るかは確かめていないと明示する。
+ */
 export function ApplyDialog({
+  step,
+  backupError,
   state,
   changed,
   gate,
@@ -15,28 +37,46 @@ export function ApplyDialog({
   backupRoundTrips,
   roundTrips,
   roundTripTotal,
+  onNext,
   onAcknowledge,
   onCancel,
-  onApply,
+  onWrite,
 }: {
+  readonly step: ApplyStep;
+  readonly backupError: string | undefined;
   readonly state: ApplyState | undefined;
   readonly changed: readonly DiffEntry[];
-  readonly gate: ReturnType<typeof evaluateApplyGate> | undefined;
+  readonly gate: ApplyGateWithEvidence | undefined;
   readonly labels: WorkspaceLabels;
   readonly acknowledged: readonly string[];
   readonly backupRoundTrips: number;
   readonly roundTrips: number;
   readonly roundTripTotal: number;
+  readonly onNext: () => void;
   readonly onAcknowledge: (ids: readonly string[]) => void;
   readonly onCancel: () => void;
-  readonly onApply: () => void;
+  readonly onWrite: () => void;
 }): React.JSX.Element {
-  const semanticChanges = changed.filter((entry) => entry.change !== "notationOnly");
-  const notationOnlyChanges = changed.filter((entry) => entry.change === "notationOnly");
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const isWriting = state?.phase === "writing";
-  const isFinished = state?.phase === "completed" || state?.phase === "aborted";
-  const verified = state?.phase === "writing" || state?.phase === "completed" ? state.verified : [];
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const index =
+    state?.phase === "writing"
+      ? 3
+      : state?.phase === "completed" || state?.phase === "aborted"
+        ? 4
+        : step === "backup"
+          ? 0
+          : step === "diff"
+            ? 1
+            : 2;
+  const writing = state?.phase === "writing";
+  const finished = index === 4;
+  const semantic = changed.filter((entry) => entry.change !== "notationOnly");
+  const notationOnly = changed.filter((entry) => entry.change === "notationOnly");
+  const warnings =
+    gate?.evidence.diagnostics.filter((diagnostic) => diagnostic.severity === "warning") ?? [];
+  const fatal = gate?.fatal ?? [];
+  const canWrite = gate?.allowed === true && state?.phase === "awaitingConfirmation";
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -47,69 +87,127 @@ export function ApplyDialog({
     };
   }, []);
 
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, [index]);
+
   return (
     <dialog
       ref={dialogRef}
-      className="modal-backdrop"
+      className="apply"
+      data-apply-dialog
+      data-step={index}
+      aria-labelledby="apply-title"
       onCancel={(event) => {
         event.preventDefault();
-        onCancel();
+        if (!writing) onCancel();
       }}
     >
-      <section className="modal" aria-labelledby="apply-title">
-        <div className="mhdr">
-          <h2 id="apply-title">実機へ Apply</h2>
-          <div className="u-grow" />
-          <ApplySteps phase={state?.phase} />
-        </div>
-        <div className="mbody">
-          <div className="row row--success">
-            <span aria-hidden="true">✓</span>
+      <header className="apply-head">
+        <h2 id="apply-title" ref={headingRef} tabIndex={-1}>
+          実機へ Apply
+        </h2>
+        <ol className="apply-steps" aria-label="Apply の段階">
+          {STEPS.map((label, stepIndex) => (
+            <li
+              key={label}
+              className={stepIndex < index ? "is-done" : stepIndex === index ? "is-current" : ""}
+              aria-current={stepIndex === index ? "step" : undefined}
+            >
+              <span className="step-no">{stepIndex < index ? "✓" : stepIndex + 1}</span>
+              {label}
+            </li>
+          ))}
+        </ol>
+      </header>
+
+      <div className="apply-body">
+        {index >= 1 ? (
+          <p className="backup-row">
+            <strong aria-hidden="true">✓</strong>
             <span>
-              Apply 前の全 read を <span className="u-mono">cornix/backups/</span> に保存した
+              Apply 前の全 read（往復 {backupRoundTrips} 回）を <code>cornix/backups/</code> と{" "}
+              <code>{WORKSPACE_LAYOUT.latestBackup}</code> に保存した
             </span>
-            <div className="u-grow" />
-            <span className="u-text-sm u-muted">往復 {backupRoundTrips} 回</span>
-          </div>
-          {isWriting || state?.phase === "completed" ? (
-            <WriteProgress
-              operations={state?.phase === "writing" ? state.plan.operations : verified}
-              verifiedCount={verified.length}
-              changed={changed}
-              labels={labels}
-              roundTrips={roundTrips}
-              roundTripTotal={roundTripTotal}
-            />
-          ) : (
-            <>
-              <div className="row-heading">
-                <h3>書き込む差分</h3>
-                <span className="u-text-sm u-muted">{changed.length} 件</span>
-              </div>
-              <div className="diff-list">
-                {semanticChanges.map((entry, index) => (
-                  <DiffRow entry={entry} labels={labels} key={`${entry.subject.kind}-${index}`} />
+          </p>
+        ) : null}
+
+        {index === 0 ? (
+          <section role="status" aria-live="polite">
+            <h3 className="section-title">実機の現在の状態を backup する</h3>
+            {backupError === undefined ? (
+              <p>この接続で読み込んだ実機の状態を cornix/backups/ に保存している…</p>
+            ) : (
+              <p className="bad">
+                backup を保存できなかったため、書き込みへ進まない: {backupError}
+              </p>
+            )}
+          </section>
+        ) : null}
+
+        {index === 1 ? (
+          <section>
+            <h3 className="section-title">書き込む差分 {changed.length} 件</h3>
+            <p className="hint">
+              書き込むのは差分だけ。1 件ごとに書き、同じ entry を読み直して確かめる。
+            </p>
+            <table className="diff-table">
+              <thead>
+                <tr>
+                  <th>種類</th>
+                  <th>対象</th>
+                  <th>現在（実機）</th>
+                  <th>移行後</th>
+                </tr>
+              </thead>
+              <tbody>
+                {semantic.map((entry, entryIndex) => (
+                  <tr key={`${subjectLabel(entry.subject)}-${entryIndex}`}>
+                    <td>
+                      <span className={CHANGE_VIEW[entry.change].className}>
+                        {CHANGE_VIEW[entry.change].label}
+                      </span>
+                    </td>
+                    <td>{subjectLabel(entry.subject)}</td>
+                    <td>
+                      {labeledBehavior(entry.subject, entry.before, entry.beforeBehavior, labels)}
+                      <code>{entry.before}</code>
+                    </td>
+                    <td>
+                      <strong>
+                        {labeledBehavior(entry.subject, entry.after, entry.afterBehavior, labels)}
+                      </strong>
+                      <code>{entry.after}</code>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-              {notationOnlyChanges.length > 0 ? (
-                <div className="collapsed">
-                  › 挙動が変わらない表記の差が {notationOnlyChanges.length}{" "}
-                  件。書き込み対象には含める
-                </div>
-              ) : null}
-            </>
-          )}
-          {gate !== undefined && gate.acknowledgeable.length > 0 ? (
-            <Callout as="section" tone="warning">
-              <span aria-hidden="true">⚠</span>
-              <div className="ack-body">
-                <b>警告 {gate.acknowledgeable.length} 件を確認しないと Apply できない</b>
-                {gate.acknowledgeable.map((diagnostic) => (
-                  <Callout as="label" key={diagnostic.id}>
+              </tbody>
+            </table>
+            {notationOnly.length === 0 ? null : (
+              <p className="hint">
+                挙動が変わらない表記の差が {notationOnly.length} 件ある。書き込み対象には含める。
+              </p>
+            )}
+            <FatalList fatal={fatal} />
+          </section>
+        ) : null}
+
+        {index === 2 ? (
+          <section>
+            <h3 className="section-title">書き込む前の確認</h3>
+            {warnings.length === 0 ? (
+              <p>承認が要る警告は無い。</p>
+            ) : (
+              <>
+                <p>
+                  警告 {warnings.length}{" "}
+                  件を確かめる。内容を理解した警告だけ承認する。承認は問題の解決ではなく、根拠の値が変わると外れる。
+                </p>
+                {warnings.map((diagnostic) => (
+                  <label key={diagnostic.id} className="ack">
                     <input
                       type="checkbox"
                       checked={acknowledged.includes(diagnostic.id)}
-                      disabled={state?.phase === "writing"}
                       onChange={(event) =>
                         onAcknowledge(
                           event.target.checked
@@ -119,134 +217,135 @@ export function ApplyDialog({
                       }
                     />
                     <span>
-                      {diagnostic.message}
+                      <span aria-hidden="true">{SEVERITY_VIEW.warning.icon}</span>{" "}
+                      {SEVERITY_VIEW.warning.label}: {diagnostic.message}
                       <br />
-                      <span className="u-mono u-muted">{diagnostic.code}</span>
+                      <code>{diagnostic.code}</code> · {subjectLabel(diagnostic.subject)}
                     </span>
-                  </Callout>
+                  </label>
                 ))}
-                <span className="u-text-sm u-muted">
-                  acknowledge は根拠の値ごとに記録する。差分が変わると自動で外れる。
-                </span>
-              </div>
-            </Callout>
-          ) : null}
-          {gate !== undefined && gate.fatal.length > 0 ? (
-            <Callout as="section" tone="error">
-              <b>error があるため Apply できません。</b>
-              <ul>
-                {gate.fatal.map((diagnostic) => (
-                  <li key={diagnostic.id}>{diagnostic.message}</li>
-                ))}
-              </ul>
-            </Callout>
-          ) : null}
-          {state?.phase === "aborted" ? (
-            <p className="u-text-error">
-              {state.reason}。再接続後にfull readからやり直してください。
+              </>
+            )}
+            <FatalList fatal={fatal} />
+            <p className="hint">書き込み中は実機を切断しない。</p>
+          </section>
+        ) : null}
+
+        {index === 3 && state?.phase === "writing" ? (
+          <section role="status" aria-live="polite">
+            <h3 className="section-title">
+              書き込みと確認 {state.verified.length} / {state.plan.operations.length} 件
+            </h3>
+            <p>
+              往復 {roundTrips} / {roundTripTotal} 回。残り時間は推定しない。
             </p>
-          ) : null}
-          {state?.phase === "completed" ? (
-            <Callout tone="info" pushEnd>
-              <span aria-hidden="true">ⓘ</span>
-              <span>
-                ここで確認しているのは<b>実機に反映されたこと</b>
-                で、電源を切っても残ることまでは確認していない。残ることを確かめたい場合は、Apply
-                後に電源を入れ直して読み直す。
-              </span>
-            </Callout>
-          ) : null}
-        </div>
-        <div className="mfoot">
-          <span className="u-text-sm u-muted">
-            {isWriting
-              ? "中断すると、途中までの状態は持ち越さずに全 read からやり直す。"
-              : "書き込むのは差分だけ。1 件ごとに書いて同じ entry を読み直して確認する。"}
-          </span>
-          <div className="u-grow" />
-          <Button onClick={onCancel}>
-            {isWriting ? "中断" : isFinished ? "閉じる" : "キャンセル"}
+            <progress max={Math.max(1, roundTripTotal)} value={roundTrips} />
+            <ul className="write-rows">
+              {state.plan.operations.map((operation, operationIndex) => {
+                const done = operationIndex < state.verified.length;
+                const active = operationIndex === state.verified.length;
+                return (
+                  <li
+                    key={`${operation.target.kind}-${operationIndex}`}
+                    className={done ? "is-done" : active ? "is-active" : ""}
+                  >
+                    <span>
+                      {done
+                        ? "✓ 書き込み → 読み直しが一致"
+                        : active
+                          ? "◌ 書き込んだ値を読み直している"
+                          : "待機"}
+                    </span>
+                    <span>
+                      {targetLabel(operation)} {operationDescription(operation, changed, labels)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="hint">中断すると、途中までの状態は持ち越さずに全 read からやり直す。</p>
+          </section>
+        ) : null}
+
+        {index === 4 && state?.phase === "completed" ? (
+          <section>
+            <h3 className="section-title ok">✓ {state.verified.length} 件を実機に反映した</h3>
+            <p>
+              1 件ごとに書き込んだ値を読み直し、一致を確かめた。続けて実機を全 read
+              し直し、差分を取り直す。
+            </p>
+            <p className="hint">
+              確かめたのは実機に反映されたことまでで、電源を切っても残るかは確認していない。確かめるには、電源を入れ直してから実機を読み込む。
+            </p>
+          </section>
+        ) : null}
+
+        {index === 4 && state?.phase === "aborted" ? (
+          <section>
+            <h3 className="section-title bad">
+              ! 中断した（{state.verified} 件まで確認済み）: {abortReasonLabel(state.reason)}
+            </h3>
+            <p>
+              途中の状態は持ち越さない。再接続し、「実機と適用」から実機を読み込み直して差分を確かめてから、Apply
+              をやり直す。
+            </p>
+          </section>
+        ) : null}
+      </div>
+
+      <footer className="apply-foot">
+        {index < 3 ? (
+          <Button appearance="quiet" onClick={onCancel}>
+            キャンセル
           </Button>
-          <Button
-            variant="primary"
-            disabled={
-              isWriting ||
-              (!isFinished && (gate?.allowed !== true || state?.phase !== "awaitingConfirmation"))
-            }
-            onClick={isFinished ? onCancel : onApply}
-          >
-            {isWriting ? "完了" : isFinished ? "完了" : `${changed.length} 件を実機へ書き込む`}
+        ) : null}
+        <span className="spacer" />
+        {index === 1 ? <Button onClick={onNext}>確認へ進む</Button> : null}
+        {index === 2 ? (
+          <Button disabled={!canWrite} onClick={onWrite}>
+            {changed.length} 件を実機へ書き込む
           </Button>
-        </div>
-      </section>
+        ) : null}
+        {writing ? (
+          <Button appearance="danger" onClick={onCancel}>
+            中断
+          </Button>
+        ) : null}
+        {finished && !writing ? <Button onClick={onCancel}>閉じる</Button> : null}
+      </footer>
     </dialog>
   );
 }
 
-function WriteProgress({
-  operations,
-  verifiedCount,
-  changed,
-  labels,
-  roundTrips,
-  roundTripTotal,
+function FatalList({
+  fatal,
 }: {
-  readonly operations: readonly WriteOperation[];
-  readonly verifiedCount: number;
-  readonly changed: readonly DiffEntry[];
-  readonly labels: WorkspaceLabels;
-  readonly roundTrips: number;
-  readonly roundTripTotal: number;
-}): React.JSX.Element {
-  const percentage = roundTripTotal === 0 ? 0 : Math.min(100, (roundTrips / roundTripTotal) * 100);
+  readonly fatal: ApplyGateWithEvidence["fatal"];
+}): React.JSX.Element | null {
+  if (fatal.length === 0) return null;
   return (
-    <>
-      <div className="write-summary">
-        <div className="row-heading">
-          <b>
-            {verifiedCount} / {operations.length} 件を書き込んで確認した
-          </b>
-          <div className="u-grow" />
-          <span className="u-mono u-muted">
-            往復 {roundTrips} / {roundTripTotal} 回
-          </span>
-        </div>
-        <div className="track">
-          <div style={{ width: `${percentage}%` }} />
-        </div>
-        <span className="u-text-sm u-muted">
-          残り時間は表示しない。進み具合は実測の往復回数で示す。
-        </span>
-      </div>
-      <div className="diff-list">
-        {operations.map((operation, index) => {
-          const done = index < verifiedCount;
-          const active = index === verifiedCount && verifiedCount < operations.length;
-          const description = operationDescription(operation, changed, labels);
-          return (
-            <div
-              className={`row write-row ${active ? "is-active" : ""} ${!done && !active ? "is-pending" : ""}`}
-              key={`${operation.target.kind}-${index}`}
-            >
-              <span className="write-icon" aria-hidden="true">
-                {done ? "✓" : active ? "⟳" : ""}
-              </span>
-              <span className="diff-subject">{targetLabel(operation)}</span>
-              <span>{description}</span>
-              <div className="u-grow" />
-              <span className="u-text-sm u-muted">
-                {done
-                  ? "書き込み → 再読み込みが一致"
-                  : active
-                    ? "書き込んだ値を読み直している"
-                    : "待機中"}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </>
+    <div className="fatal-list" role="alert">
+      <strong>⛔ error があるため書き込めない</strong>
+      <ul>
+        {fatal.map((diagnostic) => (
+          <li key={diagnostic.id}>
+            <code>{diagnostic.code}</code> {diagnostic.message}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
+}
+
+function labeledBehavior(
+  subject: DiffEntry["subject"],
+  raw: string,
+  behavior: string,
+  labels: WorkspaceLabels,
+): string {
+  if (subject.kind !== "key" && subject.kind !== "encoder") return behavior;
+  const name = raw === "" ? undefined : keycodeLabel(labels, raw);
+  return name === undefined ? behavior : `${name} — ${behavior}`;
 }
 
 function operationDescription(
@@ -288,106 +387,12 @@ function targetLabel(operation: WriteOperation): string {
     case "key":
       return `layer ${target.layer} / row ${target.row} col ${target.col}`;
     case "encoder":
-      return `layer ${target.layer} / encoder ${target.index} / ${target.direction === 0 ? "左回し" : "右回し"}`;
+      return `layer ${target.layer} / encoder ${target.index} ${target.direction === 0 ? "左回し" : "右回し"}`;
     case "tapDance":
       return `Tap Dance ${target.index}`;
     case "combo":
       return `Combo ${target.index}`;
     case "setting":
       return `settings / qsid ${target.qsid}`;
-  }
-}
-
-function ApplySteps({
-  phase,
-}: {
-  readonly phase: ApplyState["phase"] | undefined;
-}): React.JSX.Element {
-  const current =
-    phase === "awaitingConfirmation"
-      ? 1
-      : phase === "writing"
-        ? 3
-        : phase === "completed"
-          ? 5
-          : phase === "aborted"
-            ? 3
-            : 1;
-  const steps = ["backup", "差分確認", "確認", "書き込み", "結果"];
-  return (
-    <div className="steps" aria-label="Apply steps">
-      {steps.map((step, index) => (
-        <span className="step-wrap" key={step}>
-          {index > 0 ? <span className="bar" /> : null}
-          <span
-            className={`st ${index < current ? "is-done" : ""} ${index === current ? "is-current" : ""}`}
-          >
-            {index < current ? "✓ " : ""}
-            {step}
-          </span>
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function DiffRow({
-  entry,
-  labels,
-}: {
-  readonly entry: DiffEntry;
-  readonly labels: WorkspaceLabels;
-}): React.JSX.Element {
-  const label = entry.change === "added" ? "追加" : entry.change === "removed" ? "削除" : "変更";
-  const variant: TagVariant =
-    entry.change === "added" ? "add" : entry.change === "removed" ? "remove" : "change";
-  return (
-    <div className="row">
-      <Tag variant={variant}>{label}</Tag>
-      <span className="diff-subject">{subjectLabel(entry.subject)}</span>
-      <span className="from">
-        {labeledBehavior(entry.subject, entry.before, entry.beforeBehavior, labels)}
-      </span>
-      <span aria-hidden="true">→</span>
-      <span className="to">
-        {labeledBehavior(entry.subject, entry.after, entry.afterBehavior, labels)}
-      </span>
-    </div>
-  );
-}
-
-function labeledBehavior(
-  subject: DiffEntry["subject"],
-  raw: string,
-  behavior: string,
-  labels: WorkspaceLabels,
-): string {
-  if (subject.kind !== "key" && subject.kind !== "encoder") return behavior;
-  const name = raw === "" ? undefined : keycodeLabel(labels, raw);
-  return name === undefined ? behavior : `${name}（${raw}） — ${behavior}`;
-}
-
-function subjectLabel(subject: DiffEntry["subject"]): string {
-  switch (subject.kind) {
-    case "key":
-      return `layer ${subject.layer} / row ${subject.row} col ${subject.col}`;
-    case "encoder":
-      return `layer ${subject.layer} / encoder ${subject.index} ${subject.direction === "ccw" ? "左回し" : "右回し"}`;
-    case "setting":
-      return `settings / qsid ${subject.qsid}`;
-    case "tapDance":
-      return `Tap Dance ${subject.index}`;
-    case "combo":
-      return `Combo ${subject.index}`;
-    case "macro":
-      return `Macro ${subject.index}`;
-    case "document":
-      return "document";
-    case "layer":
-      return `layer ${subject.layer}`;
-    case "field":
-      return subject.name;
-    case "macKey":
-      return `Mac layer ${subject.layer} / ${subject.keyCode}`;
   }
 }

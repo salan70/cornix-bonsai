@@ -38,7 +38,7 @@ export type MacWorkspaceByLayout = {
  * 新しい名前を先に見て、無ければ旧名を `layout` 宣言で解決する
  * （`readMacKeymapFor`）。parse 失敗は `error` に閉じ込め、例外を外へ出さない。
  *
- * @doc docs/specs/ui.md#mac-tab
+ * @doc docs/specs/ui.md#mac-board
  */
 export async function probeMacKeymap(
   store: Pick<WorkspaceFileStore, "readText" | "stat">,

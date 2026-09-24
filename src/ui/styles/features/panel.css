@@ -1,0 +1,409 @@
+/* 左端の入口から開く、画面中央のパネル。全体マップ、動作定義、検証、実機と適用、ファイル。 */
+@layer features {
+  .sheet {
+    width: min(var(--layout-panel-width), calc(100vw - var(--layout-panel-margin)));
+    height: min(var(--layout-panel-height), calc(100vh - var(--layout-panel-margin)));
+    max-width: none;
+    max-height: none;
+    padding: 0;
+    overflow: hidden;
+    border: var(--border-width-thick) solid var(--color-on-surface);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    box-shadow: var(--shadow-panel);
+  }
+  .sheet[open] {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    animation: sheet-in var(--duration-160) var(--easing-out);
+  }
+  .sheet.is-full {
+    width: 100vw;
+    height: 100vh;
+    border: 0;
+    border-radius: 0;
+  }
+  .sheet::backdrop {
+    background: var(--color-scrim);
+  }
+  @keyframes sheet-in {
+    from {
+      transform: scale(0.97);
+      opacity: 0;
+    }
+  }
+  .sheet-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-200);
+    align-items: center;
+    padding: var(--space-300) var(--space-400);
+    background: var(--tone);
+    color: var(--on-tone);
+  }
+  .sheet-head h2 {
+    display: flex;
+    gap: var(--space-200);
+    align-items: baseline;
+    font-size: var(--typography-heading-font-size);
+  }
+  .sheet-head small {
+    font-size: var(--typography-caption-font-size);
+    font-weight: var(--font-weight-regular);
+  }
+  .sheet-btn {
+    min-height: var(--size-control-height-sm);
+    padding: 0 var(--space-300);
+    border: var(--border-width-thick) solid currentColor;
+    border-radius: var(--radius-pill);
+    background: none;
+    font-weight: var(--font-weight-bold);
+    white-space: nowrap;
+  }
+  .sheet-btn[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--on-tone) 14%, transparent);
+  }
+  .sheet-btn kbd {
+    margin-inline-start: var(--space-100);
+    opacity: 0.85;
+  }
+  .sheet-body {
+    display: grid;
+    align-content: start;
+    gap: var(--space-400);
+    min-width: 0;
+    padding: var(--space-500);
+    overflow-y: auto;
+  }
+  .sheet-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-200);
+    align-items: center;
+  }
+  .check {
+    display: inline-flex;
+    gap: var(--space-150);
+    align-items: center;
+  }
+  .section-title {
+    display: flex;
+    gap: var(--space-200);
+    align-items: center;
+    margin-bottom: var(--space-200);
+    font-size: var(--font-size-md);
+  }
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-100);
+  }
+  .filter {
+    min-height: var(--size-control-height-sm);
+    padding: 0 var(--space-300);
+    border: var(--border-width-thick) solid transparent;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-container);
+    font-weight: var(--font-weight-bold);
+  }
+  .filter[aria-pressed="true"] {
+    border-color: var(--color-on-surface);
+    background: var(--color-surface);
+  }
+
+  /* ---------- 全体マップ ---------- */
+
+  .ov-grid {
+    display: grid;
+    gap: var(--space-300);
+    min-width: 0;
+  }
+  .ov-card {
+    display: grid;
+    gap: var(--space-200);
+    min-width: 0;
+    padding: var(--space-300);
+    border-radius: var(--radius-tile);
+    background: var(--tone-soft);
+    color: var(--on-tone-soft);
+  }
+  .ov-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-200);
+    align-items: center;
+  }
+  .layer-badge {
+    display: grid;
+    min-width: var(--size-layer-badge);
+    height: var(--size-control-height-sm);
+    place-items: center;
+    border-radius: var(--radius-icon);
+    background: var(--tone);
+    color: var(--on-tone);
+    font-weight: var(--font-weight-bold);
+  }
+  .ov-name {
+    flex: 1;
+    color: var(--color-on-surface);
+  }
+  .ov-summary {
+    font-size: var(--font-size-xs);
+  }
+  .ov-board-host {
+    min-width: 0;
+  }
+  .ov-board {
+    position: relative;
+    margin-inline: auto;
+  }
+  /* mini 盤面のキー。枠の太さを必ず指定する（太さ未指定の border-style は太い黒枠になる）。 */
+  .mini {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: var(--border-width-thin) solid var(--color-key-edge);
+    border-radius: var(--radius-mini);
+    background: var(--key-bg, var(--color-surface));
+    color: var(--key-fg, var(--color-on-surface));
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .mini.kind-none {
+    border-style: dashed;
+  }
+  .mini .keycap-main {
+    font-weight: var(--font-weight-regular);
+    white-space: nowrap;
+  }
+  .mini.is-hot {
+    z-index: 2;
+    outline: var(--border-width-thick) solid var(--color-on-surface);
+    outline-offset: var(--border-width-thin);
+  }
+  .ov-encoders {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-100) var(--space-300);
+    font-size: var(--font-size-xs);
+  }
+  .ov-refs {
+    display: grid;
+    gap: var(--space-50);
+  }
+  .ov-refs button,
+  .ov-refs span {
+    display: block;
+    width: 100%;
+    padding: var(--space-50) var(--space-200);
+    border: 0;
+    border-radius: var(--radius-control);
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    text-align: start;
+  }
+  .ov-td {
+    display: grid;
+    gap: var(--space-100);
+    padding: var(--space-300);
+    border-radius: var(--radius-tile);
+    background: var(--color-primary-container);
+    color: var(--color-on-primary-container);
+  }
+
+  /* ---------- 動作定義 ---------- */
+
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-100);
+    padding: var(--space-100);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-container);
+  }
+  .tab {
+    min-height: var(--size-control-height-sm);
+    padding: 0 var(--space-300);
+    border: var(--border-width-thick) solid transparent;
+    border-radius: var(--radius-pill);
+    background: none;
+    font-weight: var(--font-weight-bold);
+  }
+  .tab[aria-selected="true"] {
+    border-color: var(--color-on-surface);
+    background: var(--color-surface);
+  }
+  .behaviors {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--layout-behavior-min), 1fr));
+    gap: var(--space-300);
+  }
+  .td {
+    display: grid;
+    align-content: start;
+    gap: var(--space-200);
+    min-width: 0;
+    padding: var(--space-300);
+    border: var(--border-width-thick) solid var(--color-surface-variant);
+    border-radius: var(--radius-tile);
+  }
+  .td.is-used {
+    border-color: var(--color-tertiary);
+    background: color-mix(in srgb, var(--color-tertiary-container) 55%, var(--color-surface));
+  }
+  .td h3 {
+    display: flex;
+    gap: var(--space-200);
+    align-items: center;
+    font-size: var(--typography-caption-font-size);
+  }
+  .td-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-200) var(--space-300);
+  }
+  .num {
+    display: grid;
+    gap: var(--space-100);
+    min-width: 0;
+  }
+  .num > span {
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-size-xs);
+  }
+  .num.is-invalid input {
+    border-color: var(--color-error);
+  }
+  .error-text {
+    color: var(--color-error);
+    font-weight: var(--font-weight-bold);
+  }
+
+  /* ---------- 検証 ---------- */
+
+  .diags {
+    display: grid;
+    gap: var(--space-200);
+  }
+  .diag-group > ul {
+    display: grid;
+    gap: var(--space-100);
+  }
+  .diag {
+    display: grid;
+    grid-template-columns: var(--layout-diag-severity) minmax(0, 1fr) auto;
+    gap: var(--space-300);
+    align-items: center;
+    padding: var(--space-200) var(--space-300);
+    border: var(--border-width-thick) solid var(--color-surface-variant);
+    border-inline-start-width: var(--border-width-accent);
+    border-radius: var(--radius-sm);
+  }
+  .diag.is-error {
+    border-inline-start-color: var(--color-error);
+  }
+  .diag.is-warning {
+    border-inline-start-color: var(--color-warning);
+  }
+  .diag.is-information {
+    border-inline-start-color: var(--color-outline);
+  }
+  .diag-sev {
+    font-weight: var(--font-weight-bold);
+  }
+  .diag.is-error .diag-sev {
+    color: var(--color-error);
+  }
+  .diag.is-warning .diag-sev {
+    color: var(--color-warning);
+  }
+  .diag code {
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------- 実機と適用、ファイル ---------- */
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(var(--layout-step-min), 1fr));
+    gap: var(--space-300);
+  }
+  .step {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: var(--space-200);
+    min-width: 0;
+    padding: var(--space-400);
+    border: var(--border-width-thick) solid var(--color-surface-variant);
+    border-radius: var(--radius-tile);
+  }
+  .step.is-current {
+    border-color: var(--color-secondary);
+    background: color-mix(in srgb, var(--color-secondary-container) 45%, var(--color-surface));
+  }
+  .step.is-info {
+    background: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
+  }
+  .step-no {
+    display: inline-grid;
+    flex: none;
+    width: var(--size-step-no);
+    height: var(--size-step-no);
+    place-items: center;
+    border-radius: var(--radius-full);
+    background: var(--color-on-surface);
+    color: var(--color-surface);
+    font-size: var(--font-size-code);
+  }
+  .step.is-done .step-no {
+    background: var(--color-success);
+    color: var(--color-surface);
+  }
+  .step progress,
+  .apply progress {
+    display: block;
+    width: 100%;
+    accent-color: var(--color-secondary);
+  }
+  .step .kv {
+    width: 100%;
+  }
+  .diff-mini {
+    display: grid;
+    gap: var(--space-50);
+    width: 100%;
+  }
+  .diff-mini li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-300);
+    padding: var(--space-50) var(--space-200);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-container);
+  }
+  .fatal-list {
+    display: grid;
+    gap: var(--space-100);
+    width: 100%;
+    padding: var(--space-200) var(--space-300);
+    border: var(--border-width-thick) solid var(--color-error);
+    border-radius: var(--radius-sm);
+  }
+  .fatal-list strong {
+    color: var(--color-error);
+  }
+  .code-block {
+    width: 100%;
+    margin: 0;
+    padding: var(--space-300);
+    overflow-x: auto;
+    border-radius: var(--radius-control);
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+  }
+}

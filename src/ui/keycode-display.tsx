@@ -1,6 +1,6 @@
 import type { JSX } from "react";
-import type { KeycodeDisplay } from "./keycode-labels.ts";
-import { FitText } from "./components/ui/index.ts";
+import { keycodeClass, type KeycodeDisplay } from "./keycode-labels.ts";
+import { FitText } from "./components/FitText.tsx";
 
 export {
   basicLabel,
@@ -12,6 +12,11 @@ export {
   shortLabel,
 } from "./keycode-labels.ts";
 export type { DisplayOptions, KeycodeDisplay } from "./keycode-labels.ts";
+
+/** keycode の種類の class。割り当てが無い Mac のキー（素通し）は `kind-passthrough`。 */
+export function kindClass(keycode: string | undefined): string {
+  return keycode === undefined ? "kind-passthrough" : `kind-${keycodeClass(keycode)}`;
+}
 
 export function renderKeycode(display: KeycodeDisplay, prefix = ""): JSX.Element {
   return (
@@ -27,4 +32,11 @@ export function renderKeycode(display: KeycodeDisplay, prefix = ""): JSX.Element
       )}
     </>
   );
+}
+
+/** keycap の title。表示と raw 式を併記する。 */
+export function keycapTitle(display: KeycodeDisplay, keycode: string): string {
+  const head =
+    display.role === undefined ? display.primary : `${display.primary} / ${display.role}`;
+  return `${head.replace(/\n/g, " ")}  (${keycode})`;
 }

@@ -1,6 +1,23 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
 import { test } from "node:test";
-import { chooseSaveCandidate } from "./save-state.ts";
+import { WorkspaceConflictError } from "../workspace/types.ts";
+import { chooseSaveCandidate, saveFailureState } from "./save-state.ts";
+
+test("外部変更の競合はconflict、それ以外の失敗はerrorへ畳む", () => {
+  deepStrictEqual(saveFailureState(new WorkspaceConflictError("外部変更")), {
+    kind: "conflict",
+    message: "外部変更",
+  });
+  deepStrictEqual(saveFailureState(new Error("I/O")), { kind: "error", message: "I/O" });
+  deepStrictEqual(saveFailureState("文字列"), { kind: "error", message: "文字列" });
+});
+
+test("すべてidleなら先頭のファイルを代表にする", () => {
+  const selected = chooseSaveCandidate([
+    { target: "mac", path: "mac-keyboard.jis.yaml", state: { kind: "idle" } },
+  ]);
+  strictEqual(selected.path, "mac-keyboard.jis.yaml");
+});
 
 test("複数ファイルの競合を最優先で表示し、対象pathを保つ", () => {
   const selected = chooseSaveCandidate([
