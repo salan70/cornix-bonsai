@@ -8,6 +8,7 @@ import { abortReasonLabel } from "../apply-gate.ts";
 import { SEVERITY_VIEW, subjectLabel } from "../diagnostics.ts";
 import type { ApplyStep } from "../state/use-apply.ts";
 import { Button } from "./Button.tsx";
+import { Icon } from "./Icon.tsx";
 
 const STEPS = ["backup", "差分確認", "確認", "書き込み", "結果"] as const;
 
@@ -114,7 +115,17 @@ export function ApplyDialog({
               className={stepIndex < index ? "is-done" : stepIndex === index ? "is-current" : ""}
               aria-current={stepIndex === index ? "step" : undefined}
             >
-              <span className="step-no">{stepIndex < index ? "✓" : stepIndex + 1}</span>
+              <span className="step-no">
+                {stepIndex < index ? (
+                  <>
+                    <Icon name="check" />
+                    {/* アイコンは読み上げから外すので、完了した段の番号は文字で添える。 */}
+                    <span className="visually-hidden">{stepIndex + 1}（完了）</span>
+                  </>
+                ) : (
+                  stepIndex + 1
+                )}
+              </span>
               {label}
             </li>
           ))}
@@ -124,7 +135,9 @@ export function ApplyDialog({
       <div className="apply-body">
         {index >= 1 ? (
           <p className="backup-row">
-            <strong aria-hidden="true">✓</strong>
+            <strong>
+              <Icon name="check" />
+            </strong>
             <span>
               Apply 前の全 read（往復 {backupRoundTrips} 回）を <code>cornix/backups/</code> と{" "}
               <code>{WORKSPACE_LAYOUT.latestBackup}</code> に保存した
@@ -217,8 +230,8 @@ export function ApplyDialog({
                       }
                     />
                     <span>
-                      <span aria-hidden="true">{SEVERITY_VIEW.warning.icon}</span>{" "}
-                      {SEVERITY_VIEW.warning.label}: {diagnostic.message}
+                      <Icon name={SEVERITY_VIEW.warning.icon} /> {SEVERITY_VIEW.warning.label}:{" "}
+                      {diagnostic.message}
                       <br />
                       <code>{diagnostic.code}</code> · {subjectLabel(diagnostic.subject)}
                     </span>
@@ -250,11 +263,17 @@ export function ApplyDialog({
                     className={done ? "is-done" : active ? "is-active" : ""}
                   >
                     <span>
-                      {done
-                        ? "✓ 書き込み → 読み直しが一致"
-                        : active
-                          ? "◌ 書き込んだ値を読み直している"
-                          : "待機"}
+                      {done ? (
+                        <>
+                          <Icon name="check" /> 書き込み → 読み直しが一致
+                        </>
+                      ) : active ? (
+                        <>
+                          <Icon name="saving" /> 書き込んだ値を読み直している
+                        </>
+                      ) : (
+                        "待機"
+                      )}
                     </span>
                     <span>
                       {targetLabel(operation)} {operationDescription(operation, changed, labels)}
@@ -269,7 +288,9 @@ export function ApplyDialog({
 
         {index === 4 && state?.phase === "completed" ? (
           <section>
-            <h3 className="section-title ok">✓ {state.verified.length} 件を実機に反映した</h3>
+            <h3 className="section-title ok">
+              <Icon name="check" /> {state.verified.length} 件を実機に反映した
+            </h3>
             <p>
               1 件ごとに書き込んだ値を読み直し、一致を確かめた。続けて実機を全 read
               し直し、差分を取り直す。
@@ -325,7 +346,9 @@ function FatalList({
   if (fatal.length === 0) return null;
   return (
     <div className="fatal-list" role="alert">
-      <strong>⛔ error があるため書き込めない</strong>
+      <strong>
+        <Icon name="error" /> error があるため書き込めない
+      </strong>
       <ul>
         {fatal.map((diagnostic) => (
           <li key={diagnostic.id}>

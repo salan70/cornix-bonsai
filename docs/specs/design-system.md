@@ -1,6 +1,6 @@
 # Design System
 
-寸法と書体の token、CSS の cascade layer 構成、Button と FitText の契約を定義する。
+寸法と書体の token、CSS の cascade layer 構成、Button、Icon、FitText の契約を定義する。
 色 token の契約は [ui.md](./ui.md#light--dark-theme) に残す。
 DocBridge は TypeScript の `export` 宣言だけを symbol 単位で link できるため、`styles/` 配下の CSS はファイル単位の link 対象にできない。
 この節はそれらのファイルへの直接 link を持たず、パスを本文に記す。
@@ -35,7 +35,7 @@ uiux-numa の token に無い本体固有の寸法（骨格の幅、パネルの
 - `reset`: box-sizing、余白と list の正規化など、外観を持たない最小限の正規化
 - `tokens`: `styles/tokens/*.css` の `:root` 宣言と `@font-face`
 - `base`: 要素 selector への正規化だけを置く。`body` の色と書体、focus の輪、`code` の書体を持つ
-- `components`: 複数の画面で使う部品。いまは Button だけ
+- `components`: 複数の画面で使う部品。Button と Icon
 - `features`: 画面の部位ごとの class。`shell.css`（header、rail、机、status bar）、`board.css`、`picker.css`、`inspector.css`、`panel.css`、`apply.css`、`workspace.css`
 - `utilities`: 1 目的の class（`visually-hidden`、`spacer`、`muted`、`hint`）と、reduced motion で全ての動きを止める規則
 
@@ -56,6 +56,24 @@ disabled は薄くして押せないことを示し、理由は隣の文字で�
 `quiet` は面と枠を持たず、下線で操作できることを示す。
 見本ページ用の class と、本体で使わない loading と icon の枠は写していない。
 
+<!-- @code src/ui/components/index.ts#Icon -->
+<!-- @code src/ui/icons.ts#ICON_NAMES -->
+<!-- @code src/ui/icons.ts#sanitizeIconSvg -->
+
+## Icon
+
+Icon は uiux-numa の `experiments/cornix-ui-icons`（commit `5215a3c`）で描いた機能アイコンを inline の SVG で描く（ADR 0032）。
+SVG は `keycap-squircle` を `src/ui/icons/squircle/`、`keycap-dish-fill` を `src/ui/icons/dish/` へそのまま写し、直接編集しない。
+名前は `ICON_NAMES` の 17 個で、2 組とも同じ名前のファイルを持つ。
+
+- SVG は Vite の `import.meta.glob`（`query: "?raw"`、`import: "default"`、`eager: true`）で文字列として読む
+- 読み込み時に 1 度だけ `sanitizeIconSvg` で `<title>`、`id`、`role="img"` を外す。同じ icon を 1 画面に複数置くと `part-*` の id が重複するため
+- 描く組は `IconStyleContext` の値（[ui.md](./ui.md#icons) の設定）で決まり、設定の見本のように組を固定するときだけ `iconStyle` で上書きする
+- 根の要素は `span.icon` で、`data-icon` に名前、`data-icon-style` に描いた組を持ち、`aria-hidden="true"` で読み上げから外す
+- 大きさは `size` の `sm`（`--size-icon-sm`、16px）と `md`（`--size-icon-md`、20px）の 2 段で、token は `src/ui/styles/tokens/layout.css` に置く
+- 色は `currentColor` で、隣の語の色を継ぐ
+- CSS は `src/ui/styles/components/icon.css` で、SVG を枠の span いっぱいに描く
+
 <!-- @code src/ui/components/index.ts#FitText -->
 <!-- @code src/ui/fit-text-bus.ts#subscribeFit -->
 <!-- @code src/ui/fit-text-bus.ts#notifyFit -->
@@ -73,7 +91,7 @@ keycap、picker の cell、mini 盤面のキーは box の大きさを固定し�
 
 ## 機械検証
 
-`src/ui/design-system.test.ts` と `src/ui/theme.test.ts` が以下を検証する。
+`src/ui/design-system.test.ts`、`src/ui/theme.test.ts`、`src/ui/icons.test.ts` が以下を検証する。
 
 - uiux-numa から写した token ファイルが出典 commit と編集禁止の注記を持ち、各 family の段を持つ
 - `index.css` の先頭で layer の順を宣言し、token 以外の CSS はいずれかの layer に入る
@@ -83,5 +101,7 @@ keycap、picker の cell、mini 盤面のキーは box の大きさを固定し�
 - CSS と TSX が参照する custom property は、CSS のどこかで定義されるか、TSX が実行時に与える
 - CSS の class selector は TSX のリテラルの class 名か、`keycodeClass()` の値から作る `kind-*` に対応する。対応しない class は死んだ別名として扱う
 - reduced motion では全ての `transition` と `animation` を止め、Button の hover の拡大も止める
+- 2 組の icon がどちらも `ICON_NAMES` の 17 個をちょうど持ち、出典を記録し、色を `currentColor` だけで持つ
+- `sanitizeIconSvg` が全ての icon から `<title>`、`id`、`role="img"` を外し、形を残す
 - `color.css` は pop-toy の 24 役割を Light と Dark の両方に持ち、派生 token は役割色だけを参照する
 - 本文と主要な操作の文字は 4.5:1、focus と操作の境界は 3:1 以上のコントラストを保つ

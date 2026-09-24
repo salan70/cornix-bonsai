@@ -28,6 +28,7 @@ import { useApplyGate } from "./state/use-apply-gate.ts";
 import { useCursor } from "./state/use-cursor.ts";
 import { useDevice, type DeviceReadContext } from "./state/use-device.ts";
 import { errorMessage, useStatus } from "./state/use-status.ts";
+import { useIconStyle } from "./state/use-icon-style.ts";
 import { useTheme } from "./state/use-theme.ts";
 import { useWorkspace } from "./state/use-workspace.ts";
 import type { ThemePreference } from "./theme.ts";
@@ -46,6 +47,7 @@ import { CornixRecovery, MacRecovery, WorkspaceGate } from "./components/Workspa
 import { BehaviorsPanel } from "./components/panels/BehaviorsPanel.tsx";
 import { CornixDevicePanel, MacDevicePanel } from "./components/panels/DevicePanel.tsx";
 import { FilesPanel } from "./components/panels/FilesPanel.tsx";
+import { IconStyleContext } from "./components/Icon.tsx";
 import { OverviewPanel } from "./components/panels/OverviewPanel.tsx";
 import {
   CornixReferences,
@@ -79,6 +81,7 @@ export function App({
   const status = useStatus("workspaceを選択してください");
   const { say } = status;
   const theme = useTheme(initialTheme);
+  const iconStyle = useIconStyle();
   const cursor = useCursor();
   const apply = useApply({ say, setProgress: status.setProgress });
   const device = useDevice({ say, setProgress: status.setProgress, onStale: apply.reset });
@@ -435,7 +438,7 @@ export function App({
   );
   const panelDef = PANELS.find((item) => item.id === panel);
 
-  return (
+  const desk = (
     <div className="app">
       <a className="skip-link" href="#main">
         盤面へ移動
@@ -684,6 +687,8 @@ export function App({
                 onImportVil={() => void ws.importVil()}
                 onExportVil={() => void ws.exportVil()}
                 onReload={() => void ws.reload()}
+                iconStyle={iconStyle.style}
+                onIconStyle={iconStyle.setStyle}
               />
             ) : null}
           </PanelDialog>
@@ -744,4 +749,5 @@ export function App({
       ) : null}
     </div>
   );
+  return <IconStyleContext.Provider value={iconStyle.style}>{desk}</IconStyleContext.Provider>;
 }

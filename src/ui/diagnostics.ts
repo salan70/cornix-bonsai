@@ -1,13 +1,14 @@
 import type { Diagnostic, DiagnosticSubject, Severity } from "../core/validation/types.ts";
+import type { IconName } from "./icons.ts";
 import type { Selection } from "./types.ts";
 
-/** severity の表示。色だけに頼らず、記号と日本語名を必ず併記する。 */
+/** severity の表示。色だけに頼らず、形の違うアイコンと日本語名を必ず併記する。 */
 export const SEVERITY_VIEW: Readonly<
-  Record<Severity, { readonly icon: string; readonly label: string }>
+  Record<Severity, { readonly icon: IconName; readonly label: string }>
 > = {
-  error: { icon: "⛔", label: "エラー" },
-  warning: { icon: "⚠", label: "警告" },
-  information: { icon: "ⓘ", label: "情報" },
+  error: { icon: "error", label: "エラー" },
+  warning: { icon: "warning", label: "警告" },
+  information: { icon: "info", label: "情報" },
 };
 
 export interface DiagnosticGroup {

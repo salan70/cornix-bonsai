@@ -28,6 +28,47 @@ Light の黄の塗りは白の面に 1.61:1 しかないため、選択は塗り
 本文と主要な操作の文字は 4.5:1、focus と操作の境界は 3:1 以上のコントラストを保つ。
 寸法と書体の token、cascade layer の構成、Button の契約は [design-system.md](./design-system.md) を参照する。
 
+<!-- @code src/ui/icon-style.ts#IconStyle -->
+<!-- @code src/ui/icon-style.ts#parseIconStyle -->
+<!-- @code src/ui/icon-style.ts#loadIconStyle -->
+<!-- @code src/ui/icon-style.ts#saveIconStyle -->
+<!-- @code src/ui/icon-style.ts#applyIconStyle -->
+
+## Icons
+
+機能アイコンは uiux-numa の `cornix-ui-icons` で描いたキーキャップ型の 2 組で、ADR 0032 に従う。
+見た目は `dish`（凹みあり、`keycap-dish-fill`）と `flat`（凹みなし、`keycap-squircle`）の 2 択で、既定は `dish` である。
+選択はブラウザの localStorage の `cornix-bonsai.icon-style` へ保存し、初回、不正値、保存へのアクセス失敗のときは `dish` へ戻る。
+選んだ見た目は `document.documentElement` の `data-icon-style` に反映し、描画中のすべての icon を描き直す。
+設定はファイルのパネルの「表示」にラジオボタンで置き、各選択肢に見本の icon を添える。
+header には置かず、1024px 幅でも header を 1 行に保つ。
+
+icon は読み上げから外し、意味は隣の語か操作の `aria-label` が持つ。
+icon を置く場所と大きさは次のとおりである。
+
+| 場所                                                          | icon                                                                            | 大きさ |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------ |
+| 左端の入口（色のタイルの中）                                  | `keymap` `overview` `behaviors` `validation` `device` `files`                   | 20px   |
+| status bar の診断件数、検証パネルの行、Apply の warning       | `error` `warning` `info`                                                        | 16px   |
+| Apply と実機パネルの「error があるため…」                     | `error`                                                                         | 16px   |
+| 編集パネルの保存状態                                          | 保存中 `saving`、保存済み `check`、失敗 `error`、競合 `warning`、変更なしは無し | 16px   |
+| パネルの見出しの操作                                          | `expand` `collapse` `close`                                                     | 16px   |
+| encoder の帯の回転方向                                        | `rotate-ccw` `rotate-cw`                                                        | 16px   |
+| 編集パネルの「layer を開く」                                  | `arrow-right`                                                                   | 16px   |
+| Apply の完了した段階、backup 済み、書き込みの行、完了の見出し | `check`、書き込み中の行は `saving`                                              | 16px   |
+
+保存中の icon は 3 つの点で、回さない。
+変更なしの保存状態は icon を出さず、文言の位置を揃えるために icon の幅だけを空ける。
+
+次の記号は icon に置き換えない。
+
+- brand の 🌱
+- keycap の刻印記号（⌘ ⌥ ⌃ ⇧ ⏎ など）。macOS と Vial の慣習に従う
+- CSS で描いた点（接続状態、差分、layer の色点）
+- 盤面の小さな診断の印（× と !）
+- 全体マップの参照元の「←」と、読み上げから外した mini 盤面の ↺ ↻
+- 文中の差分の「→」、件数の「×」、動作定義の保存失敗の「×」
+
 <!-- @code src/ui/browser-workspace.ts#pickWorkspace -->
 <!-- @code src/ui/browser-workspace.ts#restoreWorkspace -->
 
@@ -82,6 +123,7 @@ workspace を開く前は header（brand、build、テーマ）と入口だけ�
 <!-- @code src/ui/state/use-apply-gate.ts#useApplyGate -->
 <!-- @code src/ui/state/use-apply.ts#useApply -->
 <!-- @code src/ui/state/use-theme.ts#useTheme -->
+<!-- @code src/ui/state/use-icon-style.ts#useIconStyle -->
 <!-- @code src/ui/state/use-status.ts#useStatus -->
 
 ## 状態の持ち方
@@ -97,6 +139,7 @@ hook の間の受け渡しは `App` が引数と callback で行う。
 | `useApplyGate` | 実機の現在状態と目標状態の差分、Apply gate                                                         |
 | `useApply`     | Apply の段階、Core の `ApplyState`、書き込みの往復回数、中断の要求                                 |
 | `useTheme`     | テーマの選択                                                                                       |
+| `useIconStyle` | 機能アイコンの見た目の選択                                                                         |
 | `useStatus`    | status bar の通知と往復の進捗                                                                      |
 
 保存キューは workspace を採用するたびに作り直し、世代番号で古いキューの通知を捨てる。

@@ -306,7 +306,6 @@
     border-radius: var(--radius-icon);
     background: var(--tone);
     color: var(--on-tone);
-    font-size: var(--font-size-icon);
   }
   .rail-btn.is-on {
     border-color: var(--color-on-surface);

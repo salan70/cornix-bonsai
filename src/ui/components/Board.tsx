@@ -16,6 +16,7 @@ import { macBoardEntries } from "../mac-board.ts";
 import { macKeycapLabel } from "../mac-keycap-labels.ts";
 import type { Selection } from "../types.ts";
 import { KEYMAP_BOARD_SCALE, useStageScale } from "../use-board-scale.ts";
+import { Icon } from "./Icon.tsx";
 
 type KeymapView = ReturnType<typeof buildKeymapView>;
 type KeycodeTable = ReturnType<typeof createKeycodeTable>;
@@ -168,7 +169,7 @@ export function CornixBoard({
                 const subject = `encoder:${layer}:${index}:${direction}`;
                 const diff = diffKeys.has(subject);
                 const mark = diagnosticMarks.get(subject);
-                const turn = direction === "ccw" ? "↺ 左回し" : "↻ 右回し";
+                const turn = direction === "ccw" ? "左回し" : "右回し";
                 return (
                   <button
                     key={direction}
@@ -186,8 +187,11 @@ export function CornixBoard({
                     }}
                   >
                     <span className="slot-dir">
-                      {turn}
-                      {mark === undefined ? "" : mark === "error" ? " ×" : " !"}
+                      <Icon name={direction === "ccw" ? "rotate-ccw" : "rotate-cw"} />
+                      <span className="slot-dir-label">
+                        {turn}
+                        {mark === undefined ? "" : mark === "error" ? " ×" : " !"}
+                      </span>
                     </span>
                     <span className="slot-value">
                       {display.primary.replace(/\n/g, " ")}

@@ -50,11 +50,14 @@
   --size-rail-icon: 2rem;
   --size-cap: 3.75rem;
   --size-step-no: 1.6rem;
-  --size-save-icon: 1.4rem;
   --size-badge: 0.95rem;
   --size-count: 1.25rem;
   --size-dial: 1.1rem;
   --size-layer-badge: 2.25rem;
+
+  /* 機能アイコン（Icon）。sm は 16px、md は 20px。 */
+  --size-icon-sm: 1rem;
+  --size-icon-md: 1.25rem;
 
   /* 選択中のキーを囲む二重の輪と、focus の輪の外側の余白。 */
   --ring-gap: 0.1875rem;

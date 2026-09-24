@@ -1,0 +1,23 @@
+/*
+ * 機能アイコン（Icon）。SVG は viewBox だけを持つため、枠の span の大きさいっぱいに描く。
+ * 色は currentColor で、隣の語の色を継ぐ。
+ */
+@layer components {
+  .icon {
+    display: inline-block;
+    flex: none;
+    width: var(--size-icon-sm);
+    height: var(--size-icon-sm);
+    line-height: 0;
+    vertical-align: -0.2em;
+  }
+  .icon-md {
+    width: var(--size-icon-md);
+    height: var(--size-icon-md);
+  }
+  .icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}

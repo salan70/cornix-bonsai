@@ -71,6 +71,9 @@
     border-radius: var(--radius-tile);
     background: var(--color-surface-container);
   }
+  .seg.is-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .seg legend {
     margin-bottom: var(--space-150);
     padding: 0;
@@ -169,15 +172,13 @@
     gap: var(--space-200);
     align-items: center;
   }
+  /* 保存していない（idle）ときは空のまま幅だけを取り、文言の位置を状態によらず揃える。 */
   .save-icon {
     display: grid;
     flex: none;
-    width: var(--size-save-icon);
-    height: var(--size-save-icon);
+    width: var(--size-icon-sm);
+    height: var(--size-icon-sm);
     place-items: center;
-    border-radius: var(--radius-full);
-    background: var(--color-surface-container);
-    font-weight: var(--font-weight-bold);
   }
   .save-file code {
     overflow-wrap: anywhere;
@@ -187,9 +188,6 @@
   }
   .save.is-saved .save-line {
     color: var(--color-success);
-  }
-  .save.is-saving .save-icon {
-    animation: save-spin 1s linear infinite;
   }
   .save.is-error,
   .save.is-conflict {
@@ -205,10 +203,5 @@
   .save-warning {
     color: var(--color-error);
     font-weight: var(--font-weight-bold);
-  }
-  @keyframes save-spin {
-    to {
-      transform: rotate(360deg);
-    }
   }
 }

@@ -3,6 +3,7 @@ import type { RoundTripProgress } from "../../device/protocol.ts";
 import { SEVERITY_VIEW } from "../diagnostics.ts";
 import type { SaveState } from "../save-state.ts";
 import { Button } from "./Button.tsx";
+import { Icon } from "./Icon.tsx";
 
 const SAVE_TEXT: Readonly<Record<SaveState["kind"], string>> = {
   idle: "変更なし",
@@ -78,7 +79,7 @@ export function StatusBar({
             aria-label={`${SEVERITY_VIEW[severity].label} ${summary[severity]} 件。検証を開く`}
             onClick={() => onSeverity(severity)}
           >
-            <span aria-hidden="true">{SEVERITY_VIEW[severity].icon}</span> {summary[severity]}
+            <Icon name={SEVERITY_VIEW[severity].icon} /> {summary[severity]}
           </button>
         ))}
       </div>

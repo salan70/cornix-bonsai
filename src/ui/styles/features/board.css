@@ -210,10 +210,16 @@
   .slot.kind-none {
     border-style: dashed;
   }
+  /* 回転のアイコンと語を横に並べ、中央で揃える。文字だけを薄くし、アイコンは薄くしない。 */
   .slot-dir {
+    display: inline-flex;
+    gap: var(--space-100);
+    align-items: center;
     font-size: var(--font-size-xs);
-    opacity: 0.85;
     white-space: nowrap;
+  }
+  .slot-dir-label {
+    opacity: 0.85;
   }
   .slot-value {
     overflow: hidden;

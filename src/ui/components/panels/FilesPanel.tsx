@@ -1,21 +1,32 @@
+import type { IconStyle } from "../../icon-style.ts";
 import { Button } from "../Button.tsx";
+import { Icon } from "../Icon.tsx";
 
 export const USER_GUIDE_URL =
   "https://github.com/salan70/cornix-bonsai/blob/main/docs/user-guide/web-ui.md";
 
-/** ファイル。.vil の読込・書出、ディスクからの再読込、利用者ガイド。 */
+const ICON_STYLE_OPTIONS: readonly { readonly value: IconStyle; readonly label: string }[] = [
+  { value: "dish", label: "凹みあり" },
+  { value: "flat", label: "凹みなし" },
+];
+
+/** ファイル。.vil の読込・書出、ディスクからの再読込、表示の設定、利用者ガイド。 */
 export function FilesPanel({
   cornixReady,
   canReload,
   onImportVil,
   onExportVil,
   onReload,
+  iconStyle,
+  onIconStyle,
 }: {
   readonly cornixReady: boolean;
   readonly canReload: boolean;
   readonly onImportVil: () => void;
   readonly onExportVil: () => void;
   readonly onReload: () => void;
+  readonly iconStyle: IconStyle;
+  readonly onIconStyle: (style: IconStyle) => void;
 }): React.JSX.Element {
   return (
     <div className="steps">
@@ -43,6 +54,27 @@ export function FilesPanel({
         <Button size="small" appearance="secondary" disabled={!canReload} onClick={onReload}>
           再読込
         </Button>
+      </section>
+      <section className="step">
+        <h3 className="section-title">表示</h3>
+        <p>アイコンのキーの天面に、淡い凹みを描くかを選ぶ。選択はこのブラウザに保存する。</p>
+        <fieldset className="seg is-two" data-icon-style-setting>
+          <legend>アイコン</legend>
+          {ICON_STYLE_OPTIONS.map((option) => (
+            <label key={option.value} className={iconStyle === option.value ? "is-on" : ""}>
+              <input
+                type="radio"
+                name="icon-style"
+                value={option.value}
+                checked={iconStyle === option.value}
+                onChange={() => onIconStyle(option.value)}
+              />
+              <span className="seg-label">
+                <Icon name="keymap" size="md" iconStyle={option.value} /> {option.label}
+              </span>
+            </label>
+          ))}
+        </fieldset>
       </section>
       <section className="step">
         <h3 className="section-title">利用者ガイド</h3>

@@ -10,6 +10,7 @@ import { canJumpTo, groupDiagnostics, SEVERITY_VIEW, subjectLabel } from "../../
 import { describeDevices, deviceIfText } from "../../mac-references.ts";
 import type { MacWorkspaceState } from "../../mac-workspace.ts";
 import { Button } from "../Button.tsx";
+import { Icon } from "../Icon.tsx";
 
 const FILTERS: readonly (readonly [Severity | undefined, string])[] = [
   [undefined, "すべて"],
@@ -54,7 +55,7 @@ export function ValidationPanel({
     return (
       <li key={diagnostic.id} className={DIAG_CLASS[diagnostic.severity]}>
         <span className="diag-sev">
-          <span aria-hidden="true">{view.icon}</span> {view.label}
+          <Icon name={view.icon} /> {view.label}
         </span>
         <div>
           <code>{diagnostic.code}</code>

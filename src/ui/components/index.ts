@@ -5,6 +5,7 @@ import { CornixBoard as CornixBoardComponent, MacBoard as MacBoardComponent } fr
 import { Button as ButtonComponent } from "./Button.tsx";
 import { FitText as FitTextComponent } from "./FitText.tsx";
 import { Header as HeaderComponent } from "./Header.tsx";
+import { Icon as IconComponent } from "./Icon.tsx";
 import { Inspector as InspectorComponent } from "./Inspector.tsx";
 import {
   CornixLayerBar as CornixLayerBarComponent,
@@ -106,3 +107,6 @@ export const Button = ButtonComponent;
 
 /** @doc docs/specs/design-system.md#fittext-サイズ固定-文字を縮小 */
 export const FitText = FitTextComponent;
+
+/** @doc docs/specs/design-system.md#icon */
+export const Icon = IconComponent;

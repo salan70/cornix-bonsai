@@ -12,8 +12,10 @@ import {
   type PickTarget,
 } from "../keycode-compose.ts";
 import { keycodeDisplay, kindClass, renderKeycode } from "../keycode-display.tsx";
+import type { IconName } from "../icons.ts";
 import type { SaveState } from "../save-state.ts";
 import { Button } from "./Button.tsx";
+import { Icon } from "./Icon.tsx";
 import { targetValue } from "./Picker.tsx";
 
 const PICK_TARGETS: readonly { readonly id: PickTarget; readonly label: string }[] = [
@@ -143,7 +145,7 @@ export function Inspector({
           </p>
           {referencedLayer === undefined ? null : jumpableLayers.has(referencedLayer) ? (
             <button type="button" className="link" onClick={() => onJumpLayer(referencedLayer)}>
-              →{" "}
+              <Icon name="arrow-right" />{" "}
               {mode === "cornix" ? layerLabel(labels, referencedLayer) : `layer ${referencedLayer}`}{" "}
               を開く
             </button>
@@ -266,14 +268,18 @@ export function Inspector({
 const SAVE_VIEW: Readonly<
   Record<
     SaveState["kind"],
-    { readonly className: string; readonly icon: string; readonly text: string }
+    { readonly className: string; readonly icon: IconName | undefined; readonly text: string }
   >
 > = {
-  idle: { className: "save is-idle", icon: "○", text: "未保存の変更はない" },
-  saving: { className: "save is-saving", icon: "◌", text: "保存中…" },
-  saved: { className: "save is-saved", icon: "✓", text: "ローカル保存済み" },
-  error: { className: "save is-error", icon: "×", text: "保存に失敗した" },
-  conflict: { className: "save is-conflict", icon: "!", text: "外部で変更されたため保存できない" },
+  idle: { className: "save is-idle", icon: undefined, text: "未保存の変更はない" },
+  saving: { className: "save is-saving", icon: "saving", text: "保存中…" },
+  saved: { className: "save is-saved", icon: "check", text: "ローカル保存済み" },
+  error: { className: "save is-error", icon: "error", text: "保存に失敗した" },
+  conflict: {
+    className: "save is-conflict",
+    icon: "warning",
+    text: "外部で変更されたため保存できない",
+  },
 };
 
 /** 選択中の編集の保存状態。error は再試行、conflict は再読込だけを出す。 */
@@ -288,8 +294,8 @@ function SaveBox({
   return (
     <section className={view.className} aria-label="保存状態" data-save={save.state.kind}>
       <p className="save-line" role="status" aria-live="polite">
-        <span aria-hidden="true" className="save-icon">
-          {view.icon}
+        <span className="save-icon">
+          {view.icon === undefined ? null : <Icon name={view.icon} />}
         </span>
         <strong>{view.text}</strong>
       </p>

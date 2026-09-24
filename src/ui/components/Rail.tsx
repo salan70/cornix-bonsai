@@ -1,18 +1,20 @@
+import type { IconName } from "../icons.ts";
 import type { PanelId } from "../types.ts";
+import { Icon } from "./Icon.tsx";
 
 /** 入口の並びと色。位置は対象によらず固定する。 */
 export const PANELS: readonly {
   readonly id: PanelId;
   readonly label: string;
   readonly short: string;
-  readonly icon: string;
+  readonly icon: IconName;
   readonly tone: string;
 }[] = [
-  { id: "overview", label: "全体マップ", short: "全体", icon: "▦", tone: "tone-secondary" },
-  { id: "behaviors", label: "動作定義", short: "動作", icon: "⚙", tone: "tone-tertiary" },
-  { id: "validation", label: "検証", short: "検証", icon: "✓", tone: "tone-primary" },
-  { id: "device", label: "実機と適用", short: "実機", icon: "⇅", tone: "tone-secondary" },
-  { id: "files", label: "ファイル", short: "ファイル", icon: "▤", tone: "tone-tertiary" },
+  { id: "overview", label: "全体マップ", short: "全体", icon: "overview", tone: "tone-secondary" },
+  { id: "behaviors", label: "動作定義", short: "動作", icon: "behaviors", tone: "tone-tertiary" },
+  { id: "validation", label: "検証", short: "検証", icon: "validation", tone: "tone-primary" },
+  { id: "device", label: "実機と適用", short: "実機", icon: "device", tone: "tone-secondary" },
+  { id: "files", label: "ファイル", short: "ファイル", icon: "files", tone: "tone-tertiary" },
 ];
 
 /**
@@ -41,8 +43,8 @@ export function Rail({
         aria-pressed={panel === undefined}
         onClick={() => onPanel(undefined)}
       >
-        <span aria-hidden="true" className="rail-icon">
-          ⌨
+        <span className="rail-icon">
+          <Icon name="keymap" size="md" />
         </span>
         割り当て
       </button>
@@ -65,8 +67,8 @@ export function Rail({
               if (reason === undefined) onPanel(item.id);
             }}
           >
-            <span aria-hidden="true" className="rail-icon">
-              {item.icon}
+            <span className="rail-icon">
+              <Icon name={item.icon} size="md" />
             </span>
             {item.short}
             {count === undefined || count === 0 ? null : (

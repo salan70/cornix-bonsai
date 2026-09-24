@@ -3,6 +3,7 @@ import { collectReferenceUsage } from "../../../core/validation/reference-usage.
 import type { VilDocument } from "../../../core/vil/types.ts";
 import { keycodeLabel, type WorkspaceLabels } from "../../../workspace/labels.ts";
 import { settingLabel } from "../../../workspace/settings.ts";
+import { Icon } from "../Icon.tsx";
 
 type Tab = "tapDance" | "combo" | "settings";
 
@@ -214,7 +215,7 @@ function ValueField({
       {hint === undefined ? null : <span>表示名: {hint}</span>}
       {error === undefined ? null : (
         <span id={`${id}-error`} className="error-text">
-          × {error}。保存していない。
+          <Icon name="error" /> {error}。保存していない。
         </span>
       )}
     </label>

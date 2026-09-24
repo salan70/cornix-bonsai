@@ -7,6 +7,7 @@ import { subjectLabel } from "../../diagnostics.ts";
 import { describeDevices, deviceIfText } from "../../mac-references.ts";
 import type { MacWorkspaceState } from "../../mac-workspace.ts";
 import { Button } from "../Button.tsx";
+import { Icon } from "../Icon.tsx";
 
 export interface DeviceIdentity {
   readonly deviceUid: string;
@@ -166,7 +167,9 @@ export function CornixDevicePanel({
               )}
               {fatal.length === 0 ? null : (
                 <div className="fatal-list">
-                  <strong>⛔ error が {fatal.length} 件あるため Apply できない</strong>
+                  <strong>
+                    <Icon name="error" /> error が {fatal.length} 件あるため Apply できない
+                  </strong>
                   <ul>
                     {fatal.map((diagnostic) => (
                       <li key={diagnostic.id}>

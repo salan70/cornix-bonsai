@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { Icon } from "./Icon.tsx";
 
 export type PanelSize = "window" | "full";
 
@@ -69,11 +70,10 @@ export function PanelDialog({
           aria-pressed={full}
           onClick={() => onSize(full ? "window" : "full")}
         >
-          <span aria-hidden="true">{full ? "⤡" : "⤢"}</span>{" "}
-          {full ? "元の大きさに戻す" : "全画面で表示"}
+          <Icon name={full ? "collapse" : "expand"} /> {full ? "元の大きさに戻す" : "全画面で表示"}
         </button>
         <button type="button" className="sheet-btn" data-close onClick={onClose}>
-          × 閉じる <kbd>Esc</kbd>
+          <Icon name="close" /> 閉じる <kbd>Esc</kbd>
         </button>
       </header>
       <div className="sheet-body">{children}</div>
