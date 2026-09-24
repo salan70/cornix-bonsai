@@ -18,7 +18,7 @@ function localCommitSha(): string {
 const commitSha = (process.env.GITHUB_SHA || localCommitSha()).slice(0, 7);
 
 export default defineConfig({
-  base: "/cornix-bonsai/",
+  base: "/",
   define: {
     "import.meta.env.BUILD_INFO": JSON.stringify({
       commitSha,

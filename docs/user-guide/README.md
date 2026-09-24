@@ -4,7 +4,7 @@ Cornix Bonsai は Cornix LP の設定編集ツールです。
 ローカルの workspace へ保存し、Web UI や CLI で編集・検証します。
 Web UI では実機状態を読み取り、確認した差分だけを実機へ反映（Apply）できます。
 
-Web UI: <https://salan70.github.io/cornix-bonsai/>
+Web UI は clone したリポジトリで `just ui` を実行して起動します。
 
 ## 対応環境
 
@@ -16,7 +16,8 @@ Web UI: <https://salan70.github.io/cornix-bonsai/>
 
 Edge や Brave でも動作しますが、確認済み環境には含めません。
 Safari と Firefox は WebHID に非対応のため、実機接続を利用できません。
-CLI はリポジトリを clone し、Nix 環境から実行します。
+Web UI と CLI はどちらも、リポジトリを clone した Nix 環境から実行します。
+更新は `git pull` のあと `just ui` を起動し直して受け取ります。
 
 ## 安全の基本原則
 
@@ -34,7 +35,7 @@ CLI はリポジトリを clone し、Nix 環境から実行します。
 
 ### 既存の workspace を開く
 
-1. [Web UI](https://salan70.github.io/cornix-bonsai/) を Chrome または Chromium で開きます。
+1. リポジトリで `just ui` を実行します。Chrome で <http://127.0.0.1:5178/> が開きます。
 2. `Workspace を開く` を選び、`keymap.yaml` のあるディレクトリを指定します。
 3. 盤面のキーを選択し、盤面の下の keycode picker や右側の編集パネルで設定を変更します。
 4. 編集パネルの下と画面下部に `ローカル保存済み` と表示されたことを確認します。

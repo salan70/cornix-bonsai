@@ -3,7 +3,10 @@
 Web UI は、ローカルの workspace をブラウザから直接読み書きするツールです。
 設定やバックアップを外部サーバへ送信することはありません。
 
-Web UI: <https://salan70.github.io/cornix-bonsai/>
+起動は clone したリポジトリで `just ui` を実行します。
+Web UI をビルドしてから <http://127.0.0.1:5178/> で配信し、Chrome で開きます。
+ターミナルは開いたままにし、終了するときは Ctrl+C を押します。
+port 5178 が使用中なら起動しません。すでに起動していれば、その URL を開いてください。
 
 `keymap.yaml` が無い directory でも開けます。
 Mac キーボードだけを編集できます。

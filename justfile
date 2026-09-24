@@ -30,6 +30,12 @@ lint-ts:
 lint-md:
     markdownlint-cli2 "**/*.md" "!.direnv/**" "!node_modules/**" "!.claude/**" "!.agents/**"
 
+# Web UI をビルドしてローカルサーバーで開く（http://127.0.0.1:5178/）
+# 日常の起動はこれだけ。GitHub Pages では配布しない（ADR 0033）。
+ui:
+    pnpm build
+    pnpm exec tsx src/server/main.ts
+
 # ローカル開発サーバーを起動する
 dev:
     pnpm dev
@@ -37,10 +43,6 @@ dev:
 # production buildを作成する
 build:
     pnpm build
-
-# production buildをbase path付きで確認する
-preview:
-    pnpm preview
 
 # CLIを実行する
 [positional-arguments]

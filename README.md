@@ -5,7 +5,7 @@ Cornix LP 向けのローカルファーストなキーマップ編集ツール�
 
 ## 今すぐ使う（Web UI）
 
-Web UI: <https://salan70.github.io/cornix-bonsai/>
+Web UI は clone したリポジトリから `just ui` で起動し、<http://127.0.0.1:5178/> で開きます。
 
 - **動作環境**: macOS 上の Chrome または Chromium。
 - **非対応環境**: Safari と Firefox は WebHID に非対応のため実機接続不可。
@@ -37,7 +37,7 @@ git clone https://github.com/salan70/cornix-bonsai.git
 cd cornix-bonsai
 direnv allow     # direnv 未設定の場合は nix develop
 just setup       # pre-commit / pre-push フックの導入
-just dev         # ローカル開発サーバーの起動
+just ui          # Web UI をビルドして起動（http://127.0.0.1:5178/）
 ```
 
 ### 日常の検証・運用コマンド
@@ -51,8 +51,8 @@ just dev         # ローカル開発サーバーの起動
 | `just format`          | oxfmt によるコード整形                    |
 | `just docbridge-check` | コードと仕様書（docs/specs/）のリンク検証 |
 | `just mac`             | MacBook 内蔵キーボードの設定を適用        |
-| `just build`           | 本番用ビルドの作成                        |
-| `just preview`         | ビルド成果物のローカル確認                |
+| `just ui`              | Web UI のビルドと起動                     |
+| `just dev`             | 開発サーバーの起動（UI 開発用）           |
 
 ## 設計・運用方針
 

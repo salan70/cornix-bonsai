@@ -1,0 +1,68 @@
+#!/usr/bin/env node
+/**
+ * `just ui` が起動するローカルサーバー。
+ *
+ * Web UI の配布は GitHub Pages ではなく、clone したリポジトリからのこの起動だけにする
+ * （ADR 0033）。画面と Node 側の処理が同じ checkout から作られるので、版がずれない。
+ */
+
+import { execFile } from "node:child_process";
+import { createServer, type Server } from "node:http";
+import { resolve } from "node:path";
+import { serveStatic } from "./static.ts";
+
+/**
+ * 固定の port。origin に port が入るため、変わると workspace の権限とテーマの保存が
+ * 起動のたびに消える（ADR 0033）。
+ */
+export const UI_PORT = 5178;
+
+/** loopback だけに bind する。LAN からは届かない。 */
+export const UI_HOST = "127.0.0.1";
+
+/** 利用者が開く URL。origin の比較にも使う。 */
+export const UI_ORIGIN = `http://${UI_HOST}:${UI_PORT}`;
+
+/** `src/server/` から 2 つ上が repository root。 */
+const DIST = resolve(import.meta.dirname, "..", "..", "dist");
+
+/**
+ * サーバーを作る。listen は呼び出し側が行う。
+ *
+ * @doc docs/specs/local-server.md#createuiserver
+ */
+export function createUiServer(dist: string = DIST): Server {
+  return createServer((request, response) => {
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      response.writeHead(405, { "content-type": "text/plain; charset=utf-8" });
+      response.end("method not allowed");
+      return;
+    }
+    void serveStatic(dist, request.url ?? "/").then((result) => {
+      response.writeHead(result.status, result.headers);
+      response.end(request.method === "HEAD" ? undefined : result.body);
+    });
+  });
+}
+
+async function main(): Promise<void> {
+  const server = createUiServer();
+  server.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EADDRINUSE") {
+      console.error(
+        `cornix ui: port ${UI_PORT} は使用中。すでに起動していれば ${UI_ORIGIN}/ を開く`,
+      );
+    } else {
+      console.error(`cornix ui: ${error.message}`);
+    }
+    process.exit(1);
+  });
+  server.listen(UI_PORT, UI_HOST, () => {
+    console.log(`cornix ui: ${UI_ORIGIN}/ で起動した（Ctrl+C で終了）`);
+    // 対象ブラウザは Chromium 系だけ（ADR 0004）。既定ブラウザが Safari でも Chrome で開く。
+    // 開けなければ URL の表示だけで済ませる。
+    execFile("/usr/bin/open", ["-a", "Google Chrome", `${UI_ORIGIN}/`], () => undefined);
+  });
+}
+
+if (import.meta.main) await main();
