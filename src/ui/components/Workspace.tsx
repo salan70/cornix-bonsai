@@ -189,7 +189,7 @@ export function MacRecovery({
         <h2 id="recovery-title">! {path} が無い</h2>
         <p>
           Mac キーボード（{layout.toUpperCase()}）の設定ファイルがまだ無い。選んだ配列と空の layer 0
-          だけを持つ初期ファイルを作れる。Mac への適用は CLI（cornix mac apply）で行う。
+          だけを持つ初期ファイルを作れる。
         </p>
         <div className="row">
           <Button disabled={busy} onClick={onCreate}>

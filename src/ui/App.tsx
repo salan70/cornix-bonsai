@@ -35,6 +35,9 @@ import type { ThemePreference } from "./theme.ts";
 import type { PanelId, Selection } from "./types.ts";
 import { cornixIssue, defaultEditTarget, type UiWorkspaceStore } from "./workspace-probe.ts";
 import { ApplyDialog } from "./components/ApplyDialog.tsx";
+import { MacApplyDialog } from "./components/MacApplyDialog.tsx";
+import { macApplyBlockedReason } from "./mac-apply-gate.ts";
+import { useMacApply } from "./state/use-mac-apply.ts";
 import { CornixBoard, focusBoard, MacBoard } from "./components/Board.tsx";
 import { Header, type DevicePhase, type TargetLoadState } from "./components/Header.tsx";
 import { Inspector, type InspectorSave } from "./components/Inspector.tsx";
@@ -84,6 +87,7 @@ export function App({
   const iconStyle = useIconStyle();
   const cursor = useCursor();
   const apply = useApply({ say, setProgress: status.setProgress });
+  const macApply = useMacApply();
   const device = useDevice({ say, setProgress: status.setProgress, onStale: apply.reset });
   const ws = useWorkspace({
     say,
@@ -316,6 +320,22 @@ export function App({
     void apply.begin({ store: workspace.store, deviceRead: device.read, gate });
   }
 
+  const macBlockedReason =
+    macLayout === undefined
+      ? undefined
+      : macApplyBlockedReason({
+          machine: macApply.machine,
+          layout: macLayout,
+          ready: macReady !== undefined,
+          save: ws.macSaves[macLayout] ?? { kind: "idle" },
+          errors: macValidation?.summary.error ?? 0,
+        });
+
+  function startMacApply(): void {
+    if (macBlockedReason !== undefined || macLayout === undefined || macReady === undefined) return;
+    void macApply.open(macLayout, macReady.document);
+  }
+
   function writeApply(): void {
     const connection = device.connection;
     if (connection === undefined || device.read === undefined) return;
@@ -449,6 +469,9 @@ export function App({
         targetKey={cursor.key}
         targetStates={targetStates}
         onTarget={cursor.setTarget}
+        machineLayout={
+          macApply.machine.kind === "known" ? (macApply.machine.layout ?? undefined) : undefined
+        }
         device={devicePhase}
         productName={device.connection?.info.productName}
         theme={theme.preference}
@@ -676,6 +699,8 @@ export function App({
                 <MacDevicePanel
                   layout={macLayout}
                   mac={macState}
+                  applyBlockedReason={macBlockedReason}
+                  onApply={() => closePanel(startMacApply)}
                   onExportKarabiner={() => void ws.exportKarabiner(macLayout)}
                 />
               ) : null
@@ -715,13 +740,25 @@ export function App({
               }
             : {
                 kind: "mac",
-                canExport: macReady !== undefined,
-                onExportKarabiner: () => {
-                  if (macLayout !== undefined) void ws.exportKarabiner(macLayout);
-                },
+                applyBlockedReason: macBlockedReason,
+                onApply: startMacApply,
               }
         }
       />
+      {macApply.view.phase !== "closed" && macLayout !== undefined ? (
+        <MacApplyDialog
+          view={macApply.view}
+          layout={macLayout}
+          document={macReady?.document}
+          onApply={() => void macApply.apply()}
+          onRetrySelect={() => void macApply.retrySelect()}
+          onReload={() => {
+            macApply.close();
+            void ws.reload();
+          }}
+          onClose={macApply.close}
+        />
+      ) : null}
       {apply.open ? (
         <ApplyDialog
           step={apply.step}

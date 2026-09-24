@@ -1,0 +1,114 @@
+/**
+ * ローカルサーバーの Mac 適用 API が返す形。
+ *
+ * Web UI とサーバーの両方がこの型を参照する。**型だけを置き、Node の module を import
+ * しない。** Web UI は HTTP 越しにしかサーバーへ触れない（ADR 0034）。
+ */
+
+import type { MacKeyboardLayout } from "../core/mac-keymap/types.ts";
+import type { Diagnostic } from "../core/validation/types.ts";
+
+/** API の path。 @doc docs/specs/local-server.md#createmacapi */
+export const MAC_API = {
+  status: "/api/mac/status",
+  plan: "/api/mac/plan",
+  apply: "/api/mac/apply",
+  select: "/api/mac/select",
+} as const;
+
+/** このマシンについてサーバーが知っていること。 */
+export interface MacStatusResponse {
+  readonly kind: "status";
+  /** サーバーが読む workspace の絶対 path。 */
+  readonly workspace: string;
+  /** 内蔵キーボードの配列。検出できなければ `null`。 */
+  readonly layout: MacKeyboardLayout | null;
+}
+
+/** 差分 1 件。Karabiner の manipulator ではなく、盤面の言葉で表す。 */
+export interface MacDiffEntryView {
+  /** rule の description から取った layer 番号。読めなければ `null`。 */
+  readonly layer: number | null;
+  readonly keyCode: string;
+  readonly change: "added" | "removed" | "changed";
+}
+
+/** 計画を組めた結果。`fingerprint` を送り返すと適用できる。 */
+export interface MacPlanned {
+  readonly kind: "planned";
+  readonly workspace: string;
+  /** 読んだ設定ファイルの絶対 path。 */
+  readonly source: string;
+  readonly karabiner: string;
+  readonly fingerprint: string;
+  readonly entries: readonly MacDiffEntryView[];
+  readonly diagnostics: readonly Diagnostic[];
+  readonly selection: { readonly required: boolean; readonly profile: string };
+}
+
+/** 計画の手前で止まった理由。どれも `karabiner.json` には触れていない。 */
+export type MacPlanBlocked =
+  | {
+      readonly kind: "layout-mismatch";
+      readonly machine: MacKeyboardLayout | null;
+      readonly requested: MacKeyboardLayout;
+    }
+  | { readonly kind: "missing"; readonly path: string }
+  | { readonly kind: "digest-mismatch"; readonly path: string }
+  | { readonly kind: "invalid"; readonly diagnostics: readonly Diagnostic[] }
+  | { readonly kind: "karabiner-missing" }
+  | { readonly kind: "lint-failed"; readonly output: string };
+
+export type MacPlanResponse = MacPlanned | MacPlanBlocked | MacApiFailure;
+
+/** 適用の結果。`backup` があれば `karabiner.json` は書き換わっている。 */
+export type MacApplyResponse =
+  | MacPlanBlocked
+  | MacApiFailure
+  /** 計画を組んだ後に中身が変わった。新しい計画を見せ直す。 */
+  | { readonly kind: "fingerprint-mismatch"; readonly plan: MacPlanned }
+  | {
+      readonly kind: "applied";
+      readonly backup: string;
+      /** 選択が要らなかったときは `false`。 */
+      readonly selected: boolean;
+    }
+  | {
+      readonly kind: "verify-failed";
+      readonly backup: string;
+      readonly entries: readonly MacDiffEntryView[];
+    }
+  /** 書き込みと verify は済み。profile の切り替えだけが失敗した。巻き戻さない。 */
+  | {
+      readonly kind: "select-failed";
+      readonly backup: string;
+      readonly profile: string;
+      readonly output: string;
+    };
+
+export type MacSelectResponse =
+  | {
+      readonly kind: "selected";
+      readonly ok: boolean;
+      readonly observed: string | null;
+      readonly output: string;
+    }
+  | { readonly kind: "karabiner-missing" }
+  | MacPlanBlocked
+  | MacApiFailure;
+
+/** 想定外の失敗と、リクエストの拒否。 */
+export type MacApiFailure =
+  | { readonly kind: "failed"; readonly message: string }
+  | { readonly kind: "rejected"; readonly reason: string };
+
+/** `plan` と `apply` が送る本文。 */
+export interface MacPlanRequest {
+  readonly layout: MacKeyboardLayout;
+  /** Web UI が編集中の内容の `macKeymapDigest`。 */
+  readonly digest: string;
+}
+
+export interface MacApplyRequest extends MacPlanRequest {
+  readonly fingerprint: string;
+}

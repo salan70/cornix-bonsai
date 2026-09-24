@@ -129,7 +129,8 @@ Mac のキーボード設定は、Karabiner-Elements を介して管理します
 対象の配列は実行中の Mac から自動検出するため、`--layout` も要りません。
 別の場所を使う場合は `$CORNIX_WORKSPACE` か `--workspace` で指定します。
 
-日常の操作は次の 2 つです。
+Web UI の `Karabiner へ適用…` でも同じ手順で適用できます（[Web UI の使い方](./web-ui.md#karabiner-へ適用する)）。
+ターミナルから適用するときの操作は次の 2 つです。
 
 ```bash
 just mac apply                          # 差分と確認用 fingerprint を表示（何も書き換えない）

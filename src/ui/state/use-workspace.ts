@@ -399,7 +399,7 @@ export function useWorkspace({ say, onAdopt }: WorkspaceOptions) {
         diagnostics.length === 0
           ? ""
           : `（warning ${summary.warning}件・information ${summary.information}件）`;
-      say(`${path}へ書き出した${rest}。適用はcornix mac applyで行う`);
+      say(`${path}へ書き出した${rest}。適用は「Karabiner へ適用」で行う`);
     } catch (error) {
       say(errorMessage(error));
     }

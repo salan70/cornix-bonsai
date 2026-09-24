@@ -156,6 +156,7 @@ header は brand、build 情報、workspace 名と切替、編集対象の radio
 build 情報は短い commit SHA とローカル timezone の build 時刻で、`time` 要素の `dateTime` へ ISO 文字列を保持し、build 情報が無いときは開発用の fallback 表示にする。
 編集対象は `Cornix LP`、`Mac ANSI`、`Mac JIS` の radiogroup で、方向キーでも切り替えられる。
 各対象には読込状態の印（読込済み、ファイルなし、binding の移行が必要、読込失敗）を形と色で付け、文言を読み上げ用に添える。
+ローカルサーバーが検出したこのマシンの内蔵配列の対象には「この Mac」を添える。
 接続状態は色だけに頼らず、未接続、接続済み、読込中、読込済みと製品名を文字で示す。
 
 status bar は severity ごとの診断件数、保存状態と保存先、通知、実機との差分と Apply の入口を出す。
@@ -163,7 +164,7 @@ status bar は severity ごとの診断件数、保存状態と保存先、通�
 保存状態は Cornix では `keymap.yaml` と `cornix/labels.yaml` を `chooseSaveCandidate` の優先順（conflict > error > saving > saved > idle）で 1 つにまとめ、保存先ファイルと並べる。
 Cornix 表示中は実機との差分件数（未読込ならその旨）と「実機へ Apply…」を出す。
 Apply を開始できないときはボタンを無効にし、理由（`keymap.yaml` 未読込、未接続、未読込、差分 0 件、error あり）を文字で並べる。
-Mac 表示中は Vial の差分件数と Apply を出さず、適用は `cornix mac apply` であることと Karabiner asset の書出だけを出す。
+Mac 表示中は Vial の差分件数と Apply を出さず、「Karabiner へ適用…」と、押せないときの理由を出す（Mac apply を参照）。
 Apply の gate と診断の severity を UI 表示上で混同しない。
 
 <!-- @code src/ui/components/index.ts#Rail -->
@@ -234,7 +235,7 @@ Mac では「割り当てを外す（素通しへ戻す）」を置く。
 
 編集パネルの下端には、対象ファイルとともに保存中、ローカル保存済み、保存失敗、外部変更との競合を記号と文言で出す。
 通常の I/O 失敗は再試行でき、外部変更との競合は再試行を出さず、未保存の編集が失われた警告と再読込の導線を出す。
-ここで示す保存はローカルの workspace への保存で、実機への反映は Apply、Mac への適用は CLI の `cornix mac apply` だと併記する。
+ここで示す保存はローカルの workspace への保存で、実機への反映は Apply、Mac への適用は「Karabiner へ適用」だと併記する。
 
 <!-- @code src/ui/components/index.ts#Picker -->
 <!-- @code src/ui/keycode-compose.ts#applyPick -->
@@ -291,7 +292,54 @@ layer の切替の右端に適用先の chip を置き、title は `device_if` �
 keycode の選択は同じ picker を使い、`applyPick` の合成と `setMacAssignment` での保存は `App` が持つ。
 keycode 表示は Vial と同じ label 関数を使うが、layer 名は剥がして渡し、`createKeycodeTable` は呼ばない。
 診断は `validateMacKeymap` の結果を Vial 側と分けて持ち、盤面の印、検証パネル、status bar の件数はすべて Mac の診断で描く。
-実機への適用は CLI（`cornix mac apply`）のみである（ADR 0022）。
+Karabiner への適用はローカルサーバーが行い、Web UI は差分を見せて承認を送るだけである（ADR 0034）。
+
+<!-- @code src/ui/components/index.ts#MacApplyDialog -->
+<!-- @code src/ui/state/use-mac-apply.ts#useMacApply -->
+<!-- @code src/ui/mac-apply-gate.ts#macApplyBlockedReason -->
+<!-- @code src/ui/mac-server.ts#fetchMacStatus -->
+
+## Mac apply
+
+「Karabiner へ適用…」は、ローカルサーバーの適用 API（`local-server.md`）を呼んで `karabiner.json` を書き換える。
+Web UI は `karabiner.json` にも `karabiner_cli` にも触れず、同じ origin へ JSON を POST するだけである（ADR 0034）。
+
+起動時に 1 回だけ、このマシンの内蔵配列をサーバーへ訊く。
+サーバーへ届かない（`just dev` で開いた、サーバーを止めた）ときは `unreachable` として扱う。
+
+押せない理由は `macApplyBlockedReason` が次の順で 1 つだけ返す。
+前のものが解決しないと後ろを直しても押せないためである。
+
+| 順  | 条件                             | 表示                                                 |
+| --- | -------------------------------- | ---------------------------------------------------- |
+| 1   | サーバーへ問い合わせ中           | サーバーに問い合わせ中                               |
+| 2   | サーバーへ届かない               | サーバーに接続できない。just ui で起動する           |
+| 3   | 配列を検出できない               | この Mac の配列を検出できない                        |
+| 4   | 編集対象の配列がこのマシンと違う | この Mac は ANSI。JIS の設定は JIS の Mac で適用する |
+| 5   | 設定ファイルが ready でない      | 設定ファイルを読み込めていない                       |
+| 6   | 保存待ち                         | 保存中…                                              |
+| 7   | 保存失敗・外部変更の競合         | 保存できていない                                     |
+| 8   | error 診断がある                 | error があるため適用できない                         |
+
+押すと、編集中の document の `macKeymapDigest` を添えて計画を頼み、modal に差分を出す。
+差分は layer、キー（物理キャップ名）、割り当て（QMK 表記）、追加 / 変更 / 削除で並べ、error 以外の診断を添える。
+差分が無く profile の切り替えも要らなければ「このマシンは最新」と出し、適用ボタンを無効にする。
+
+計画の段階で止まったときは、`karabiner.json` に触れていないと明示して理由を出す。
+digest が一致しないときは、画面の内容とサーバーが読んだファイルの絶対 path が違うと示し、再読込を置く。
+
+適用すると、計画の fingerprint を送り返す。
+計画の後に内容が変わっていれば、サーバーが返した新しい計画を見せ直す。
+結果は次のとおり出す。
+
+| 結果                       | 表示                                                           |
+| -------------------------- | -------------------------------------------------------------- |
+| 適用した                   | backup の path と、profile を切り替えたこと                    |
+| verify が一致しない        | backup から戻す手順                                            |
+| profile の切り替えだけ失敗 | 書き込みは巻き戻していないこと、「切り替えを再試行」、戻す手順 |
+| 想定外の失敗               | 理由と、適用前の設定は `cornix/backups/` にあること            |
+
+計画中と適用中は modal を閉じられない。
 
 <!-- @code src/ui/keycode-labels.ts#keycodeDisplay -->
 <!-- @code src/core/keycode/shifted.ts#shiftedOf -->
@@ -357,7 +405,7 @@ Apply の入口を押すとパネルを閉じてから Apply の modal を開く
 「backup から復元」は `cornix/backups/latest.vil` を目標状態へ読み込むだけで、実機にも `keymap.yaml` にも書き込まず、通常の差分確認と Apply へ戻す。
 Cornix が ready でなければ復元を無効にする。
 
-Mac の実機パネルは Web UI では適用しないことを示し、`just mac apply` と `just mac apply --confirm <fingerprint>` の手順、適用先、Karabiner asset の書出を置く。
+Mac の実機パネルは「Karabiner へ適用…」の入口と押せない理由、`just mac apply` でも適用できること、適用先、Karabiner asset の書出を置く。
 
 <!-- @code src/ui/components/index.ts#OverviewPanel -->
 <!-- @code src/ui/overview-model.ts#buildOverviewModel -->
@@ -401,11 +449,11 @@ VIL、SVG、PDF の書出は workspace の Git 管理外である `cornix/genera
 SVG / PDF は renderer へ選択中の layer を渡し、CLI と同じ座標と表示名の規則を使う。
 いずれも実機への write を開始しない。
 
-Karabiner の complex_modifications asset の書出は、Mac 表示中の status bar と実機パネルが担う。
+Karabiner の complex_modifications asset の書出は、Mac 表示中の実機パネルが担う。
 保存先は `cornix/generated/karabiner-complex-modifications.json` である。
 生成元は編集中の in-memory document であり、ディスクを再読しない（ADR 0025）。
 error が 1 件でもあれば書き出さない。
-`karabiner.json` へ触るのは CLI の `cornix mac apply` だけである（ADR 0022）。
+`karabiner.json` へ触るのは CLI の `cornix mac apply` とローカルサーバーの適用 API だけで、Web UI 自身は触らない（ADR 0034）。
 
 <!-- @code src/ui/components/index.ts#BehaviorsPanel -->
 <!-- @code src/ui/components/index.ts#CornixReferences -->

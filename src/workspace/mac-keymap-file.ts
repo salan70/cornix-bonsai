@@ -9,8 +9,9 @@
  */
 
 import { parseMacKeymapYaml } from "../core/mac-keymap/parse.ts";
+import { serializeMacKeymapYaml } from "../core/mac-keymap/serialize.ts";
 import type { MacKeyboardLayout, MacKeymapDocument } from "../core/mac-keymap/types.ts";
-import { macKeymapPath, WORKSPACE_LAYOUT } from "./layout.ts";
+import { macKeymapPath, sha256Hex, WORKSPACE_LAYOUT, type Sha256Provider } from "./layout.ts";
 import type { WorkspaceFileStore } from "./types.ts";
 
 /** 読めた設定 1 件。`path` は保存先の解決にも使う。 */
@@ -50,4 +51,20 @@ export async function readMacKeymapFor(
   const document = parseMacKeymapYaml(legacyText);
   if (document.layout !== layout) return undefined;
   return { path: legacyPath, document, legacy: true };
+}
+
+/**
+ * 設定の同一性を表す digest。正規形へ serialize してから SHA-256 を取る。
+ *
+ * Web UI が編集中の内容と、ローカルサーバーがディスクから読んだ内容を突き合わせるために
+ * 使う（ADR 0034）。ファイルのテキストではなく正規形を比べるので、手で書いたコメントや
+ * 並び順の違いは同じ設定として扱う。
+ *
+ * @doc docs/specs/workspace-cli.md#mackeymapdigest
+ */
+export async function macKeymapDigest(
+  document: MacKeymapDocument,
+  provider: Sha256Provider,
+): Promise<string> {
+  return await sha256Hex(new TextEncoder().encode(serializeMacKeymapYaml(document)), provider);
 }

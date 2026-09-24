@@ -214,30 +214,38 @@ export function CornixDevicePanel({
   );
 }
 
-/** 実機と適用（Mac）。Web UI は適用しない。CLI の手順と、適用先と Karabiner asset の書き出しを置く。 */
+/**
+ * 実機と適用（Mac）。Karabiner への適用の入口と、適用先と Karabiner asset の書き出しを置く。
+ *
+ * 書き込みはローカルサーバーが行い、Web UI は差分を見せて承認を送るだけ（ADR 0034）。
+ */
 export function MacDevicePanel({
   layout,
   mac,
+  applyBlockedReason,
+  onApply,
   onExportKarabiner,
 }: {
   readonly layout: MacKeyboardLayout;
   readonly mac: MacWorkspaceState;
+  readonly applyBlockedReason: string | undefined;
+  readonly onApply: () => void;
   readonly onExportKarabiner: () => void;
 }): React.JSX.Element {
   const path = mac.kind === "ready" ? mac.path : macKeymapPath(layout);
   return (
     <div className="steps">
       <section className="step is-info">
-        <h3 className="section-title">Mac への適用は CLI で行う</h3>
+        <h3 className="section-title">Karabiner へ適用</h3>
         <p>
-          Web UI は <code>{path}</code> を編集して保存するだけで、Karabiner の設定には触れない。
+          <code>{path}</code> と、この Mac の Karabiner の設定との差分を確かめてから適用する。
+          適用の前に自動で backup を取り、適用後は Cornix Bonsai profile へ切り替える。
         </p>
-        <pre className="code-block">
-          just mac apply{"\n"}just mac apply --confirm &lt;fingerprint&gt;
-        </pre>
-        <p>
-          1 行目で差分と fingerprint を確かめ、2 行目で適用する。適用の前に自動で backup を取る。
-        </p>
+        <Button size="small" disabled={applyBlockedReason !== undefined} onClick={onApply}>
+          Karabiner へ適用…
+        </Button>
+        {applyBlockedReason === undefined ? null : <p className="hint">{applyBlockedReason}</p>}
+        <p className="hint">ターミナルからは just mac apply でも適用できる。</p>
       </section>
       <section className="step">
         <h3 className="section-title">適用先</h3>

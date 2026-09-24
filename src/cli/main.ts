@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { webcrypto } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
-import { isAbsolute, join, resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 import { parseDefinition } from "../core/definition/parse.ts";
 import { canonicalDefinitionText } from "../core/definition/identity.ts";
 import { diffDocuments } from "../core/diff/diff.ts";
@@ -11,12 +11,12 @@ import { parseVil } from "../core/vil/parse.ts";
 import { serializeVil } from "../core/vil/serialize.ts";
 import { parseKeymapYaml } from "../core/keymap-yaml/parse.ts";
 import { serializeKeymapYaml } from "../core/keymap-yaml/serialize.ts";
-import { planMacApply, verifyMacApply } from "../core/mac-keymap/apply.ts";
-import { generateKarabinerAsset } from "../core/mac-keymap/generate.ts";
+import { planMacApply } from "../core/mac-keymap/apply.ts";
 import { addMacDevice } from "../core/mac-keymap/edit.ts";
 import { serializeMacKeymapYaml } from "../core/mac-keymap/serialize.ts";
 import { validateMacKeymap } from "../core/mac-keymap/validate.ts";
 import type { MacKeyboardLayout, MacKeymapDocument } from "../core/mac-keymap/types.ts";
+import { applyMacPlan, planMacApplyAt, writeAndLintAsset } from "../mac/apply-service.ts";
 import { detectBuiltInLayout } from "../mac/keyboard-type.ts";
 import { readMacKeymapFor } from "../workspace/mac-keymap-file.ts";
 import {
@@ -25,13 +25,10 @@ import {
   KARABINER_DEVICES_PATH,
   readKarabinerConfig,
   readObservedKeyboards,
-  writeFileAtomic,
   type KarabinerCli,
-  type KarabinerCliResult,
 } from "../karabiner/node.ts";
 import { renderPdf, renderSvg } from "../render/keyboard.ts";
 import {
-  backupPath,
   definitionDigest,
   definitionPath,
   generatedPath,
@@ -212,7 +209,8 @@ async function importVil(root: string, input: string, args: ParsedArgs): Promise
 /**
  * MacBook 内蔵キーボードの生成・差分・適用。
  *
- * 適用は CLI だけが行う。Browser UI は `cornix/generated/` への書き出しまで（ADR 0022）。
+ * 適用は CLI とローカルサーバーの適用 API が行う。Web UI 自身は `karabiner.json` に触れない
+ * （ADR 0034）。
  */
 async function mac(root: string, args: ParsedArgs, deps: CliDeps): Promise<number> {
   const sub = args._[0];
@@ -345,24 +343,6 @@ async function macDevices(
   return 0;
 }
 
-/**
- * complex_modifications の asset を書き出して lint する。
- *
- * `mac apply` も計画フェーズでここを通る。**lint は書き込み前のゲート**で、
- * 落ちたら `karabiner.json` へは触らない（ADR 0028）。Karabiner が入っていない環境では
- * lint が `undefined` になり、判定を保留して素通しする。
- */
-async function writeAndLintAsset(
-  root: string,
-  document: MacKeymapDocument,
-  output: string,
-  cli: KarabinerCli,
-): Promise<{ readonly output: string; readonly lint: KarabinerCliResult | undefined }> {
-  const { asset } = generateKarabinerAsset(document);
-  await new NodeWorkspaceStore(root).writeText(output, `${JSON.stringify(asset, null, 2)}\n`);
-  return { output, lint: await cli.lintComplexModifications(join(root, output)) };
-}
-
 /** complex_modifications の asset を書き出す。Karabiner が入っていれば lint も通す。 */
 async function macGenerate(
   root: string,
@@ -431,10 +411,7 @@ async function macDiff(root: string, loaded: LoadedMacKeymap, args: ParsedArgs):
  *
  * `--confirm` が無いうちは asset の生成と lint、diff、fingerprint を出して終わる。人間が
  * 中身を見てから同じ fingerprint を渡したときだけ `karabiner.json` を書く（ADR 0022 の
- * Apply フロー）。書き込みのあとは verify し、そこまで通ってから profile を選ぶ。
- *
- * 順序に意味がある。`--select-profile` は Karabiner 自身に `karabiner.json` を書かせるので、
- * **verify の読み直しより後**でなければ、verify が自分で動かした後のファイルを見る（ADR 0028）。
+ * Apply フロー）。手順はローカルサーバーの適用 API と共通で、`apply-service.ts` が持つ。
  */
 async function macApply(
   root: string,
@@ -444,9 +421,18 @@ async function macApply(
 ): Promise<number> {
   const select = selectProfileArg(args);
   const path = karabinerPath(args);
-  const { config, text } = await readKarabinerConfig(path);
-  const plan = planMacApply(config, loaded.document, { selectProfile: select });
-  if (plan.validation.summary.error > 0) {
+  const target = {
+    root,
+    layout: loaded.layout,
+    path: loaded.path,
+    document: loaded.document,
+    karabiner: path,
+    cli,
+    selectProfile: select,
+  };
+  const planning = await planMacApplyAt(target);
+  const { plan } = planning;
+  if (planning.kind === "invalid") {
     console.log(
       JSON.stringify(
         { workspace: root, summary: plan.validation.summary, diagnostics: plan.diagnostics },
@@ -456,14 +442,6 @@ async function macApply(
     );
     throw new Error("error のある desired state は適用しない");
   }
-
-  // error を先に弾いてから生成する。error のある desired state は cornix/ を作らない。
-  const asset = await writeAndLintAsset(
-    root,
-    loaded.document,
-    generatedPath("karabiner-complex-modifications.json"),
-    cli,
-  );
 
   const confirmed = args.confirm === undefined ? undefined : String(args.confirm);
   if (confirmed === undefined) {
@@ -476,8 +454,8 @@ async function macApply(
           karabiner: path,
           diagnostics: plan.diagnostics,
           diff: plan.diff,
-          generated: asset.output,
-          lint: asset.lint ?? null,
+          generated: planning.generated,
+          lint: planning.lint ?? null,
           selection: plan.selection,
           fingerprint: plan.fingerprint,
           // `--no-select` は診断を変え、診断 id は指紋に入る。フラグを取り違えたまま
@@ -493,21 +471,11 @@ async function macApply(
   if (confirmed !== plan.fingerprint) {
     throw new Error(`fingerprint が一致しない: expected=${plan.fingerprint} actual=${confirmed}`);
   }
-  if (asset.lint !== undefined && !asset.lint.ok) {
-    throw new Error(`lint が通らない: ${asset.lint.output}`);
+  if (planning.lint !== undefined && !planning.lint.ok) {
+    throw new Error(`lint が通らない: ${planning.lint.output}`);
   }
 
-  // backup は読んだテキストをそのまま置く。再 serialize すると Karabiner 独自の整形が落ちる。
-  const backup = backupPath(new Date(), { prefix: "karabiner-", extension: "json" });
-  await new NodeWorkspaceStore(root).writeText(backup, text);
-  await writeFileAtomic(path, `${JSON.stringify(plan.next, null, 4)}\n`);
-
-  const { config: observed } = await readKarabinerConfig(path);
-  const verified = verifyMacApply(observed, plan.profile);
-  const selected =
-    verified.ok && select && plan.selection.required
-      ? await selectOwnedProfile(cli, plan.selection.profile)
-      : null;
+  const applied = await applyMacPlan(target, planning);
   console.log(
     JSON.stringify(
       {
@@ -515,46 +483,19 @@ async function macApply(
         layout: loaded.layout,
         source: loaded.path,
         karabiner: path,
-        backup,
+        backup: applied.backup,
         diagnostics: plan.diagnostics,
-        generated: asset.output,
-        lint: asset.lint ?? null,
-        verify: verified,
-        selected,
+        generated: planning.generated,
+        lint: planning.lint ?? null,
+        verify: applied.verify,
+        selected: applied.selected,
       },
       null,
       2,
     ),
   );
-  if (!verified.ok) return 1;
-  return selected !== null && !selected.ok ? 1 : 0;
-}
-
-/**
- * 所有 profile を選び、選べたことを読み戻して確かめる。
- *
- * `selected` を `karabiner.json` へ書くのではなく `karabiner_cli` に選ばせる。動いている
- * Karabiner と食い違わないのはこちらだけで、Cornix が書く範囲は所有 profile 1 個のまま
- * 変わらない（ADR 0028）。Karabiner が入っていなければ `null` を返す。
- */
-async function selectOwnedProfile(
-  cli: KarabinerCli,
-  profile: string,
-): Promise<{
-  readonly requested: string;
-  readonly observed: string | null;
-  readonly ok: boolean;
-  readonly output: string;
-} | null> {
-  const result = await cli.selectProfile(profile);
-  if (result === undefined) return null;
-  const observed = await cli.currentProfileName();
-  return {
-    requested: profile,
-    observed: observed ?? null,
-    ok: result.ok && observed === profile,
-    output: result.output,
-  };
+  if (!applied.verify.ok) return 1;
+  return applied.selected !== null && !applied.selected.ok ? 1 : 0;
 }
 
 /** `--no-select` を受ける。既定は選択する（ADR 0028）。 */

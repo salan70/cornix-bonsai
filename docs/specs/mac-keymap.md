@@ -314,8 +314,13 @@ pointing deviceと、Karabiner自身の仮想キーボード（`is_virtual_devic
 
 **検出は任意の追加情報です。** 取れないことを理由に処理を止めず、呼び出し側は
 `--layout ansi|jis`の明示指定へ落とします（ADR 0027）。
-Browser UIはこの関数を呼ばない。
-配列は編集対象ドロップダウンで選ぶ。
+Web UIはこの関数を直接呼びません。
+ローカルサーバーがこの関数で検出した配列をWeb UIへ伝え、適用できる編集対象を決めます（ADR 0034）。
+
+<!-- @code src/mac/apply-service.ts#planMacApplyAt -->
+<!-- @code src/mac/apply-service.ts#applyMacPlan -->
+<!-- @code src/mac/apply-service.ts#selectOwnedProfile -->
+<!-- @code src/mac/apply-service.ts#writeAndLintAsset -->
 
 ## 適用の境界
 
@@ -323,7 +328,12 @@ Browser UIはこの関数を呼ばない。
 `src/karabiner/node.ts`が担います。`~/.config/karabiner/karabiner.json`は**workspaceの外**に
 あり、`NodeWorkspaceStore`はpathを`root`からの相対で解決するため使えません。
 
-`cornix mac apply`の手順は次の順です（ADR 0028）。
+適用の手順は`src/mac/apply-service.ts`が持ち、CLIの`cornix mac apply`とローカルサーバーの
+適用API（`local-server.md`）が同じ手順を通ります。`planMacApplyAt`が計画とasset生成・lintまで、
+`applyMacPlan`がbackupから選択までを行います。fingerprintの照合とlintの判定は呼び出し側が
+その間で行います。
+
+手順は次の順です（ADR 0028）。
 
 ```text
 desired stateを読む
@@ -341,7 +351,12 @@ desired stateを読む
 
 **lintは書き込み前のゲート**です。ADR 0022は最後に置いていましたが、落ちたときに既に
 書き込み済みでは意味が薄いため前へ移しました。Karabinerが入っていなければlintは
-`undefined`になり、判定を保留して素通しします。
+`undefined`になり、CLIは判定を保留して素通しします。ローカルサーバーの適用APIはここで
+止めます。Web UIの適用は書き込みからprofileの選択までが1つの操作で、Karabinerが無ければ
+必ず途中で失敗するためです（ADR 0034）。
+
+選択が失敗しても、書き込みは巻き戻しません。巻き戻しはもう一度の書き込みで、新しい失敗の
+原因を増やします。選択だけをやり直せるようにします（ADR 0034）。
 
 **選択はverifyの後**です。`--select-profile`はKarabiner自身に`karabiner.json`を書かせるため、
 前に置くとverifyが自分で動かした後のファイルを見ます。

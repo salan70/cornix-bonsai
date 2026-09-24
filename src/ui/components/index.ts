@@ -7,6 +7,7 @@ import { FitText as FitTextComponent } from "./FitText.tsx";
 import { Header as HeaderComponent } from "./Header.tsx";
 import { Icon as IconComponent } from "./Icon.tsx";
 import { Inspector as InspectorComponent } from "./Inspector.tsx";
+import { MacApplyDialog as MacApplyDialogComponent } from "./MacApplyDialog.tsx";
 import {
   CornixLayerBar as CornixLayerBarComponent,
   MacLayerBar as MacLayerBarComponent,
@@ -71,6 +72,9 @@ export const ValidationPanel = ValidationPanelComponent;
 
 /** @doc docs/specs/ui.md#apply-modal-steps */
 export const ApplyDialog = ApplyDialogComponent;
+
+/** @doc docs/specs/ui.md#mac-apply */
+export const MacApplyDialog = MacApplyDialogComponent;
 
 /** @doc docs/specs/ui.md#device-panel */
 export const CornixDevicePanel = CornixDevicePanelComponent;

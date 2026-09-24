@@ -37,14 +37,14 @@ export type StatusBarMode =
     }
   | {
       readonly kind: "mac";
-      readonly canExport: boolean;
-      readonly onExportKarabiner: () => void;
+      readonly applyBlockedReason: string | undefined;
+      readonly onApply: () => void;
     };
 
 /**
  * 画面下の status bar。診断の件数、保存状態と保存先、通知、実機との差分と Apply の入口。
  *
- * Apply を開始できないときはボタンを無効にし、理由を文字で並べる。Mac では Apply を出さず、適用は CLI だと示す。
+ * Apply を開始できないときはボタンを無効にし、理由を文字で並べる。Mac では Karabiner への適用を出す（ADR 0034）。
  */
 export function StatusBar({
   summary,
@@ -111,15 +111,20 @@ export function StatusBar({
         </>
       ) : (
         <>
-          <span className="status-diff muted">適用は CLI の cornix mac apply</span>
           <Button
             size="small"
-            appearance="secondary"
-            disabled={!mode.canExport}
-            onClick={mode.onExportKarabiner}
+            data-mac-apply
+            disabled={mode.applyBlockedReason !== undefined}
+            aria-describedby={mode.applyBlockedReason === undefined ? undefined : "apply-reason"}
+            onClick={mode.onApply}
           >
-            Karabiner asset を書き出す
+            Karabiner へ適用…
           </Button>
+          {mode.applyBlockedReason === undefined ? null : (
+            <span id="apply-reason" className="status-why">
+              {mode.applyBlockedReason}
+            </span>
+          )}
         </>
       )}
     </footer>

@@ -144,7 +144,7 @@ MacBook内蔵キーボードは`cornix mac generate|diff|apply|devices`で扱う
 （ADR 0027）、workspaceはこのリポジトリを既定にする（ADR 0028）。`mac`の全出力へ
 解決済みの`workspace`を載せる。
 
-適用はCLIだけが行う（ADR 0022）。`cornix mac apply`は`--confirm`が無いうちはasset生成と
+適用はCLIとローカルサーバーの適用APIが行う（ADR 0034）。`cornix mac apply`は`--confirm`が無いうちはasset生成と
 lint、構造diff、fingerprintを出して終わり、人間が同じfingerprintを渡したときだけ
 `karabiner.json`を書く。手順は`mac-keymap.md`の「適用の境界」にある。error diagnosticが
 1件でもあれば適用せず、lintが落ちても書き込まない。
@@ -153,6 +153,15 @@ lint、構造diff、fingerprintを出して終わり、人間が同じfingerprin
 確認文字列はフラグを含む形で返る（ADR 0028）。
 
 exit codeは他のコマンドと揃える。errorが1件でもあれば1、それ以外は0。
+
+<!-- @code src/workspace/mac-keymap-file.ts#macKeymapDigest -->
+
+## macKeymapDigest
+
+Mac設定の同一性を表すdigestです。`serializeMacKeymapYaml`の正規形へserializeしてから
+SHA-256を取ります。Web UIが編集中の内容と、ローカルサーバーがディスクから読んだ内容を
+突き合わせるために使います（ADR 0034）。ファイルのテキストではなく正規形を比べるので、
+手で書いたコメントや並び順の違いは同じ設定として扱います。
 
 <!-- @code src/render/keyboard.ts#renderSvg -->
 <!-- @code src/render/keyboard.ts#renderPdf -->

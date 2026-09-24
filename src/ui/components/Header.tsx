@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { buildInfo, formatBuildTime } from "../build-info.ts";
+import type { MacKeyboardLayout } from "../../core/mac-keymap/types.ts";
 import type { ThemePreference } from "../theme.ts";
 import type { EditTarget, TargetKey } from "../types.ts";
 
@@ -27,6 +28,7 @@ const STATE_VIEW: Readonly<
 
 /**
  * 常設の header。brand と build、workspace、編集対象の切替、実機の接続状態、テーマ。
+ * 編集対象のうち、このマシンの内蔵配列に「この Mac」を添える（ADR 0034）。
  *
  * workspace を開くまでは brand、build、テーマだけを出す。
  */
@@ -36,6 +38,7 @@ export function Header({
   targetKey,
   targetStates,
   onTarget,
+  machineLayout,
   device,
   productName,
   theme,
@@ -46,6 +49,8 @@ export function Header({
   readonly targetKey: TargetKey;
   readonly targetStates: Readonly<Record<TargetKey, TargetLoadState>> | undefined;
   readonly onTarget: (target: EditTarget) => void;
+  /** ローカルサーバーが検出したこのマシンの内蔵配列。適用できる対象に印を付ける。 */
+  readonly machineLayout?: MacKeyboardLayout | undefined;
   readonly device: DevicePhase;
   readonly productName: string | undefined;
   readonly theme: ThemePreference;
@@ -122,6 +127,11 @@ export function Header({
                 >
                   <span className={state.dot} aria-hidden="true" />
                   {item.label}
+                  {item.target.kind === "mac" && item.target.layout === machineLayout ? (
+                    <span className="tag tag-on" title="Karabiner へ適用できるのはこの配列">
+                      この Mac
+                    </span>
+                  ) : null}
                   <span className="visually-hidden">（{state.label}）</span>
                 </button>
               );

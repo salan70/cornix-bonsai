@@ -324,7 +324,7 @@ function SaveBox({
       <p className="save-note">
         {mode === "cornix"
           ? "ローカルの workspace への保存。実機へは「実機へ Apply」で反映する。"
-          : "ローカルの workspace への保存。Mac への適用は CLI の cornix mac apply で行う。"}
+          : "ローカルの workspace への保存。Mac へは「Karabiner へ適用」で反映する。"}
       </p>
     </section>
   );
