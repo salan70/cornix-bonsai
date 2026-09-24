@@ -10,6 +10,7 @@ Mac 内蔵キーボードの変更手順を極力シンプルにしたいとい�
 - `cornix mac apply` の手順を `src/mac/apply-service.ts` へ切り出し、CLI の既存テスト 21 件がそのまま通ることを確認した。
 - scratch の `karabiner.json` コピーと本物の `karabiner_cli` lint・配列検出で、HTTP 越しに status → plan → apply を通した。backup は元のファイルとバイト単位で一致した。`Origin` の無いリクエストと `Sec-Fetch-Site: cross-site` は 403 になった。
 - 本物の `~/.config/karabiner/karabiner.json` と Karabiner の選択中 profile（`Default profile`）には触れていない。
+- 利用者が `just ui` からブラウザで適用の流れを操作し、最低限動くことを確認した。
 
 ## Decision
 
@@ -31,5 +32,4 @@ grilling で決めた論点は次のとおり。
 
 ## Open Question
 
-- Web UI の適用ダイアログはブラウザで操作して確かめていない。File System Access のフォルダ選択を自動操作できないため、利用者の確認に委ねる。
 - Spike R-007（Caps Lock と Karabiner の前後関係）は未実施のまま。
