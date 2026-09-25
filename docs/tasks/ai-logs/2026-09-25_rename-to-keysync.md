@@ -24,6 +24,7 @@ Cornix LP 以外のキーボードも扱うようになったため、製品名�
 | Karabiner の変数         | `keysync_layer_N`。適用のたびに全再生成されるので互換は要らない                                                                                                      |
 | 管理ディレクトリ         | `cornix/` から `keysync/` へ明示操作で移す。入口は Web UI の復旧カード（`data-recovery="legacy-layout"`）と `keysync migrate`。旧 `cornix/` は削除しない（ADR 0036） |
 | 両方を読むフォールバック | 採らない。新 path を指すのに実体は旧ディレクトリ、という状態を作れてしまう                                                                                           |
+| ブラウザの保存と環境変数 | `keysync`、`keysync.theme`、`keysync.icon-style`、`KEYSYNC_WORKSPACE`。旧名は読まず、引き継がない（ADR 0036）                                                        |
 | 過去の記録               | ADR 0001〜0034、既存の作業ログ、Spike は当時の名前のまま残す                                                                                                         |
 
 ## Open Question

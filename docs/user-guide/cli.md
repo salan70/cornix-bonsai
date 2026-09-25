@@ -127,7 +127,7 @@ Mac のキーボード設定は、Karabiner-Elements を介して管理します
 設定は keysync リポジトリ直下の `mac-keyboard.<layout>.yaml` に置き、Git で管理します。
 `mac` コマンドの workspace は既定でこのリポジトリなので、`--workspace` は要りません。
 対象の配列は実行中の Mac から自動検出するため、`--layout` も要りません。
-別の場所を使う場合は `$CORNIX_WORKSPACE` か `--workspace` で指定します。
+別の場所を使う場合は `$KEYSYNC_WORKSPACE` か `--workspace` で指定します。
 
 Web UI の `Karabiner へ適用…` でも同じ手順で適用できます（[Web UI の使い方](./web-ui.md#karabiner-へ適用する)）。
 ターミナルから適用するときの操作は次の 2 つです。

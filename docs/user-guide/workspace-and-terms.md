@@ -31,7 +31,8 @@ Mac の設定は Cornix LP 向けの workspace とは別で、keysync リポジ�
 | `keysync/backups/`       | 適用前に退避した `karabiner.json` | 管理外   |
 
 どちらのファイルを使うかは、実行している Mac の内蔵配列から自動で決まります。
-`$CORNIX_WORKSPACE` を設定すると、別のディレクトリを対象にできます。
+`$KEYSYNC_WORKSPACE` を設定すると、別のディレクトリを対象にできます。
+改名前の `$CORNIX_WORKSPACE` は読まないため、設定していた場合は名前を変えます。
 
 ## ファイル配置と Git 管理
 
@@ -74,6 +75,9 @@ CLI では `just keysync migrate --workspace <workspace>` で同じ移行を行�
 移行では定義ファイル、`labels.yaml`、`acknowledgements.json` を `keysync/` へ写し、`keymap.yaml` の参照先を書き直します。
 `cornix/` は削除しません。
 `backups/` と `generated/` は写さないため、移行後に内容を確かめ、不要なら `cornix/` を削除します。
+
+改名後に初めて Web UI を開くときは、workspace のディレクトリを選び直します。
+テーマとアイコンの見た目の設定も既定に戻ります。
 
 ## `keymap.yaml` が正本である理由
 

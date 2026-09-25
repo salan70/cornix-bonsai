@@ -3,7 +3,7 @@ export type ThemePreference = "system" | "light" | "dark";
 
 export type ResolvedTheme = "light" | "dark";
 
-export const THEME_STORAGE_KEY = "cornix-bonsai.theme";
+export const THEME_STORAGE_KEY = "keysync.theme";
 
 interface ThemeStorage {
   readonly getItem: (key: string) => string | null;

@@ -14,11 +14,19 @@ test("既定はリポジトリのroot", () => {
   strictEqual(defaultMacWorkspaceRoot({}), resolve(import.meta.dirname, "..", ".."));
 });
 
-test("CORNIX_WORKSPACEがあればそちらを絶対パスで返す", () => {
+test("KEYSYNC_WORKSPACEがあればそちらを絶対パスで返す", () => {
   strictEqual(defaultMacWorkspaceRoot({ [WORKSPACE_ENV]: "/tmp/elsewhere" }), "/tmp/elsewhere");
 });
 
-test("空のCORNIX_WORKSPACEは無視する", () => {
+test("改名前のCORNIX_WORKSPACEは読まない", () => {
+  // 黙って読むと「どこを見ているか分からない」が戻る（ADR 0036）。
+  strictEqual(
+    defaultMacWorkspaceRoot({ CORNIX_WORKSPACE: "/tmp/elsewhere" }),
+    resolve(import.meta.dirname, "..", ".."),
+  );
+});
+
+test("空のKEYSYNC_WORKSPACEは無視する", () => {
   strictEqual(
     defaultMacWorkspaceRoot({ [WORKSPACE_ENV]: "" }),
     resolve(import.meta.dirname, "..", ".."),

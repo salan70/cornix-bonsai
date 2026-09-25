@@ -604,7 +604,7 @@ function mapReplacer(_key: string, value: unknown): unknown {
 }
 function printHelp(): void {
   console.log(
-    `keysync validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  migrate （改名前の cornix/ を keysync/ へ移す）\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint> [--no-select]\n  mac devices [--devices <observed.json>] [--add <vendor_id>:<product_id>]\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）\n  mac ... の --workspace 既定は $CORNIX_WORKSPACE、無ければ keysync リポジトリ`,
+    `keysync validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  migrate （改名前の cornix/ を keysync/ へ移す）\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint> [--no-select]\n  mac devices [--devices <observed.json>] [--add <vendor_id>:<product_id>]\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）\n  mac ... の --workspace 既定は $KEYSYNC_WORKSPACE、無ければ keysync リポジトリ`,
   );
 }
 

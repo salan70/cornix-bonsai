@@ -44,7 +44,7 @@ ADR 0027より前の`mac-keyboard.yaml`は読み込み時の後方互換とし�
 ## defaultMacWorkspaceRoot
 
 `keysync mac`が`--workspace`無しで使うworkspaceです。優先順は`--workspace` >
-`$CORNIX_WORKSPACE` > **keysyncリポジトリのroot**です（ADR 0028）。
+`$KEYSYNC_WORKSPACE` > **keysyncリポジトリのroot**です（ADR 0028）。
 
 Macのdesired stateはこのリポジトリ自身が持ちます。Cornix LP向けのworkspaceは利用者が
 任意のディレクトリへ置きますが、Mac側は「どこに置くか」が決まっていないこと自体が

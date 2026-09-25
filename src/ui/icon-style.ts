@@ -7,7 +7,7 @@ export type IconStyle = "flat" | "dish";
 
 export const DEFAULT_ICON_STYLE: IconStyle = "dish";
 
-export const ICON_STYLE_STORAGE_KEY = "cornix-bonsai.icon-style";
+export const ICON_STYLE_STORAGE_KEY = "keysync.icon-style";
 
 interface IconStyleStorage {
   readonly getItem: (key: string) => string | null;

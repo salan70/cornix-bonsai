@@ -38,7 +38,7 @@ Light の黄の塗りは白の面に 1.61:1 しかないため、選択は塗り
 
 機能アイコンは uiux-numa の `cornix-ui-icons` で描いたキーキャップ型の 2 組で、ADR 0032 に従う。
 見た目は `dish`（凹みあり、`keycap-dish-fill`）と `flat`（凹みなし、`keycap-squircle`）の 2 択で、既定は `dish` である。
-選択はブラウザの localStorage の `cornix-bonsai.icon-style` へ保存し、初回、不正値、保存へのアクセス失敗のときは `dish` へ戻る。
+選択はブラウザの localStorage の `keysync.icon-style` へ保存し、初回、不正値、保存へのアクセス失敗のときは `dish` へ戻る。
 選んだ見た目は `document.documentElement` の `data-icon-style` に反映し、描画中のすべての icon を描き直す。
 設定はファイルのパネルの「表示」にラジオボタンで置き、各選択肢に見本の icon を添える。
 header には置かず、1024px 幅でも header を 1 行に保つ。
@@ -74,7 +74,8 @@ icon を置く場所と大きさは次のとおりである。
 
 ## Workspace入口
 
-File System Access API で directory を選び、directory handle を IndexedDB（DB `cornix-bonsai`、store `workspace`、key `directory`）へ保存する。
+File System Access API で directory を選び、directory handle を IndexedDB（DB `keysync`、store `workspace`、key `directory`）へ保存する。
+改名前の DB `cornix-bonsai` は読まず、改名後は directory を 1 回選び直す（ADR 0036）。
 `keymap.yaml` が無くても directory は開ける。
 reload 後は権限が `granted` なら再選択なしに復帰する。
 権限が `prompt` のときは、入口に前回の directory 名と「アクセスを許可する」を出し、押したときだけ権限を求める。

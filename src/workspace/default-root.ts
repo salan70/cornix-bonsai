@@ -8,13 +8,13 @@
 
 import { resolve } from "node:path";
 
-/** 既定 workspace を上書きする環境変数。別の場所で試すための逃げ道。 */
-export const WORKSPACE_ENV = "CORNIX_WORKSPACE";
+/** 既定 workspace を上書きする環境変数。別の場所で試すための逃げ道。改名前の `CORNIX_WORKSPACE` は読まない（ADR 0036）。 */
+export const WORKSPACE_ENV = "KEYSYNC_WORKSPACE";
 
 /**
  * `--workspace` が無いときの `keysync mac` の workspace。
  *
- * 優先順は `$CORNIX_WORKSPACE` > repository root。**cwd へは倒さない。** いま
+ * 優先順は `$KEYSYNC_WORKSPACE` > repository root。**cwd へは倒さない。** いま
  * `just keysync` が repository root で走るのは justfile の副作用であり、これに依存すると
  * 「どこを見ているか分からない」という元の問題がそのまま残る。
  *

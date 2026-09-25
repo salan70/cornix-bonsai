@@ -13,7 +13,7 @@ interface FileHandleLike {
   createWritable(): Promise<{ write(data: Uint8Array): Promise<void>; close(): Promise<void> }>;
 }
 
-const DB_NAME = "cornix-bonsai";
+const DB_NAME = "keysync";
 const DB_STORE = "workspace";
 const DB_KEY = "directory";
 
