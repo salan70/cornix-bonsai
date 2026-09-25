@@ -181,7 +181,7 @@ test("profile の切り替えだけが失敗したら巻き戻さず、切り替
   });
   strictEqual(result?.kind, "select-failed");
   ok((await readFile(karabiner, "utf8")).includes("KeySync"));
-  ok((await readdir(join(root, "cornix", "backups"))).length === 1);
+  ok((await readdir(join(root, "keysync", "backups"))).length === 1);
 
   const retried = await api(MAC_API.select, { layout: "jis" });
   deepStrictEqual(retried, {

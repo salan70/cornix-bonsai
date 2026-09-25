@@ -85,7 +85,7 @@ keymap の保存は workspace adapter の競合検出を通す。
 
 ## Workspace初期化
 
-Cornix を初期化するときは、実機の full read から `keymap.yaml` と `cornix/definitions/<digest>.json` を作る。
+Cornix を初期化するときは、実機の full read から `keymap.yaml` と `keysync/definitions/<digest>.json` を作る。
 CLI の `import vil` と同じ組み立てを browser 側で行うもので、実機へは書き込まない。
 directory を開くこと自体は `keymap.yaml` を要求しない。
 definition を先に書き、途中で中断しても「binding が指す先が無い」状態を作らない。
@@ -102,7 +102,25 @@ definition の content-addressing は canonical 表現の SHA-256 で行う。
 一致しない場合は移行しない。
 digest 不一致は keymap と definition の取り違えの検出手段でもあるため、移行は自動では行わずユーザーの明示操作にする。
 
-UI は読み込み失敗を例外の文字列のまま出さず、`keymap.yaml` が無い場合、旧 binding の場合、それ以外を区別して、それぞれの復旧操作を提示する。
+UI は読み込み失敗を例外の文字列のまま出さず、`keymap.yaml` が無い場合、旧 binding の場合、改名前の管理ディレクトリの場合、それ以外を区別して、それぞれの復旧操作を提示する。
+
+<!-- @code src/workspace/bootstrap.ts#planLayoutMigration -->
+<!-- @code src/workspace/bootstrap.ts#writeLayoutMigration -->
+
+## 旧ディレクトリの移行
+
+改名（ADR 0035）で管理ディレクトリは `cornix/` から `keysync/` に変わった。
+`readDefinitionBinding` は path が `definitionPath(digest)` と一致することを要求するため、`cornix/definitions/` を指す `keymap.yaml` は読めない。
+
+binding の path が `cornix/definitions/<digest>.json` で、そのファイルの digest が binding と一致するときに限り移行を提示する。
+digest は変わらないので、`keymap.yaml` は path だけが変わる。
+写すのは definition と、`labels.yaml`、`acknowledgements.json` で、`keysync/` に既にあるものは上書きしない。
+`backups/` と `generated/` は生成物なので写さず、旧 `cornix/` も削除しない。
+
+書く順は definition、sidecar、`keymap.yaml` である。
+`keymap.yaml` を最後に書くので、途中で中断しても旧 path を指したまま旧 `cornix/` も残り、同じ移行をやり直せる。
+`keysync/` と `cornix/` の両方を読むフォールバックは置かず、移行はユーザーの明示操作にする（ADR 0036）。
+CLI の `keysync migrate` も同じ関数を通る。
 
 <!-- @code src/ui/components/index.ts#App -->
 
@@ -155,13 +173,13 @@ layer を切り替えても選択中の位置は保ち、同じ位置を layer �
 header は brand、build 情報、workspace 名と切替、編集対象の radiogroup、Cornix LP の接続状態、テーマを 1 行に常設する。
 build 情報は短い commit SHA とローカル timezone の build 時刻で、`time` 要素の `dateTime` へ ISO 文字列を保持し、build 情報が無いときは開発用の fallback 表示にする。
 編集対象は `Cornix LP`、`Mac ANSI`、`Mac JIS` の radiogroup で、方向キーでも切り替えられる。
-各対象には読込状態の印（読込済み、ファイルなし、binding の移行が必要、読込失敗）を形と色で付け、文言を読み上げ用に添える。
+各対象には読込状態の印（読込済み、ファイルなし、移行が必要、読込失敗）を形と色で付け、文言を読み上げ用に添える。
 ローカルサーバーが検出したこのマシンの内蔵配列の対象には「この Mac」を添える。
 接続状態は色だけに頼らず、未接続、接続済み、読込中、読込済みと製品名を文字で示す。
 
 status bar は severity ごとの診断件数、保存状態と保存先、通知、実機との差分と Apply の入口を出す。
 診断件数を押すと、その severity で絞り込んだ検証パネルを開く。
-保存状態は Cornix では `keymap.yaml` と `cornix/labels.yaml` を `chooseSaveCandidate` の優先順（conflict > error > saving > saved > idle）で 1 つにまとめ、保存先ファイルと並べる。
+保存状態は Cornix では `keymap.yaml` と `keysync/labels.yaml` を `chooseSaveCandidate` の優先順（conflict > error > saving > saved > idle）で 1 つにまとめ、保存先ファイルと並べる。
 Cornix 表示中は実機との差分件数（未読込ならその旨）と「実機へ Apply…」を出す。
 Apply を開始できないときはボタンを無効にし、理由（`keymap.yaml` 未読込、未接続、未読込、差分 0 件、error あり）を文字で並べる。
 Mac 表示中は Vial の差分件数と Apply を出さず、「Karabiner へ適用…」と、押せないときの理由を出す（Mac apply を参照）。
@@ -230,7 +248,7 @@ picker の適用先（キー全体、Tap、Hold）は segmented の radio で、
 動作 select は既存 keycode の分類を使い、Cornix は `BEHAVIOR_OPTIONS`、Mac は `basic` / `modTap` / `layerSwitch` / `none` に絞る。
 raw keycode と表示名は折りたたみの中に置く。
 raw keycode は Enter または「反映」で保存し、Mac では空欄を素通しへ戻す操作として扱う。
-表示名（任意）は raw keycode 式へ完全一致で割り当て、Enter または blur で `cornix/labels.yaml` へ保存し、空欄はその式の表示名を削除する。
+表示名（任意）は raw keycode 式へ完全一致で割り当て、Enter または blur で `keysync/labels.yaml` へ保存し、空欄はその式の表示名を削除する。
 Mac では「割り当てを外す（素通しへ戻す）」を置く。
 
 編集パネルの下端には、対象ファイルとともに保存中、ローカル保存済み、保存失敗、外部変更との競合を記号と文言で出す。
@@ -337,7 +355,7 @@ digest が一致しないときは、画面の内容とサーバーが読んだ�
 | 適用した                   | backup の path と、profile を切り替えたこと                    |
 | verify が一致しない        | backup から戻す手順                                            |
 | profile の切り替えだけ失敗 | 書き込みは巻き戻していないこと、「切り替えを再試行」、戻す手順 |
-| 想定外の失敗               | 理由と、適用前の設定は `cornix/backups/` にあること            |
+| 想定外の失敗               | 理由と、適用前の設定は `keysync/backups/` にあること           |
 
 計画中と適用中は modal を閉じられない。
 
@@ -377,10 +395,10 @@ Apply は backup、差分確認、確認、書き込み、結果の 5 段階を 
 開始できるのは Cornix が ready で、接続済みで、この接続で full read を終え、差分が 1 件以上あり、gate に error が無いときだけである。
 gate は validation の診断に、実機 definition の digest の不一致と実機 write 未対応の差分を error として足して評価する。
 
-backup の段階では、この接続で読み込んだ実機の状態を `cornix/backups/` と `cornix/backups/latest.vil` へ保存する。
+backup の段階では、この接続で読み込んだ実機の状態を `keysync/backups/` と `keysync/backups/latest.vil` へ保存する。
 保存できなければ書き込みへ進まず、キャンセルだけを出す。
 差分確認では追加・変更・削除の tag、対象、現在と移行後の挙動と raw 式を表で出し、`notationOnly` は件数だけを出して書き込み対象であることを明記する。
-確認の段階では warning を診断 id 単位の checkbox で承認させ、承認は `cornix/acknowledgements.json` へ保存する。
+確認の段階では warning を診断 id 単位の checkbox で承認させ、承認は `keysync/acknowledgements.json` へ保存する。
 承認は根拠の値ごとに記録し、差分が変わると gate の fingerprint により外れる。
 書き込みは gate が開き、確認した plan と同じ fingerprint の plan だけで始める。
 
@@ -402,7 +420,7 @@ Cornix の実機パネルは「接続する」「実機から読み込む」「�
 読み込み中は往復回数（総数が分かるときは総数も）を出し、読み込んだら時刻と往復回数、実機と workspace の UID と definition の一致を出す。
 差分の段階では差分の一覧と gate の error を出し、Apply の入口と開始できない理由を置く。
 Apply の入口を押すとパネルを閉じてから Apply の modal を開く。
-「backup から復元」は `cornix/backups/latest.vil` を目標状態へ読み込むだけで、実機にも `keymap.yaml` にも書き込まず、通常の差分確認と Apply へ戻す。
+「backup から復元」は `keysync/backups/latest.vil` を目標状態へ読み込むだけで、実機にも `keymap.yaml` にも書き込まず、通常の差分確認と Apply へ戻す。
 Cornix が ready でなければ復元を無効にする。
 
 Mac の実機パネルは「Karabiner へ適用…」の入口と押せない理由、`just mac apply` でも適用できること、適用先、Karabiner asset の書出を置く。
@@ -421,11 +439,11 @@ Mac の実機パネルは「Karabiner へ適用…」の入口と押せない理
 各カードは `L番号`、layer 名の入力、到達不能・参照なしの tag、「開く」、物理キー全件の mini 盤面、encoder の割り当て、参照元の一覧を出す。
 カードは layer 番号の順に強調色 3 色で塗り、`L番号` と名前を識別子にする。
 mini 盤面の倍率はカードの実測幅から 14〜52px で決め、各キーは keycode display の primary を出し、raw keycode は title へ残す。
-layer 名は Enter または blur で trim して `cornix/labels.yaml` へ保存し、空文字は名前を削除し、Esc は入力だけを取り消す。
+layer 名は Enter または blur で trim して `keysync/labels.yaml` へ保存し、空文字は名前を削除し、Esc は入力だけを取り消す。
 参照元の一覧は押すと参照元の layer を開き、hover と focus の間は参照元の mini キーを枠で強調する。
 使用中の Tap Dance は参照数が 1 以上の entry を index 順に、tap / hold / double tap / hold after tap / timeout と使用箇所数を読み取り専用で出す。
 
-SVG / PDF の書出は、盤面で選択中の layer を `cornix/generated/keymap-layer-N.*` へ書き出す。
+SVG / PDF の書出は、盤面で選択中の layer を `keysync/generated/keymap-layer-N.*` へ書き出す。
 キー、encoder、Tap Dance の編集は盤面と動作定義へ残し、全体マップでは layer 名だけを編集可能にする。
 
 <!-- @code src/ui/components/index.ts#FilesPanel -->
@@ -445,12 +463,12 @@ Cornix が ready でなければ `.vil` の読込・書出を無効にし、理�
 
 `.vil` 読込はファイル選択後に parse し、現在 workspace の definition binding を維持したまま `keymap.yaml` の desired state へ保存する。
 UID や容量が実機と異なる場合は通常の validation / Apply gate で止める。
-VIL、SVG、PDF の書出は workspace の Git 管理外である `cornix/generated/` へ保存する。
+VIL、SVG、PDF の書出は workspace の Git 管理外である `keysync/generated/` へ保存する。
 SVG / PDF は renderer へ選択中の layer を渡し、CLI と同じ座標と表示名の規則を使う。
 いずれも実機への write を開始しない。
 
 Karabiner の complex_modifications asset の書出は、Mac 表示中の実機パネルが担う。
-保存先は `cornix/generated/karabiner-complex-modifications.json` である。
+保存先は `keysync/generated/karabiner-complex-modifications.json` である。
 生成元は編集中の in-memory document であり、ディスクを再読しない（ADR 0025）。
 error が 1 件でもあれば書き出さない。
 `karabiner.json` へ触るのは CLI の `keysync mac apply` とローカルサーバーの適用 API だけで、Web UI 自身は触らない（ADR 0034）。
@@ -486,7 +504,7 @@ Mac の参照はファイル、物理配列、適用先、`device_if` 相当、l
 
 directory を開けた時点で workspace として成立する。
 `keymap.yaml` の欠落や parse 失敗は Cornix 対象へ閉じ、Mac の編集を止めない。
-Cornix を選んだときだけ、盤面の位置に keymap 欠落、旧 digest binding、その他の読み込み失敗を分けて復旧操作を出す。
+Cornix を選んだときだけ、盤面の位置に keymap 欠落、旧 digest binding、改名前の管理ディレクトリ、その他の読み込み失敗を分けて復旧操作を出す。
 keymap 欠落からの初期化は、接続が無ければ機器の選択を開いてから full read し、workspace ファイルを作るだけで実機へ write しない。
 Mac の配列ファイルが無い、または読めないときも、その配列を選んだときだけ盤面の位置に復旧を出す。
 復旧の間は編集パネルに編集できない理由を出し、picker を出さない。

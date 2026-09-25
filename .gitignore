@@ -30,7 +30,10 @@ Thumbs.db
 .vscode/
 *.swp
 
-# Cornix workspace の生成物・バックアップ
+# workspace の生成物・バックアップ
+keysync/generated/
+keysync/backups/
+# 改名前（ADR 0035）の管理ディレクトリ。移行しても削除しないため除外を残す（ADR 0036）
 cornix/generated/
 cornix/backups/
 

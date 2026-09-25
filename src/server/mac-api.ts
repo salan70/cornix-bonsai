@@ -53,7 +53,7 @@ export type MacApiResponse =
 /**
  * Mac 適用 API を作る。返す関数は path と JSON 本文を受けて応答を返す。
  *
- * 呼び出しは 1 本ずつ直列に処理する。`karabiner.json` の書き換えと `cornix/generated/` の
+ * 呼び出しは 1 本ずつ直列に処理する。`karabiner.json` の書き換えと `keysync/generated/` の
  * 生成が並行すると、計画を組んだ入力と書き込む入力が食い違う。
  *
  * @doc docs/specs/local-server.md#createmacapi

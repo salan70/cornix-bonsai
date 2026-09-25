@@ -402,7 +402,7 @@ export function App({
 
   const targetStates: Readonly<Record<"cornix" | "ansi" | "jis", TargetLoadState>> = {
     cornix:
-      workspace.cornix.kind === "legacy-binding"
+      workspace.cornix.kind === "legacy-binding" || workspace.cornix.kind === "legacy-layout"
         ? "legacy"
         : workspace.cornix.kind === "ready"
           ? "ready"
@@ -496,6 +496,7 @@ export function App({
               onMigrate={() => {
                 if (cornixRecovery.kind === "legacy-binding")
                   void ws.migrateBinding(cornixRecovery);
+                if (cornixRecovery.kind === "legacy-layout") void ws.migrateLayout(cornixRecovery);
               }}
               onReload={() => void ws.reload()}
             />

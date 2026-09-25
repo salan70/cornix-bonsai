@@ -112,7 +112,7 @@ async function captureJson(
   return { code, json: JSON.parse(out) as MacOutput };
 }
 
-test("mac generate はcornix/generated/へassetを書く", async () => {
+test("mac generate はkeysync/generated/へassetを書く", async () => {
   const { root } = await workspace();
   const { code, json } = await captureJson([
     "mac",
@@ -124,7 +124,7 @@ test("mac generate はcornix/generated/へassetを書く", async () => {
   ]);
 
   strictEqual(code, 0);
-  strictEqual(json.output, "cornix/generated/karabiner-complex-modifications.json");
+  strictEqual(json.output, "keysync/generated/karabiner-complex-modifications.json");
   deepStrictEqual(json.diagnostics, []);
 
   const asset = JSON.parse(await readFile(join(root, String(json.output)), "utf8")) as {

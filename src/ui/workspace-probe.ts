@@ -6,7 +6,12 @@
 import { parseDefinition } from "../core/definition/parse.ts";
 import { parseKeymapYaml } from "../core/keymap-yaml/parse.ts";
 import { parseAcknowledgements } from "../workspace/acknowledgements.ts";
-import { planBindingMigration, type BindingMigration } from "../workspace/bootstrap.ts";
+import {
+  planBindingMigration,
+  planLayoutMigration,
+  type BindingMigration,
+  type LayoutMigration,
+} from "../workspace/bootstrap.ts";
 import { readDefinitionBinding, WORKSPACE_LAYOUT } from "../workspace/layout.ts";
 import { EMPTY_LABELS, parseLabelsYaml, type WorkspaceLabels } from "../workspace/labels.ts";
 import type { WorkspaceConflictToken, WorkspaceFileStore } from "../workspace/types.ts";
@@ -28,7 +33,8 @@ export type CornixWorkspaceState =
     }
   | { readonly kind: "missing" }
   | { readonly kind: "error"; readonly reason: string }
-  | { readonly kind: "legacy-binding"; readonly migration: BindingMigration };
+  | { readonly kind: "legacy-binding"; readonly migration: BindingMigration }
+  | { readonly kind: "legacy-layout"; readonly migration: LayoutMigration };
 
 export interface WorkspaceModel {
   readonly store: UiWorkspaceStore;
@@ -49,6 +55,11 @@ export type WorkspaceIssue =
       readonly kind: "legacy-binding";
       readonly store: UiWorkspaceStore;
       readonly migration: BindingMigration;
+    }
+  | {
+      readonly kind: "legacy-layout";
+      readonly store: UiWorkspaceStore;
+      readonly migration: LayoutMigration;
     }
   | { readonly kind: "unresolved"; readonly store: UiWorkspaceStore; readonly reason: string };
 
@@ -104,6 +115,14 @@ export async function probeCornix(store: UiWorkspaceStore): Promise<CornixWorksp
       token: (await store.stat(WORKSPACE_LAYOUT.keymap)) ?? undefined,
     };
   } catch (error) {
+    // 改名前の `cornix/` を指す binding。両方を読むフォールバックは置かず、明示操作で移す（ADR 0036）。
+    const layout = await planLayoutMigration(
+      store,
+      parsed.document,
+      parsed.binding,
+      globalThis.crypto,
+    ).catch(() => undefined);
+    if (layout !== undefined) return { kind: "legacy-layout", migration: layout };
     const migration = await planBindingMigration(
       store,
       parsed.document,
@@ -123,6 +142,8 @@ export function cornixIssue(model: WorkspaceModel): WorkspaceIssue | undefined {
       return { kind: "missing-keymap", store: model.store };
     case "legacy-binding":
       return { kind: "legacy-binding", store: model.store, migration: model.cornix.migration };
+    case "legacy-layout":
+      return { kind: "legacy-layout", store: model.store, migration: model.cornix.migration };
     case "error":
       return { kind: "unresolved", store: model.store, reason: model.cornix.reason };
   }

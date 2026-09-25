@@ -70,7 +70,7 @@ export interface MacApplied {
  *
  * `karabiner.json` へは書かない。**lint は書き込み前のゲート**で、`applyMacPlan` の前に
  * 呼び出し側が結果を見る（ADR 0028）。error のある desired state は生成の手前で返すので、
- * `cornix/` は作られない。
+ * `keysync/` は作られない。
  *
  * @doc docs/specs/mac-keymap.md#適用の境界
  */

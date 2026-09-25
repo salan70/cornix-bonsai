@@ -25,7 +25,7 @@ const device = {
   capacities: observeCapacities(current),
   supportedQsids: Object.keys(current.settings).map(Number),
 };
-const binding = { definitionPath: "cornix/definitions/abc.json", definitionDigest: "abc" };
+const binding = { definitionPath: "keysync/definitions/abc.json", definitionDigest: "abc" };
 
 function entry(subject: DiffEntry["subject"]): DiffEntry {
   return {

@@ -29,7 +29,7 @@ keyboard:
   uid: "16882930253541522617"
   name: "Cornix LP"
 definition:
-  path: "cornix/definitions/2e27d796fea0183f.json"
+  path: "keysync/definitions/2e27d796fea0183f.json"
   digest: "2e27d796fea0183fb5aa7d7ada154089cf1b7aaf17c72d0a3e4c781161af0d78"
 vial:
   version: 1

@@ -17,7 +17,7 @@ const readFixture = (name: string) => readFileSync(join(FIXTURES, name), "utf8")
 const BINDING: DefinitionBinding = {
   keyboardUid: "16882930253541522617",
   keyboardName: "Cornix LP",
-  definitionPath: "cornix/definitions/2e27d796fea0183f.json",
+  definitionPath: "keysync/definitions/2e27d796fea0183f.json",
   definitionDigest: "2e27d796fea0183fb5aa7d7ada154089cf1b7aaf17c72d0a3e4c781161af0d78",
 };
 

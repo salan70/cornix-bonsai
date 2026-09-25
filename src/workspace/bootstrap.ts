@@ -1,10 +1,12 @@
 /**
- * workspace の新規作成と、旧 digest 規則で作られた binding の移行。
+ * workspace の新規作成と、旧 digest 規則で作られた binding の移行、改名前の
+ * 管理ディレクトリ `cornix/` からの移行。
  *
  * definition の content-addressing は canonical 表現の SHA-256 で行う
  * （`canonicalDefinitionText`）。この規則を決める前に作られた workspace は
  * ファイルの bytes をそのまま digest しているため、`readDefinitionBinding` が
- * digest 不一致で落ちて開けなくなる。ここはその2つの入口を用意する。
+ * digest 不一致で落ちて開けなくなる。管理ディレクトリを `keysync/` へ改めた
+ * ことで（ADR 0035）、`cornix/` を指す binding も同じく開けなくなる。
  *
  * 書き込みは行わず plan を返す。実際の write は adapter 側が行う。
  */
@@ -17,6 +19,7 @@ import type { VilDocument } from "../core/vil/types.ts";
 import {
   definitionDigest,
   definitionPath,
+  LEGACY_WORKSPACE_LAYOUT,
   sha256Hex,
   WORKSPACE_LAYOUT,
   type Sha256Provider,
@@ -108,6 +111,97 @@ export async function planBindingMigration(
       definitionDigest: digest,
     }),
   };
+}
+
+/** 旧ディレクトリから新ディレクトリへ写すファイル 1 個。 */
+export interface WorkspaceFileCopy {
+  readonly from: string;
+  readonly to: string;
+  readonly text: string;
+}
+
+/** 改名前の管理ディレクトリ `cornix/` を `keysync/` へ移す計画。 */
+export interface LayoutMigration extends WorkspacePlan {
+  readonly previousPath: string;
+  /** 写す sidecar。旧側に無いもの、新側に既にあるものは含めない。 */
+  readonly copies: readonly WorkspaceFileCopy[];
+}
+
+/**
+ * 改名前の管理ディレクトリ `cornix/` を指す binding を検出し、`keysync/` へ移す計画を組む。
+ *
+ * binding の path が `cornix/definitions/<digest>.json` で、そのファイルの digest が
+ * binding と一致するときだけ移す。digest は変わらないので、`keymap.yaml` は path だけが
+ * 変わる。一致しなければ `undefined` を返し、ほかの原因として扱わせる。
+ *
+ * 写すのは definition と、`labels.yaml`、`acknowledgements.json`。新側に既にあるものは
+ * 上書きしない。`backups/` と `generated/` は生成物なので写さず、旧 `cornix/` も消さない
+ * （ADR 0036）。
+ *
+ * @doc docs/specs/ui.md#旧ディレクトリの移行
+ */
+export async function planLayoutMigration(
+  store: Pick<WorkspaceFileStore, "readBytes" | "readText">,
+  document: VilDocument,
+  binding: DefinitionBinding,
+  provider: Sha256Provider,
+): Promise<LayoutMigration | undefined> {
+  let path: string;
+  try {
+    path = definitionPath(binding.definitionDigest);
+  } catch {
+    return undefined;
+  }
+  const fileName = path.slice(WORKSPACE_LAYOUT.definitions.length + 1);
+  if (binding.definitionPath !== `${LEGACY_WORKSPACE_LAYOUT.definitions}/${fileName}`) {
+    return undefined;
+  }
+  const bytes = await store.readBytes(binding.definitionPath);
+  if (bytes === undefined) return undefined;
+  const definitionText = new TextDecoder().decode(bytes);
+  let digest: string;
+  try {
+    digest = await definitionDigest(definitionText, provider);
+  } catch {
+    return undefined;
+  }
+  if (digest !== binding.definitionDigest) return undefined;
+
+  const copies: WorkspaceFileCopy[] = [];
+  for (const [from, to] of [
+    [LEGACY_WORKSPACE_LAYOUT.labels, WORKSPACE_LAYOUT.labels],
+    [LEGACY_WORKSPACE_LAYOUT.acknowledgements, WORKSPACE_LAYOUT.acknowledgements],
+  ] as const) {
+    const text = await store.readText(from);
+    if (text === undefined || (await store.readText(to)) !== undefined) continue;
+    copies.push({ from, to, text });
+  }
+
+  return {
+    previousPath: binding.definitionPath,
+    definitionPath: path,
+    definitionDigest: digest,
+    definitionText,
+    copies,
+    keymapText: serializeKeymapYaml(document, { ...binding, definitionPath: path }),
+  };
+}
+
+/**
+ * 移行の計画を workspace へ書く。
+ *
+ * **`keymap.yaml` を最後に書く。** 間で中断しても `keymap.yaml` は旧 path を指したままで、
+ * 旧 `cornix/` も残っているので、同じ移行をやり直せる。
+ *
+ * @doc docs/specs/ui.md#旧ディレクトリの移行
+ */
+export async function writeLayoutMigration(
+  store: Pick<WorkspaceFileStore, "writeText">,
+  migration: LayoutMigration,
+): Promise<void> {
+  await store.writeText(migration.definitionPath, migration.definitionText);
+  for (const copy of migration.copies) await store.writeText(copy.to, copy.text);
+  await store.writeText(WORKSPACE_LAYOUT.keymap, migration.keymapText);
 }
 
 /**

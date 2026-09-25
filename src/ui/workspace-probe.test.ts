@@ -1,6 +1,10 @@
 import { ok, strictEqual } from "node:assert/strict";
+import { webcrypto } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
+import { parseVil } from "../core/vil/parse.ts";
+import { planWorkspaceInit } from "../workspace/bootstrap.ts";
 import { macKeymapPath } from "../workspace/layout.ts";
 import type { UiWorkspaceStore } from "./workspace-probe.ts";
 import { defaultEditTarget, probeStore } from "./workspace-probe.ts";
@@ -43,5 +47,26 @@ test("壊れたkeymap.yamlはcornix errorに閉じMac編集を止めない", asy
   );
   ok(probe.kind === "ready");
   ok(probe.model.cornix.kind === "error");
+  ok(probe.model.mac.jis.kind === "ready");
+});
+
+test("改名前のcornix/を指すkeymap.yamlはlegacy-layoutとして移行を提示する", async () => {
+  const plan = await planWorkspaceInit(
+    parseVil(readFileSync("fixtures/cornix-lp/baseline.vil", "utf8")),
+    readFileSync("fixtures/cornix-lp/vial-definition-v1.12.json", "utf8"),
+    webcrypto,
+  );
+  const legacyPath = plan.definitionPath.replace("keysync/definitions/", "cornix/definitions/");
+  const probe = await probeStore(
+    fakeStore({
+      "keymap.yaml": plan.keymapText.replace(plan.definitionPath, legacyPath),
+      [legacyPath]: plan.definitionText,
+      [macKeymapPath("jis")]: jisYaml,
+    }),
+  );
+  ok(probe.kind === "ready");
+  ok(probe.model.cornix.kind === "legacy-layout");
+  strictEqual(probe.model.cornix.migration.previousPath, legacyPath);
+  strictEqual(probe.model.cornix.migration.definitionPath, plan.definitionPath);
   ok(probe.model.mac.jis.kind === "ready");
 });

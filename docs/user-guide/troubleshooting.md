@@ -57,7 +57,7 @@
 
 - **原因**: `keymap.yaml` の参照先定義と実際のファイル内容が一致していません。
 - **対処**:
-  1. Git で `keymap.yaml` と `cornix/definitions/` の履歴を確認します。
+  1. Git で `keymap.yaml` と `keysync/definitions/` の履歴を確認します。
   2. 競合解消で誤った digest を手動入力していないか確認します。
   3. 正しいコミットへ戻すか、workspace を開き直して再読込します。
 
@@ -111,8 +111,8 @@
 
 ### ファイルが見つからない
 
-- **バックアップ**: `cornix/backups/` 配下に保存されます。最新は `latest.vil` です。
-- **Web UI の生成物**: `cornix/generated/` 配下に保存されます。
+- **バックアップ**: `keysync/backups/` 配下に保存されます。最新は `latest.vil` です。
+- **Web UI の生成物**: `keysync/generated/` 配下に保存されます。
 - **CLI の生成物**: `--out` で指定したパスに保存されます。
 
 これらは成果物のため、通常は Git 管理しません。

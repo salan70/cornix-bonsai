@@ -209,7 +209,7 @@ function Review({
               ))}
             </ul>
           )}
-          <p className="hint">適用の前に現在の karabiner.json を cornix/backups/ へ退避する。</p>
+          <p className="hint">適用の前に現在の karabiner.json を keysync/backups/ へ退避する。</p>
         </>
       )}
     </section>
@@ -355,7 +355,7 @@ function Result({
           <StoppedDetail reason={outcome} onReload={onReload} />
           {outcome.kind === "failed" ? (
             <p className="hint">
-              書き込みの途中で失敗した場合も、適用前の設定は cornix/backups/ に退避してある。
+              書き込みの途中で失敗した場合も、適用前の設定は keysync/backups/ に退避してある。
             </p>
           ) : null}
         </section>

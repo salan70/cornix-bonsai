@@ -34,7 +34,7 @@ export function FilesPanel({
         <h3 className="section-title">.vil</h3>
         <p>
           読込は目標状態（keymap.yaml）を置き換えて保存する。実機には書き込まない。書出は
-          cornix/generated/ に保存する。
+          keysync/generated/ に保存する。
         </p>
         <div className="row">
           <Button size="small" appearance="secondary" disabled={!cornixReady} onClick={onImportVil}>

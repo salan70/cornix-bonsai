@@ -45,7 +45,7 @@ test("整形とキー順が違う同じdefinitionは同じbindingになる", asy
 test("backupPathは既定でVilの拡張子を使う", () => {
   strictEqual(
     backupPath(new Date("2026-09-07T01:02:03.456Z")),
-    "cornix/backups/2026-09-07T010203456Z.vil",
+    "keysync/backups/2026-09-07T010203456Z.vil",
   );
 });
 
@@ -53,6 +53,6 @@ test("backupPathは接頭辞と拡張子を差し替えられる", () => {
   // MacBook内蔵キーボードのbackupはkarabiner.json 1ファイル（ADR 0022）。
   strictEqual(
     backupPath(new Date("2026-09-07T01:02:03.456Z"), { prefix: "karabiner-", extension: "json" }),
-    "cornix/backups/karabiner-2026-09-07T010203456Z.json",
+    "keysync/backups/karabiner-2026-09-07T010203456Z.json",
   );
 });

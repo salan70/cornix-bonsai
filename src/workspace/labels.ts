@@ -1,4 +1,4 @@
-/** `cornix/labels.yaml` の表示用 metadata。Apply の入力には含めない。 */
+/** `keysync/labels.yaml` の表示用 metadata。Apply の入力には含めない。 */
 
 export interface WorkspaceLabels {
   readonly layers: ReadonlyMap<number, string>;

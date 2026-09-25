@@ -57,7 +57,7 @@ const DESIRED = new Map<string, readonly number[]>([
 
 const VALIDATION_CONTEXT: ApplyValidationContext = {
   keyboardUid: BACKUP.keyboardUid,
-  definition: { path: "cornix/definitions/test.json", digest: "definition-digest" },
+  definition: { path: "keysync/definitions/test.json", digest: "definition-digest" },
   capacities: { layerCount: 10, macroCount: 32, tapDanceCount: 32, comboCount: 32 },
   supportedQsids: [2, 6, 7, 18, 19, 22, 23, 26, 27],
 };

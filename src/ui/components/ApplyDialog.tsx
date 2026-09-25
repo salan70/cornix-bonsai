@@ -139,7 +139,7 @@ export function ApplyDialog({
               <Icon name="check" />
             </strong>
             <span>
-              Apply 前の全 read（往復 {backupRoundTrips} 回）を <code>cornix/backups/</code> と{" "}
+              Apply 前の全 read（往復 {backupRoundTrips} 回）を <code>keysync/backups/</code> と{" "}
               <code>{WORKSPACE_LAYOUT.latestBackup}</code> に保存した
             </span>
           </p>
@@ -149,7 +149,7 @@ export function ApplyDialog({
           <section role="status" aria-live="polite">
             <h3 className="section-title">実機の現在の状態を backup する</h3>
             {backupError === undefined ? (
-              <p>この接続で読み込んだ実機の状態を cornix/backups/ に保存している…</p>
+              <p>この接続で読み込んだ実機の状態を keysync/backups/ に保存している…</p>
             ) : (
               <p className="bad">
                 backup を保存できなかったため、書き込みへ進まない: {backupError}

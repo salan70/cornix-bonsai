@@ -185,7 +185,7 @@ test("validateApplyKeymapは検証したdocumentからdesiredとevidenceを同�
     baseline,
     definition,
     device,
-    { path: "cornix/definitions/baseline.json", digest: "definition-a" },
+    { path: "keysync/definitions/baseline.json", digest: "definition-a" },
     [{ kind: "key", layer: 0, row: 0, col: 0 }],
   );
 
@@ -229,7 +229,7 @@ test("baseline.vilの全write targetをVial protocol 6 wire値へ導出できる
     baseline,
     definition,
     device,
-    { path: "cornix/definitions/baseline.json", digest: "definition-a" },
+    { path: "keysync/definitions/baseline.json", digest: "definition-a" },
     targets,
   );
 

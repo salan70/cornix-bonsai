@@ -2,19 +2,20 @@
 
 workspaceはBrowserのFile System Access APIまたはCLIのローカルディレクトリを入口にする。
 `keymap.yaml`がdesired stateで、definitionはSHA-256の先頭16文字を使ったcontent-addressed
-pathに保存する。`cornix/acknowledgements.json`はApply warningの確認IDを保持する。
-`cornix/backups/`と`cornix/generated/`は生成物で、keymapの競合検出は
+pathに保存する。`keysync/acknowledgements.json`はApply warningの確認IDを保持する。
+`keysync/backups/`と`keysync/generated/`は生成物で、keymapの競合検出は
 mtimeだけでなく読み出したcontent hashを優先する。
 
 <!-- @code src/workspace/layout.ts#WORKSPACE_LAYOUT -->
 <!-- @code src/workspace/layout.ts#macKeymapPath -->
+<!-- @code src/workspace/layout.ts#LEGACY_WORKSPACE_LAYOUT -->
 
 ## 配置
 
 ```text
 keymap.yaml
 mac-keyboard.<layout>.yaml
-cornix/
+keysync/
   definitions/<digest-prefix>.json
   labels.yaml
   acknowledgements.json
@@ -22,6 +23,10 @@ cornix/
   backups/latest.vil
   generated/<name>
 ```
+
+改名前（ADR 0035）の管理ディレクトリは`cornix/`だった。`LEGACY_WORKSPACE_LAYOUT`はそのうち
+移すファイル（definition、`labels.yaml`、`acknowledgements.json`）の場所で、移行の計画だけが読む。
+通常の読み込みは`cornix/`へ倒さない（ADR 0036）。移行の仕様は`ui.md`の「旧ディレクトリの移行」にある。
 
 `mac-keyboard.<layout>.yaml`（`macKeymapPath`）はMacのdesired stateで、`keymap.yaml`とは別
 documentである（ADR 0022）。仕様は`mac-keymap.md`にある。片方だけが存在するworkspaceも
@@ -62,7 +67,7 @@ Macのdesired stateはこのリポジトリ自身が持ちます。Cornix LP向�
 
 ## 表示用labels
 
-`cornix/labels.yaml`は実機へ送らない表示用sidecarである。layer名に加えて、Anyキーなどのraw keycode式へ
+`keysync/labels.yaml`は実機へ送らない表示用sidecarである。layer名に加えて、Anyキーなどのraw keycode式へ
 workspace共通の表示名を付けられる。表示名のkeyはraw式の完全一致で、keymapのraw値やvalidation、diff、
 Applyの入力には影響しない。
 
@@ -134,6 +139,11 @@ writeはこのqueueが1本の列で行う。競合検査に使うtokenは、成�
 同じCore表現を使い、`keysync validate`、`keysync analyze`、`keysync diff --against`、
 `keysync render --format svg|pdf`、`keysync export vil`を提供する。`.vil` importは
 `keysync import vil <file> --definition <definition.json>`でworkspaceへ初期化する。
+
+`keysync migrate`は改名前の`cornix/`を指すworkspaceを`keysync/`へ移す（ADR 0036）。
+Web UIの移行と同じ`planLayoutMigration`と`writeLayoutMigration`を通り、`workspace`の既定はcwdである。
+移す必要が無ければ`migrated: false`を返して何も書かない。
+`cornix/`を指したままのworkspaceへ他のcommandを使うと、`keysync migrate`を案内して止まる。
 
 MacBook内蔵キーボードは`keysync mac generate|diff|apply|devices`で扱う。仕様は
 `mac-keymap.md`にある。`keymap.yaml`もdefinitionも要らないため、`import vil`と同じく

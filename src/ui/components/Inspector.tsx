@@ -241,7 +241,7 @@ export function Inspector({
               }}
             />
             <p className="hint">
-              cornix/labels.yaml に保存する。空欄は表示名を消す。実機へ書く内容は変わらない。
+              keysync/labels.yaml に保存する。空欄は表示名を消す。実機へ書く内容は変わらない。
             </p>
           </div>
         ) : null}

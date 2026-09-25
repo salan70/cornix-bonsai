@@ -3,7 +3,7 @@
  *
  * `keymap.yaml` の serializer は物理配列の格子を diff へ残すために row を flow sequence で
  * 並べるが（ADR 0009）、こちらは疎な map なので格子が無い。並べ方は
- * `cornix/labels.yaml`（`src/workspace/labels.ts`）と同じく、section 見出しの下へ
+ * `keysync/labels.yaml`（`src/workspace/labels.ts`）と同じく、section 見出しの下へ
  * `key: "value"` を 1 行ずつ置く形にする。
  *
  * 並び順は layer 昇順・`key_code` 名昇順で固定する。生成器の manipulator の順序と

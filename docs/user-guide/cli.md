@@ -144,7 +144,7 @@ just mac apply --confirm v1-xxxx-yyyy   # 適用してプロファイル選択�
 `--confirm` が無いうちは、次を行って終わります。`karabiner.json` は書き換えません。
 
 1. desired state を検証する。error があればここで止まる。
-2. Karabiner 向けファイルを `cornix/generated/` へ生成し、`karabiner_cli` で lint する。
+2. Karabiner 向けファイルを `keysync/generated/` へ生成し、`karabiner_cli` で lint する。
 3. 現在の設定との構造差分と、確認用の fingerprint を表示する。
 
 表示された fingerprint をそのまま渡すと、次を行います。
@@ -181,7 +181,7 @@ Karabiner 向け complex modifications ファイルだけを生成します。
 just mac generate
 ```
 
-出力先は `cornix/generated/` 配下の JSON です。
+出力先は `keysync/generated/` 配下の JSON です。
 `apply` も内部で同じ生成と lint を行うため、通常は単独で実行する必要はありません。
 変換できないキーコードがある場合は生成を中止し、終了コード 1 を返します。
 
@@ -206,7 +206,7 @@ karabiner_cli --select-profile "Default profile"
 ```
 
 `karabiner_cli` は `/Library/Application Support/org.pqrs/Karabiner-Elements/bin/` にあります。
-設定ファイルごと戻す場合は、`cornix/backups/karabiner-<時刻>.json` を
+設定ファイルごと戻す場合は、`keysync/backups/karabiner-<時刻>.json` を
 `~/.config/karabiner/karabiner.json` へコピーします。
 
 ## ツール本体の更新

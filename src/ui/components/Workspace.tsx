@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { MacKeyboardLayout } from "../../core/mac-keymap/types.ts";
 import { macKeymapPath, WORKSPACE_LAYOUT } from "../../workspace/layout.ts";
 import type { WorkspaceIssue } from "../workspace-probe.ts";
@@ -70,7 +71,8 @@ export function WorkspaceGate({
 }
 
 /**
- * Cornix LP を読み込めないときの復旧。`keymap.yaml` が無い、旧 digest の binding、その他の失敗を分けて操作を出す。
+ * Cornix LP を読み込めないときの復旧。`keymap.yaml` が無い、旧 digest の binding、改名前の
+ * 管理ディレクトリ、その他の失敗を分けて操作を出す。
  * Mac の編集は止めない。
  */
 export function CornixRecovery({
@@ -140,6 +142,46 @@ export function CornixRecovery({
         <div className="row">
           <Button disabled={busy} onClick={onMigrate}>
             binding を移行する
+          </Button>
+          <Button appearance="secondary" disabled={busy} onClick={onReload}>
+            ディスクから再読込
+          </Button>
+        </div>
+      </section>
+    );
+  }
+  if (issue.kind === "legacy-layout") {
+    return (
+      <section className="recovery" aria-labelledby="recovery-title" data-recovery="legacy-layout">
+        <h2 id="recovery-title">! 改名前の cornix/ を使っている</h2>
+        <p>
+          KeySync への改名で、管理ディレクトリは cornix/ から keysync/ に変わった。keymap.yaml
+          が指す definition は記録当時と同じ内容だと確かめられた。次のファイルを keysync/ へ写し、
+          keymap.yaml の path を書き直せる。移行はこの操作でだけ行い、keymap の内容は変わらない。
+        </p>
+        <dl className="kv">
+          <dt>definition</dt>
+          <dd>
+            <code>{issue.migration.previousPath}</code>
+            <br />→ <code>{issue.migration.definitionPath}</code>
+          </dd>
+          {issue.migration.copies.map((copy) => (
+            <Fragment key={copy.to}>
+              <dt>写す</dt>
+              <dd>
+                <code>{copy.from}</code>
+                <br />→ <code>{copy.to}</code>
+              </dd>
+            </Fragment>
+          ))}
+        </dl>
+        <p className="muted">
+          cornix/ は削除しない。backups/ と generated/
+          は生成物なので写さない。移行後に確かめ、不要なら cornix/ を削除する。
+        </p>
+        <div className="row">
+          <Button disabled={busy} onClick={onMigrate}>
+            keysync/ へ移行する
           </Button>
           <Button appearance="secondary" disabled={busy} onClick={onReload}>
             ディスクから再読込

@@ -19,6 +19,7 @@ import type { MacKeyboardLayout, MacKeymapDocument } from "../core/mac-keymap/ty
 import { applyMacPlan, planMacApplyAt, writeAndLintAsset } from "../mac/apply-service.ts";
 import { detectBuiltInLayout } from "../mac/keyboard-type.ts";
 import { readMacKeymapFor } from "../workspace/mac-keymap-file.ts";
+import { planLayoutMigration, writeLayoutMigration } from "../workspace/bootstrap.ts";
 import {
   createKarabinerCli,
   defaultKarabinerConfigPath,
@@ -32,6 +33,7 @@ import {
   definitionDigest,
   definitionPath,
   generatedPath,
+  LEGACY_WORKSPACE_LAYOUT,
   macKeymapPath,
   readDefinitionBinding,
   WORKSPACE_LAYOUT,
@@ -86,6 +88,8 @@ export async function main(argv = process.argv.slice(2), deps: CliDeps = {}): Pr
     // mac 系は keymap.yaml も definition も要らない。loadWorkspace の手前で分ける（ADR 0022）。
     // 既定 workspace も mac だけ違う。ほかは従来どおり cwd（ADR 0028）。
     if (command === "mac") return await mac(explicit ?? defaultMacWorkspaceRoot(), args, deps);
+    // 改名前の `cornix/` を指す workspace は loadWorkspace が読めない。その手前で移す（ADR 0036）。
+    if (command === "migrate") return await migrate(explicit ?? process.cwd());
     const workspace = await loadWorkspace(explicit ?? process.cwd());
     switch (command) {
       case "validate":
@@ -203,6 +207,42 @@ async function importVil(root: string, input: string, args: ParsedArgs): Promise
     }),
   );
   console.log(WORKSPACE_LAYOUT.keymap);
+  return 0;
+}
+
+/**
+ * 改名前の管理ディレクトリ `cornix/` を `keysync/` へ移す。旧 `cornix/` は消さない（ADR 0036）。
+ */
+async function migrate(root: string): Promise<number> {
+  const store = new NodeWorkspaceStore(root);
+  const parsed = parseKeymapYaml(
+    required(await store.readText(WORKSPACE_LAYOUT.keymap), WORKSPACE_LAYOUT.keymap),
+  );
+  const migration = await planLayoutMigration(store, parsed.document, parsed.binding, webcrypto);
+  if (migration === undefined) {
+    if (parsed.binding.definitionPath.startsWith(`${LEGACY_WORKSPACE_LAYOUT.definitions}/`)) {
+      throw new Error(
+        `${parsed.binding.definitionPath} が無いか、digest が keymap.yaml と一致しないため移行しない`,
+      );
+    }
+    console.log(JSON.stringify({ workspace: root, migrated: false }, null, 2));
+    return 0;
+  }
+  await writeLayoutMigration(store, migration);
+  console.log(
+    JSON.stringify(
+      {
+        workspace: root,
+        migrated: true,
+        definition: { from: migration.previousPath, to: migration.definitionPath },
+        copied: migration.copies.map(({ from, to }) => ({ from, to })),
+        keymap: WORKSPACE_LAYOUT.keymap,
+        note: "cornix/ は残した。backups/ と generated/ は移さない。確かめてから不要なら削除する",
+      },
+      null,
+      2,
+    ),
+  );
   return 0;
 }
 
@@ -515,6 +555,9 @@ async function loadWorkspace(root: string): Promise<LoadedWorkspace> {
     WORKSPACE_LAYOUT.keymap,
   );
   const parsed = parseKeymapYaml(keymapText);
+  if (parsed.binding.definitionPath.startsWith(`${LEGACY_WORKSPACE_LAYOUT.definitions}/`)) {
+    throw new Error("改名前の cornix/ を指している。keysync migrate で keysync/ へ移す");
+  }
   const definitionText = await readDefinitionBinding(
     store,
     parsed.binding.definitionPath,
@@ -561,7 +604,7 @@ function mapReplacer(_key: string, value: unknown): unknown {
 }
 function printHelp(): void {
   console.log(
-    `keysync validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint> [--no-select]\n  mac devices [--devices <observed.json>] [--add <vendor_id>:<product_id>]\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）\n  mac ... の --workspace 既定は $CORNIX_WORKSPACE、無ければ keysync リポジトリ`,
+    `keysync validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  migrate （改名前の cornix/ を keysync/ へ移す）\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint> [--no-select]\n  mac devices [--devices <observed.json>] [--add <vendor_id>:<product_id>]\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）\n  mac ... の --workspace 既定は $CORNIX_WORKSPACE、無ければ keysync リポジトリ`,
   );
 }
 

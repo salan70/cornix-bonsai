@@ -5,7 +5,7 @@ import type { MacKeyboardLayout, MacKeymapDocument } from "../../core/mac-keymap
 import { parseVil } from "../../core/vil/parse.ts";
 import type { VilDocument } from "../../core/vil/types.ts";
 import { serializeAcknowledgements } from "../../workspace/acknowledgements.ts";
-import { writeWorkspacePlan } from "../../workspace/bootstrap.ts";
+import { writeLayoutMigration, writeWorkspacePlan } from "../../workspace/bootstrap.ts";
 import {
   serializeLabelsYaml,
   updateLayerLabel,
@@ -94,7 +94,7 @@ export function useWorkspace({ say, onAdopt }: WorkspaceOptions) {
       onSaved: () => {
         if (stale()) return;
         setLabelsSave({ kind: "saved" });
-        say("cornix/labels.yamlへ保存した");
+        say(`${WORKSPACE_LAYOUT.labels}へ保存した`);
       },
       onError: (error) => {
         if (stale()) return;
@@ -210,6 +210,17 @@ export function useWorkspace({ say, onAdopt }: WorkspaceOptions) {
     }
   }
 
+  async function migrateLayout(
+    target: Extract<WorkspaceIssue, { kind: "legacy-layout" }>,
+  ): Promise<void> {
+    try {
+      await writeLayoutMigration(target.store, target.migration);
+      await adoptStore(target.store, "cornix/をkeysync/へ移行した。cornix/は残してある");
+    } catch (error) {
+      say(errorMessage(error));
+    }
+  }
+
   /** Cornix の目標状態を置き換え、`keymap.yaml` の保存キューへ積む。 */
   function saveCornix(document: VilDocument | undefined = cornix?.document): void {
     if (workspace === undefined || cornix === undefined || document === undefined) return;
@@ -296,7 +307,7 @@ export function useWorkspace({ say, onAdopt }: WorkspaceOptions) {
   }
 
   /**
-   * acknowledge 済みの診断 id を `cornix/acknowledgements.json` へ保存する。
+   * acknowledge 済みの診断 id を `keysync/acknowledgements.json` へ保存する。
    * 保存に失敗したら記録を変えず、false を返す。
    */
   async function acknowledge(ids: readonly string[]): Promise<boolean> {
@@ -418,6 +429,7 @@ export function useWorkspace({ say, onAdopt }: WorkspaceOptions) {
     grantPermission,
     reload,
     migrateBinding,
+    migrateLayout,
     saveCornix,
     updateCornix,
     editLabel,

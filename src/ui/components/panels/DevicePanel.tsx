@@ -262,7 +262,7 @@ export function MacDevicePanel({
       <section className="step">
         <h3 className="section-title">Karabiner asset</h3>
         <p>
-          編集中の内容から complex_modifications の定義を cornix/generated/ へ書き出す。error
+          編集中の内容から complex_modifications の定義を keysync/generated/ へ書き出す。error
           があると書き出さない。
         </p>
         <Button

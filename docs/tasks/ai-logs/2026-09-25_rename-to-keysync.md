@@ -7,21 +7,24 @@ Cornix LP 以外のキーボードも扱うようになったため、製品名�
 ## Fact
 
 - GitHub repository は `salan70/keysync` へ、ローカルディレクトリは `Projects/Tools/keysync` へ改名済みだった。
+- `readDefinitionBinding` は `keymap.yaml` の `definition.path` と `definitionPath(digest)` の完全一致を要求する。管理ディレクトリを `keysync/` にすると、既存の `keymap.yaml` はすべて読めなくなる。
 - Karabiner の profile 名と rule の説明は YAML の `profile:` 値から作られる。定数 `CORNIX_PROFILE_NAME` は新規作成時の既定値にだけ使われていた。
 - この Mac の `~/.config/karabiner/karabiner.json` に `Cornix Bonsai` profile は無かった（`Default profile` のみ）。
 - DocBridge の anchor になっている改名対象は `generateCornixProfile` だけだった。
 
 ## Decision
 
-| 論点                   | 決定                                                                                                       |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
-| 変える範囲             | 表示名と識別子のすべて。機種を指す識別子は変えない（ADR 0035）                                             |
-| ロゴ                   | 🌱 のまま。SVG のロゴは別作業で入れる                                                                      |
-| schema ID              | 旧 ID も読み、書き出しは新 ID だけ。版は据え置く（ADR 0036）                                               |
-| Karabiner の旧 profile | `mac-keymap/legacy-profile-present`（information）で削除を案内するだけ。置き換えも削除もしない（ADR 0036） |
-| 関数名                 | `generateOwnedProfile`。製品名を関数名に入れない                                                           |
-| Karabiner の変数       | `keysync_layer_N`。適用のたびに全再生成されるので互換は要らない                                            |
-| 過去の記録             | ADR 0001〜0034、既存の作業ログ、Spike は当時の名前のまま残す                                               |
+| 論点                     | 決定                                                                                                                                                                 |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 変える範囲               | 表示名と識別子のすべて。機種を指す識別子は変えない（ADR 0035）                                                                                                       |
+| ロゴ                     | 🌱 のまま。SVG のロゴは別作業で入れる                                                                                                                                |
+| schema ID                | 旧 ID も読み、書き出しは新 ID だけ。版は据え置く（ADR 0036）                                                                                                         |
+| Karabiner の旧 profile   | `mac-keymap/legacy-profile-present`（information）で削除を案内するだけ。置き換えも削除もしない（ADR 0036）                                                           |
+| 関数名                   | `generateOwnedProfile`。製品名を関数名に入れない                                                                                                                     |
+| Karabiner の変数         | `keysync_layer_N`。適用のたびに全再生成されるので互換は要らない                                                                                                      |
+| 管理ディレクトリ         | `cornix/` から `keysync/` へ明示操作で移す。入口は Web UI の復旧カード（`data-recovery="legacy-layout"`）と `keysync migrate`。旧 `cornix/` は削除しない（ADR 0036） |
+| 両方を読むフォールバック | 採らない。新 path を指すのに実体は旧ディレクトリ、という状態を作れてしまう                                                                                           |
+| 過去の記録               | ADR 0001〜0034、既存の作業ログ、Spike は当時の名前のまま残す                                                                                                         |
 
 ## Open Question
 

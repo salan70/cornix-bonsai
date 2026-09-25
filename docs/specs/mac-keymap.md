@@ -63,7 +63,7 @@ layers:
     "h": "KC_LEFT"
 ```
 
-並べ方は`cornix/labels.yaml`と同じく、section見出しの下へ`key: "value"`を1行ずつ置く形です。
+並べ方は`keysync/labels.yaml`と同じく、section見出しの下へ`key: "value"`を1行ずつ置く形です。
 `keymap.yaml`のserializerは物理配列の格子をdiffのhunkへ残すためにrowをflow sequenceで
 並べますが（ADR 0009）、こちらは疎なmapなので格子がありません。
 
@@ -224,7 +224,7 @@ document全体を見ないと決まらないものは`validateMacKeymap`の担�
 ## generateKarabinerAsset
 
 `karabiner_cli --lint-complex-modifications`が受け取るasset形式（`{ title, rules }`）です。
-Browser UIとCLIの`keysync mac generate`はこの形を`cornix/generated/`へ書き出します。
+Browser UIとCLIの`keysync mac generate`はこの形を`keysync/generated/`へ書き出します。
 
 `karabiner_cli`は**エラーがあってもexit codeを0で返します**。判定は出力が`: ok`で
 終わるかどうかで行います。
@@ -341,7 +341,7 @@ Web UIはこの関数を直接呼びません。
 ```text
 desired stateを読む
 → karabiner.jsonを読む
-→ validate（errorがあればここで止める。cornix/は作らない）
+→ validate（errorがあればここで止める。keysync/は作らない）
 → assetを生成してlint（落ちたらkarabiner.jsonへ触らない）
 → 構造diffとfingerprintを出す
 → 人間が同じfingerprintを渡す
@@ -370,7 +370,7 @@ atomic置換なのでその状態が原理的に生じません（ADR 0022）。
 
 backupは**読んだテキストをそのまま**書き戻します。再serializeするとKarabiner独自の整形が
 落ち、復元しても元のファイルと同じになりません。置き場所は
-`cornix/backups/karabiner-<時刻>.json`です。
+`keysync/backups/karabiner-<時刻>.json`です。
 
 書き込みは同じディレクトリのtempへ書いてから`rename`します。Karabinerは設定ファイルの親
 ディレクトリをwatchして自動reloadするため、途中まで書けたファイルを見せません。`rename`は

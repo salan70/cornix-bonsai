@@ -27,8 +27,8 @@ Mac の設定は Cornix LP 向けの workspace とは別で、keysync リポジ�
 | ------------------------ | --------------------------------- | -------- |
 | `mac-keyboard.ansi.yaml` | ANSI 配列の Mac 向け目標設定      | 管理対象 |
 | `mac-keyboard.jis.yaml`  | JIS 配列の Mac 向け目標設定       | 管理対象 |
-| `cornix/generated/`      | Karabiner 向けに書き出した JSON   | 管理外   |
-| `cornix/backups/`        | 適用前に退避した `karabiner.json` | 管理外   |
+| `keysync/generated/`     | Karabiner 向けに書き出した JSON   | 管理外   |
+| `keysync/backups/`       | 適用前に退避した `karabiner.json` | 管理外   |
 
 どちらのファイルを使うかは、実行している Mac の内蔵配列から自動で決まります。
 `$CORNIX_WORKSPACE` を設定すると、別のディレクトリを対象にできます。
@@ -40,7 +40,7 @@ workspace の推奨ディレクトリ構成です。
 ```text
 <workspace>/
 ├── keymap.yaml
-└── cornix/
+└── keysync/
     ├── definitions/<digest>.json
     ├── labels.yaml
     ├── acknowledgements.json
@@ -49,21 +49,31 @@ workspace の推奨ディレクトリ構成です。
     └── generated/<name>
 ```
 
-| パス                           | 内容                                  | Git 管理 |
-| ------------------------------ | ------------------------------------- | -------- |
-| `keymap.yaml`                  | 目標設定と definition への紐付け情報  | 管理対象 |
-| `cornix/definitions/`          | キーマップ解釈に必要な定義ファイル    | 管理対象 |
-| `cornix/labels.yaml`           | レイヤー名やキーコードの表示用別名    | 管理対象 |
-| `cornix/acknowledgements.json` | 承認済み警告の記録 ID                 | 管理対象 |
-| `cornix/backups/`              | Apply 前に退避した実機状態            | 管理外   |
-| `cornix/generated/`            | 書き出した VIL、SVG、PDF などの成果物 | 管理外   |
+| パス                            | 内容                                  | Git 管理 |
+| ------------------------------- | ------------------------------------- | -------- |
+| `keymap.yaml`                   | 目標設定と definition への紐付け情報  | 管理対象 |
+| `keysync/definitions/`          | キーマップ解釈に必要な定義ファイル    | 管理対象 |
+| `keysync/labels.yaml`           | レイヤー名やキーコードの表示用別名    | 管理対象 |
+| `keysync/acknowledgements.json` | 承認済み警告の記録 ID                 | 管理対象 |
+| `keysync/backups/`              | Apply 前に退避した実機状態            | 管理外   |
+| `keysync/generated/`            | 書き出した VIL、SVG、PDF などの成果物 | 管理外   |
 
 workspace を Git で管理する場合は、`.gitignore` へ以下を追加してください。
 
 ```gitignore
-cornix/backups/
-cornix/generated/
+keysync/backups/
+keysync/generated/
 ```
+
+### 改名前の workspace（`cornix/`）
+
+KeySync へ改名する前に作った workspace は、定義ファイルなどを `cornix/` に置いています。
+Web UI で開くと Cornix LP の位置に移行のカードが出るので、`keysync/ へ移行する` を押します。
+CLI では `just keysync migrate --workspace <workspace>` で同じ移行を行えます。
+
+移行では定義ファイル、`labels.yaml`、`acknowledgements.json` を `keysync/` へ写し、`keymap.yaml` の参照先を書き直します。
+`cornix/` は削除しません。
+`backups/` と `generated/` は写さないため、移行後に内容を確かめ、不要なら `cornix/` を削除します。
 
 ## `keymap.yaml` が正本である理由
 
@@ -84,13 +94,13 @@ Web UI で編集した内容は、まずローカルの `keymap.yaml` へ保存�
 読み込み時と Apply 前に照合し、取り違えや意図しない変更を防止します。
 ファイルや binding の記述を手作業で書き換えないでください。
 
-### 表示名（`cornix/labels.yaml`）
+### 表示名（`keysync/labels.yaml`）
 
 レイヤー名やキーコード表示名は、画面や書き出し画像を読みやすくする情報です。
 実機へ書き込む値には含まれません。
 表示名だけを変更しても実機との差分は生じません。
 
-### 警告承認の記録（`cornix/acknowledgements.json`）
+### 警告承認の記録（`keysync/acknowledgements.json`）
 
 Apply 時に承認した警告はここに保存されます。
 承認 ID には警告の根拠情報が含まれます。

@@ -22,7 +22,7 @@ const STATE_VIEW: Readonly<
 > = {
   ready: { label: "読込済み", dot: "dot" },
   missing: { label: "ファイルなし", dot: "dot dot-missing" },
-  legacy: { label: "binding の移行が必要", dot: "dot dot-legacy" },
+  legacy: { label: "移行が必要", dot: "dot dot-legacy" },
   error: { label: "読込失敗", dot: "dot dot-error" },
 };
 

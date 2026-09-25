@@ -18,12 +18,26 @@ export const WORKSPACE_LAYOUT = {
    * 宣言で決まる。
    */
   legacyMacKeymap: "mac-keyboard.yaml",
+  definitions: "keysync/definitions",
+  labels: "keysync/labels.yaml",
+  acknowledgements: "keysync/acknowledgements.json",
+  backups: "keysync/backups",
+  latestBackup: "keysync/backups/latest.vil",
+  generated: "keysync/generated",
+} as const;
+
+/**
+ * 改名前（ADR 0035）の管理ディレクトリ `cornix/` のうち、移すファイル。
+ *
+ * 読むのは `planLayoutMigration` だけで、通常の読み込みは旧ディレクトリへ倒さない（ADR 0036）。
+ * `backups/` と `generated/` は生成物なので移さない。
+ *
+ * @doc docs/specs/workspace-cli.md#配置
+ */
+export const LEGACY_WORKSPACE_LAYOUT = {
   definitions: "cornix/definitions",
   labels: "cornix/labels.yaml",
   acknowledgements: "cornix/acknowledgements.json",
-  backups: "cornix/backups",
-  latestBackup: "cornix/backups/latest.vil",
-  generated: "cornix/generated",
 } as const;
 
 /**
