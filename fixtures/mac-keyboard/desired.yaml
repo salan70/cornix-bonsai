@@ -7,7 +7,7 @@ schema: keysync/mac-keymap@1
 layout: jis
 devices:
   - { built_in: true }
-profile: "Cornix Bonsai"
+profile: "KeySync"
 layers:
   0:
     "caps_lock": "LCTL_T(KC_ESC)"

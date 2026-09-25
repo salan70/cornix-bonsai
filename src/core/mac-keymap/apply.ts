@@ -14,10 +14,10 @@
  */
 
 import { createDiagnostic, summarize, type Diagnostic } from "../validation/types.ts";
-import { generateCornixProfile } from "./generate.ts";
+import { generateOwnedProfile } from "./generate.ts";
 import type { KarabinerConfig, KarabinerManipulator, KarabinerProfile } from "./karabiner.ts";
 import { validateMacKeymap, type MacValidationResult } from "./validate.ts";
-import type { MacKeymapDocument } from "./types.ts";
+import { LEGACY_PROFILE_NAME, type MacKeymapDocument } from "./types.ts";
 
 /** manipulator 1 件の差分。位置は rule の description と `from` の `key_code` で指す。 */
 export interface ManipulatorDiff {
@@ -86,7 +86,7 @@ export function planMacApply(
 ): MacApplyPlan {
   const selectProfile = options.selectProfile ?? true;
   const validation = validateMacKeymap(document);
-  const { profile } = generateCornixProfile(document);
+  const { profile } = generateOwnedProfile(document);
   const before = ownedProfile(current, document.profile);
   const diff = diffOwnedProfile(before, profile);
 
@@ -118,6 +118,22 @@ export function planMacApply(
             `profile ${document.profile} は選択されていない。karabiner_cli --select-profile で切り替える`,
             { profile: document.profile },
           ),
+    );
+  }
+
+  // 改名前の profile は所有していない。置き換えも削除もせず、残っていることを知らせる（ADR 0036）。
+  if (
+    document.profile !== LEGACY_PROFILE_NAME &&
+    current.profiles.some((one) => one.name === LEGACY_PROFILE_NAME)
+  ) {
+    diagnostics.push(
+      createDiagnostic(
+        "mac-keymap/legacy-profile-present",
+        "information",
+        { kind: "field", name: LEGACY_PROFILE_NAME },
+        `改名前の profile ${LEGACY_PROFILE_NAME} が残っている。KeySync は触らないので、不要なら Karabiner-Elements で削除する`,
+        { profile: LEGACY_PROFILE_NAME },
+      ),
     );
   }
 

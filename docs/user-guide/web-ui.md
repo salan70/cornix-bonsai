@@ -144,8 +144,8 @@ Web UI で編集する場合は、そのリポジトリを workspace として�
 適用すると、次をまとめて行います。
 
 - 現在の `karabiner.json` を `cornix/backups/karabiner-<時刻>.json` へ退避する
-- `Cornix Bonsai` profile を書き換え、読み直して一致を確かめる
-- `Cornix Bonsai` profile へ切り替える
+- `KeySync` profile を書き換え、読み直して一致を確かめる
+- `KeySync` profile へ切り替える
 
 差分が無く、profile も切り替え済みなら「このマシンは最新」と表示され、`適用` は押せません。
 別のマシンで編集した設定は、`git pull` してから Web UI で適用します。
@@ -163,7 +163,7 @@ Web UI で編集する場合は、そのリポジトリを workspace として�
 「画面の内容と … の内容が違う」と出たら、Web UI で開いたフォルダがこのリポジトリか確かめ、`再読込` を押します。
 
 profile の切り替えだけが失敗したときは、書き込みは完了しています。
-`切り替えを再試行` を押すか、Karabiner-Elements で `Cornix Bonsai` を選びます。
+`切り替えを再試行` を押すか、Karabiner-Elements で `KeySync` を選びます。
 元に戻す手順は [Safe Apply と復旧](./safe-apply.md#macbook-内蔵キーボードの-apply) にあります。
 
 ターミナルからは [CLI の mac コマンド](./cli.md#macbook-内蔵キーボード管理mac) でも適用できます。

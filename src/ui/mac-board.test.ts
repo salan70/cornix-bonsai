@@ -10,7 +10,7 @@ function document(): MacKeymapDocument {
   return {
     layout: "jis",
     devices: DEFAULT_MAC_DEVICES,
-    profile: "Cornix Bonsai",
+    profile: "KeySync",
     layers: new Map([
       [0, new Map([["caps_lock", "LCTL_T(KC_ESC)"]])],
       [3, new Map()],

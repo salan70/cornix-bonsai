@@ -16,11 +16,11 @@
       "virtual_hid_keyboard": { "keyboard_type_v2": "jis" }
     },
     {
-      "name": "KeySync",
+      "name": "Cornix Bonsai",
       "complex_modifications": {
         "rules": [
           {
-            "description": "KeySync layer 0",
+            "description": "Cornix Bonsai layer 0",
             "manipulators": [
               {
                 "type": "basic",

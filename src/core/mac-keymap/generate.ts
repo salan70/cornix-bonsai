@@ -24,7 +24,7 @@ import type {
 import type { MacDeviceIdentifier, MacKeymapDocument } from "./types.ts";
 
 /** layer 変数の名前空間。Karabiner の変数は global なので接頭辞で隔離する。 */
-const LAYER_VARIABLE_PREFIX = "cornix_layer_";
+const LAYER_VARIABLE_PREFIX = "keysync_layer_";
 
 /**
  * 適用先デバイスの条件。`identifiers` は OR なので 1 条件で複数デバイスを指せる。
@@ -101,9 +101,9 @@ export function generateKarabinerAsset(document: MacKeymapDocument): {
  *
  * `selected` は持たせない。profile の切り替えはユーザーの操作（ADR 0022）。
  *
- * @doc docs/specs/mac-keymap.md#generatecornixprofile
+ * @doc docs/specs/mac-keymap.md#generateownedprofile
  */
-export function generateCornixProfile(document: MacKeymapDocument): {
+export function generateOwnedProfile(document: MacKeymapDocument): {
   readonly profile: KarabinerProfile;
   readonly diagnostics: readonly Diagnostic[];
 } {

@@ -54,7 +54,7 @@ layout: jis
 devices:
   - { built_in: true }
   - { vendor_id: 1452, product_id: 630 }
-profile: "Cornix Bonsai"
+profile: "KeySync"
 layers:
   0:
     "caps_lock": "LCTL_T(KC_ESC)"
@@ -229,9 +229,9 @@ Browser UIとCLIの`keysync mac generate`はこの形を`cornix/generated/`へ�
 `karabiner_cli`は**エラーがあってもexit codeを0で返します**。判定は出力が`: ok`で
 終わるかどうかで行います。
 
-<!-- @code src/core/mac-keymap/generate.ts#generateCornixProfile -->
+<!-- @code src/core/mac-keymap/generate.ts#generateOwnedProfile -->
 
-## generateCornixProfile
+## generateOwnedProfile
 
 `karabiner.json`の`profiles[]`へ差し込むprofile 1個です。KeySyncが所有する唯一の範囲で、
 `selected`も`simple_modifications`も持たせません。profileの切り替えはユーザーの操作です
@@ -311,7 +311,7 @@ pointing deviceと、Karabiner自身の仮想キーボード（`is_virtual_devic
 返します。macOS同梱の`osascript -l JavaScript`からObjC bridgeで呼ぶため、追加依存はありません。
 
 他の経路は使いません。`karabiner_grabber_devices.json`にはANSI / JISを示すfieldがなく
-（ADR 0024）、`karabiner.json`の`keyboard_type_v2`は`generateCornixProfile`が`document.layout`
+（ADR 0024）、`karabiner.json`の`keyboard_type_v2`は`generateOwnedProfile`が`document.layout`
 から**書く**値なので循環し、`ioreg`の`alt_handler_id`は番号から配列への表を自前で持つ必要が
 あって乖離します。
 
@@ -400,6 +400,10 @@ applyは成功したのに何も効かない状態になります。
 | --------------- | ------------------------------------- | ----------- |
 | `true`（既定）  | `mac-keymap/profile-will-be-selected` | information |
 | `false`         | `mac-keymap/profile-not-selected`     | warning     |
+
+改名前の既定名`Cornix Bonsai`（`LEGACY_PROFILE_NAME`）のprofileが残っていて、所有profileの名前が
+それと違うときは、information診断`mac-keymap/legacy-profile-present`を出します（ADR 0036）。
+旧profileは所有していないので、置き換えも削除もせず、Karabiner-Elementsで削除するよう案内するだけです。
 
 `fingerprint`は人間の確認と適用を結びつける同一性の指紋です。表示用ではありません。
 CLIの`keysync mac apply`は`--confirm <fingerprint>`が一致したときだけ書き込みます。

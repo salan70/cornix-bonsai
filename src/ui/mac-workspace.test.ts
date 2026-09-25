@@ -18,9 +18,9 @@ function fakeStore(files: Readonly<Record<string, string | undefined>>, modified
 }
 
 const jisYaml =
-  'schema: keysync/mac-keymap@1\nlayout: jis\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "KC_B"\n';
+  'schema: keysync/mac-keymap@1\nlayout: jis\nprofile: "KeySync"\nlayers:\n  0:\n    "a": "KC_B"\n';
 const ansiYaml =
-  'schema: keysync/mac-keymap@1\nlayout: ansi\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "KC_C"\n';
+  'schema: keysync/mac-keymap@1\nlayout: ansi\nprofile: "KeySync"\nlayers:\n  0:\n    "a": "KC_C"\n';
 
 test("新名の配列ファイルがあればreadyとpathを返す", async () => {
   const state = await probeMacKeymap(fakeStore({ [macKeymapPath("jis")]: jisYaml }), "jis");

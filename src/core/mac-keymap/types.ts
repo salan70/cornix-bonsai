@@ -23,12 +23,18 @@ export type MacKeyboardLayout = "ansi" | "jis";
 export const DEFAULT_MAC_LAYOUT: MacKeyboardLayout = "jis";
 
 /**
- * Cornix Bonsai が所有する Karabiner profile の名前。
+ * KeySync が所有する Karabiner profile の既定の名前。設定を新しく作るときだけ使う。
  *
  * `karabiner.json` の `profiles[]` のうち、この名前の 1 個だけを書き換える。
  * `global` と他の profile、`selected` には触らない（ADR 0022）。
  */
-export const CORNIX_PROFILE_NAME = "Cornix Bonsai";
+export const KEYSYNC_PROFILE_NAME = "KeySync";
+
+/**
+ * 改名前（ADR 0035）の既定の profile 名。Karabiner に残っていれば知らせるだけで、
+ * 置き換えも削除もしない（ADR 0036）。
+ */
+export const LEGACY_PROFILE_NAME = "Cornix Bonsai";
 
 /**
  * この設定を適用するデバイス 1 個の識別子。
@@ -73,7 +79,7 @@ export interface MacKeymapDocument {
    * `DEFAULT_MAC_DEVICES` を埋める（ADR 0026）。
    */
   readonly devices: readonly MacDeviceIdentifier[];
-  /** 所有する Karabiner profile の名前。通常は `CORNIX_PROFILE_NAME`。 */
+  /** 所有する Karabiner profile の名前。通常は `KEYSYNC_PROFILE_NAME`。 */
   readonly profile: string;
   /** layer 番号 → 割り当て。layer 番号も疎で、連続している必要は無い。 */
   readonly layers: ReadonlyMap<number, MacLayerAssignments>;

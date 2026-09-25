@@ -16,7 +16,7 @@ function documentOf(
   return {
     layout,
     devices: DEFAULT_MAC_DEVICES,
-    profile: "Cornix Bonsai",
+    profile: "KeySync",
     layers: new Map(
       layers.map((assignments, layer) => [layer, new Map(Object.entries(assignments))]),
     ),
@@ -98,7 +98,7 @@ test("devices が空なら適用先が無いので error", () => {
   const result = validateMacKeymap({
     layout: "jis",
     devices: [],
-    profile: "Cornix Bonsai",
+    profile: "KeySync",
     layers: new Map([[0, new Map([["a", "KC_A"]])]]),
   });
   const diagnostic = result.diagnostics.find((d) => d.code === "mac-keymap/no-target-device");

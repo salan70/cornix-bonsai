@@ -11,7 +11,7 @@
  * **他の経路は使わない。**
  * - `karabiner_grabber_devices.json` には ANSI / JIS を示す field が無い（ADR 0024 で確認済み）
  * - `karabiner.json` の `virtual_hid_keyboard.keyboard_type_v2` は
- *   `generateCornixProfile` が `document.layout` から**書く**値なので循環する
+ *   `generateOwnedProfile` が `document.layout` から**書く**値なので循環する
  * - `ioreg` の `alt_handler_id` は同じ番号（46）を返すが、番号から配列への表を
  *   自前で持つ必要があり、世代ごとの値が不明で乖離する
  */

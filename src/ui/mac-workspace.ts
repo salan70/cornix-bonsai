@@ -8,7 +8,7 @@
 
 import { serializeMacKeymapYaml } from "../core/mac-keymap/serialize.ts";
 import {
-  CORNIX_PROFILE_NAME,
+  KEYSYNC_PROFILE_NAME,
   DEFAULT_MAC_DEVICES,
   type MacKeyboardLayout,
   type MacKeymapDocument,
@@ -72,7 +72,7 @@ export function initialMacKeymapYaml(layout: MacKeyboardLayout): string {
   const document: MacKeymapDocument = {
     layout,
     devices: DEFAULT_MAC_DEVICES,
-    profile: CORNIX_PROFILE_NAME,
+    profile: KEYSYNC_PROFILE_NAME,
     layers: new Map([[0, new Map()]]),
   };
   return serializeMacKeymapYaml(document);

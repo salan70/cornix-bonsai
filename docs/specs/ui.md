@@ -322,7 +322,7 @@ Web UI は `karabiner.json` にも `karabiner_cli` にも触れず、同じ orig
 | 8   | error 診断がある                 | error があるため適用できない                         |
 
 押すと、編集中の document の `macKeymapDigest` を添えて計画を頼み、modal に差分を出す。
-差分は layer、キー（物理キャップ名）、割り当て（QMK 表記）、追加 / 変更 / 削除で並べ、error 以外の診断を添える。
+差分は layer、キー（物理キャップ名）、割り当て（QMK 表記）、追加 / 変更 / 削除で並べ、error 以外の診断（改名前の profile が残っている案内を含む）を添える。
 差分が無く profile の切り替えも要らなければ「このマシンは最新」と出し、適用ボタンを無効にする。
 
 計画の段階で止まったときは、`karabiner.json` に触れていないと明示して理由を出す。

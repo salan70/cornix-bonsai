@@ -131,15 +131,10 @@ test("mac generate はcornix/generated/へassetを書く", async () => {
     title: string;
     rules: { description: string }[];
   };
-  strictEqual(asset.title, "Cornix Bonsai");
+  strictEqual(asset.title, "KeySync");
   deepStrictEqual(
     asset.rules.map((rule) => rule.description),
-    [
-      "Cornix Bonsai layer 3",
-      "Cornix Bonsai layer 2",
-      "Cornix Bonsai layer 1",
-      "Cornix Bonsai layer 0",
-    ],
+    ["KeySync layer 3", "KeySync layer 2", "KeySync layer 1", "KeySync layer 0"],
   );
 });
 
@@ -147,7 +142,7 @@ test("errorのあるdesired stateはgenerateしない", async () => {
   const { root, desired } = await workspace();
   await writeFile(
     desired,
-    'schema: keysync/mac-keymap@1\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "TD(0)"\n',
+    'schema: keysync/mac-keymap@1\nprofile: "KeySync"\nlayers:\n  0:\n    "a": "TD(0)"\n',
     "utf8",
   );
   const { code, json } = await captureJson([
@@ -287,7 +282,7 @@ test("fingerprintが一致しないapplyは書かずに落ちる", async () => {
 test("applyはbackupを取り、所有profile以外を保ち、verifyとprofile選択まで通す", async () => {
   const { root, karabiner } = await workspace();
   const before = await readFile(karabiner, "utf8");
-  const cli = fakeKarabinerCli({ current: "Cornix Bonsai" });
+  const cli = fakeKarabinerCli({ current: "KeySync" });
   const plan = await captureJson(
     ["mac", "apply", "--layout", "jis", "--workspace", root, "--karabiner", karabiner],
     cli,
@@ -314,12 +309,12 @@ test("applyはbackupを取り、所有profile以外を保ち、verifyとprofile�
 
   // 選択は karabiner_cli に任せる。karabiner.json の selected は書き換えない（ADR 0028）。
   deepStrictEqual(json.selected, {
-    requested: "Cornix Bonsai",
-    observed: "Cornix Bonsai",
+    requested: "KeySync",
+    observed: "KeySync",
     ok: true,
     output: "",
   });
-  strictEqual(cli.calls.includes("select Cornix Bonsai"), true);
+  strictEqual(cli.calls.includes("select KeySync"), true);
 
   // backupは読んだテキストをそのまま置く。再serializeするとKarabiner独自の整形が落ちる。
   strictEqual(await readFile(join(root, String(json.backup)), "utf8"), before);
@@ -352,7 +347,7 @@ test("errorのあるdesired stateは適用しない", async () => {
   const before = await readFile(karabiner, "utf8");
   await writeFile(
     desired,
-    'schema: keysync/mac-keymap@1\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "TD(0)"\n',
+    'schema: keysync/mac-keymap@1\nprofile: "KeySync"\nlayers:\n  0:\n    "a": "TD(0)"\n',
     "utf8",
   );
 
@@ -489,7 +484,7 @@ test("所有profileがまだ無い初回applyでも選択が要ることを診�
   ]);
 
   strictEqual(json.diff?.present, false);
-  deepStrictEqual(json.selection, { required: true, profile: "Cornix Bonsai" });
+  deepStrictEqual(json.selection, { required: true, profile: "KeySync" });
   strictEqual(
     json.diagnostics?.some((one) => one.code === "mac-keymap/profile-will-be-selected"),
     true,

@@ -6,7 +6,7 @@ import type { UiWorkspaceStore } from "./workspace-probe.ts";
 import { defaultEditTarget, probeStore } from "./workspace-probe.ts";
 
 const jisYaml =
-  'schema: keysync/mac-keymap@1\nlayout: jis\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "KC_B"\n';
+  'schema: keysync/mac-keymap@1\nlayout: jis\nprofile: "KeySync"\nlayers:\n  0:\n    "a": "KC_B"\n';
 
 function fakeStore(files: Readonly<Record<string, string | undefined>>): UiWorkspaceStore {
   return {

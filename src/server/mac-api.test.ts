@@ -164,8 +164,8 @@ test("同じ fingerprint なら backup を取り、書き込み、profile を選
   if (result?.kind !== "applied") return;
   strictEqual(result.selected, true);
   strictEqual(await readFile(join(root, result.backup), "utf8"), before);
-  ok((await readFile(karabiner, "utf8")).includes("Cornix Bonsai"));
-  ok(calls.includes("select Cornix Bonsai"));
+  ok((await readFile(karabiner, "utf8")).includes("KeySync"));
+  ok(calls.includes("select KeySync"));
 });
 
 test("profile の切り替えだけが失敗したら巻き戻さず、切り替えをやり直せる", async () => {
@@ -180,7 +180,7 @@ test("profile の切り替えだけが失敗したら巻き戻さず、切り替
     fingerprint: planned.fingerprint,
   });
   strictEqual(result?.kind, "select-failed");
-  ok((await readFile(karabiner, "utf8")).includes("Cornix Bonsai"));
+  ok((await readFile(karabiner, "utf8")).includes("KeySync"));
   ok((await readdir(join(root, "cornix", "backups"))).length === 1);
 
   const retried = await api(MAC_API.select, { layout: "jis" });

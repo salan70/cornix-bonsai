@@ -2,7 +2,7 @@ import { deepStrictEqual, strictEqual } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { generateCornixProfile } from "./generate.ts";
+import { generateOwnedProfile } from "./generate.ts";
 import type { KarabinerConfig } from "./karabiner.ts";
 import { parseMacKeymapYaml } from "./parse.ts";
 import { diffOwnedProfile, ownedProfile, planMacApply, verifyMacApply } from "./apply.ts";
@@ -32,7 +32,7 @@ test("所有 profile が無ければ末尾へ足す", () => {
   const { next, diff } = planMacApply(current, DESIRED);
   strictEqual(diff.present, false);
   strictEqual(next.profiles.length, 2);
-  strictEqual(next.profiles[1]?.name, "Cornix Bonsai");
+  strictEqual(next.profiles[1]?.name, "KeySync");
 });
 
 test("所有 profile の selected は変更しない", () => {
@@ -41,7 +41,7 @@ test("所有 profile の selected は変更しない", () => {
   const current: KarabinerConfig = {
     ...original,
     profiles: original.profiles.map((profile) =>
-      profile.name === "Cornix Bonsai" ? { ...profile, selected: true } : profile,
+      profile.name === "KeySync" ? { ...profile, selected: true } : profile,
     ),
   };
   const { next, diagnostics } = planMacApply(current, DESIRED);
@@ -74,7 +74,7 @@ test("所有 profile がまだ無くても選択が要ると判定する", () =>
   const original = baseline();
   const current: KarabinerConfig = {
     ...original,
-    profiles: original.profiles.filter((profile) => profile.name !== "Cornix Bonsai"),
+    profiles: original.profiles.filter((profile) => profile.name !== "KeySync"),
   };
   const plan = planMacApply(current, DESIRED);
   strictEqual(plan.diff.present, false);
@@ -104,7 +104,7 @@ test("同じ desired を 2 回適用しても差分は出ない", () => {
 test("整形の違いだけでは差分にならない", () => {
   // karabiner_cli --format-json が独自整形でファイルを書き換えるため、
   // テキスト比較では毎回「変更あり」になる（ADR 0022）。
-  const { profile } = generateCornixProfile(DESIRED);
+  const { profile } = generateOwnedProfile(DESIRED);
   const reordered = JSON.parse(
     JSON.stringify({
       complex_modifications: profile.complex_modifications,
@@ -145,6 +145,43 @@ test("fingerprint は同じ入力で一致し、変えると変わる", () => {
 });
 
 test("ownedProfile は名前が一致する 1 個だけを返す", () => {
-  strictEqual(ownedProfile(baseline(), "Cornix Bonsai")?.name, "Cornix Bonsai");
+  strictEqual(ownedProfile(baseline(), "KeySync")?.name, "KeySync");
   strictEqual(ownedProfile(baseline(), "存在しない"), undefined);
+});
+
+test("改名前の profile が残っていれば案内するだけで、触らない", () => {
+  // 旧 profile は所有していない。置き換えも削除もしない（ADR 0036）。
+  const current = JSON.parse(readFixture("karabiner-legacy-profile.json")) as KarabinerConfig;
+  const plan = planMacApply(current, DESIRED);
+
+  const legacy = plan.diagnostics.filter((one) => one.code === "mac-keymap/legacy-profile-present");
+  strictEqual(legacy.length, 1);
+  strictEqual(legacy[0]?.severity, "information");
+  strictEqual(plan.diff.present, false);
+  deepStrictEqual(
+    plan.next.profiles.map((profile) => profile.name),
+    ["Default profile", "Cornix Bonsai", "KeySync"],
+  );
+  deepStrictEqual(ownedProfile(plan.next, "Cornix Bonsai"), ownedProfile(current, "Cornix Bonsai"));
+});
+
+test("改名前の profile を所有している設定では案内しない", () => {
+  // profile: "Cornix Bonsai" のままの設定は、その profile を所有しているので旧 profile ではない。
+  const current = JSON.parse(readFixture("karabiner-legacy-profile.json")) as KarabinerConfig;
+  const plan = planMacApply(current, { ...DESIRED, profile: "Cornix Bonsai" });
+
+  strictEqual(
+    plan.diagnostics.some((one) => one.code === "mac-keymap/legacy-profile-present"),
+    false,
+  );
+  strictEqual(plan.diff.present, true);
+});
+
+test("改名前の profile が無ければ案内しない", () => {
+  strictEqual(
+    planMacApply(baseline(), DESIRED).diagnostics.some(
+      (one) => one.code === "mac-keymap/legacy-profile-present",
+    ),
+    false,
+  );
 });

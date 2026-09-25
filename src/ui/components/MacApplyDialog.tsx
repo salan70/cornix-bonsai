@@ -320,7 +320,7 @@ function Result({
               適用前の設定を <code>{outcome.backup}</code> に退避した
             </span>
           </p>
-          {outcome.selected ? <p>Cornix Bonsai profile へ切り替えた。</p> : null}
+          {outcome.selected ? <p>KeySync profile へ切り替えた。</p> : null}
         </section>
       );
     case "verify-failed":

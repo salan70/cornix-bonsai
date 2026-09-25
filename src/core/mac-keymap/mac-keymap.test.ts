@@ -20,7 +20,7 @@ function layersOf(document: MacKeymapDocument): Record<number, Record<string, st
 
 test("desired.yaml を読むと疎な map になる", () => {
   const document = parseMacKeymapYaml(readFixture("desired.yaml"));
-  strictEqual(document.profile, "Cornix Bonsai");
+  strictEqual(document.profile, "KeySync");
   strictEqual(document.layout, "jis");
   // 割り当ての無いキーは書かない。全キーを並べない（ADR 0022）。
   deepStrictEqual(layersOf(document), {
@@ -59,7 +59,7 @@ test("serialize は layer 昇順・key_code 名昇順で並べる", () => {
   const text = serializeMacKeymapYaml({
     layout: "jis",
     devices: DEFAULT_MAC_DEVICES,
-    profile: "Cornix Bonsai",
+    profile: "KeySync",
     layers: new Map([
       [2, new Map([["z", "KC_Z"]])],
       [
@@ -78,7 +78,7 @@ test("serialize は layer 昇順・key_code 名昇順で並べる", () => {
       "layout: jis",
       "devices:",
       "  - { built_in: true }",
-      'profile: "Cornix Bonsai"',
+      'profile: "KeySync"',
       "layers:",
       "  0:",
       '    "a": "KC_A"',
@@ -193,7 +193,7 @@ test("devices を省略した設定は内蔵キーボードだけを対象にす
     [
       "schema: keysync/mac-keymap@1",
       "layout: jis",
-      'profile: "Cornix Bonsai"',
+      'profile: "KeySync"',
       "layers:",
       "  0:",
       '    "a": "KC_A"',
@@ -206,7 +206,7 @@ test("内蔵と外付けを並べた devices が round-trip する", () => {
   const document: MacKeymapDocument = {
     layout: "ansi",
     devices: [{ builtIn: true }, { vendorId: 1452, productId: 630 }],
-    profile: "Cornix Bonsai",
+    profile: "KeySync",
     layers: new Map([[0, new Map([["a", "KC_A"]])]]),
   };
   const text = serializeMacKeymapYaml(document);
@@ -224,7 +224,7 @@ test("devices を 2 回書いた設定は落ちる", () => {
     "  - { built_in: true }",
     "devices:",
     "  - { built_in: true }",
-    'profile: "Cornix Bonsai"',
+    'profile: "KeySync"',
     "layers:",
   ].join("\n");
   throws(() => parseMacKeymapYaml(text), MacKeymapParseError);
@@ -235,7 +235,7 @@ test("解釈できない devices の行は落ちる", () => {
     "schema: keysync/mac-keymap@1",
     "devices:",
     "  - { vendor_id: 1452 }",
-    'profile: "Cornix Bonsai"',
+    'profile: "KeySync"',
     "layers:",
   ].join("\n");
   throws(() => parseMacKeymapYaml(text), MacKeymapParseError);

@@ -239,7 +239,7 @@ export function MacDevicePanel({
         <h3 className="section-title">Karabiner へ適用</h3>
         <p>
           <code>{path}</code> と、この Mac の Karabiner の設定との差分を確かめてから適用する。
-          適用の前に自動で backup を取り、適用後は Cornix Bonsai profile へ切り替える。
+          適用の前に自動で backup を取り、適用後は KeySync profile へ切り替える。
         </p>
         <Button size="small" disabled={applyBlockedReason !== undefined} onClick={onApply}>
           Karabiner へ適用…

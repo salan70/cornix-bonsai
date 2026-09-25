@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import {
   generateKarabinerAsset,
-  generateCornixProfile,
+  generateOwnedProfile,
   generateKarabinerRules,
   macKeycodeSupport,
 } from "./generate.ts";
@@ -28,7 +28,7 @@ function documentOf(
   return {
     layout,
     devices: DEFAULT_MAC_DEVICES,
-    profile: "Cornix Bonsai",
+    profile: "KeySync",
     layers: new Map(
       layers.map((assignments, layer) => [layer, new Map(Object.entries(assignments))]),
     ),
@@ -51,26 +51,21 @@ test("rule は layer 降順に並ぶ", () => {
   // rule は上から評価され最初にマッチしたものが勝つ。逆順だと layer 0 が上の layer を食う。
   deepStrictEqual(
     generateKarabinerRules(DESIRED).rules.map((rule) => rule.description),
-    [
-      "Cornix Bonsai layer 3",
-      "Cornix Bonsai layer 2",
-      "Cornix Bonsai layer 1",
-      "Cornix Bonsai layer 0",
-    ],
+    ["KeySync layer 3", "KeySync layer 2", "KeySync layer 1", "KeySync layer 0"],
   );
 });
 
 test("MO(n) は set_variable と to_after_key_up を持つ", () => {
   const [manipulator] = byKey(DESIRED, "japanese_eisuu");
-  deepStrictEqual(manipulator?.to, [{ set_variable: { name: "cornix_layer_2", value: 1 } }]);
+  deepStrictEqual(manipulator?.to, [{ set_variable: { name: "keysync_layer_2", value: 1 } }]);
   deepStrictEqual(manipulator?.to_after_key_up, [
-    { set_variable: { name: "cornix_layer_2", value: 0 } },
+    { set_variable: { name: "keysync_layer_2", value: 0 } },
   ]);
 });
 
 test("LT n(kc) は momentary に to_if_alone を足したもの", () => {
   const [manipulator] = byKey(DESIRED, "japanese_kana");
-  deepStrictEqual(manipulator?.to, [{ set_variable: { name: "cornix_layer_1", value: 1 } }]);
+  deepStrictEqual(manipulator?.to, [{ set_variable: { name: "keysync_layer_1", value: 1 } }]);
   deepStrictEqual(manipulator?.to_if_alone, [{ key_code: "japanese_kana" }]);
 });
 
@@ -85,16 +80,16 @@ test("TG(n) は 2 本に展開され、倒す側が先に来る", () => {
   // 順序を逆にすると押した直後に立て直してしまう。
   const found = byKey(DESIRED, "right_command");
   strictEqual(found.length, 2);
-  deepStrictEqual(found[0]?.to, [{ set_variable: { name: "cornix_layer_3", value: 0 } }]);
+  deepStrictEqual(found[0]?.to, [{ set_variable: { name: "keysync_layer_3", value: 0 } }]);
   deepStrictEqual(found[0]?.conditions.at(-1), {
     type: "variable_if",
-    name: "cornix_layer_3",
+    name: "keysync_layer_3",
     value: 1,
   });
-  deepStrictEqual(found[1]?.to, [{ set_variable: { name: "cornix_layer_3", value: 1 } }]);
+  deepStrictEqual(found[1]?.to, [{ set_variable: { name: "keysync_layer_3", value: 1 } }]);
   deepStrictEqual(found[1]?.conditions.at(-1), {
     type: "variable_unless",
-    name: "cornix_layer_3",
+    name: "keysync_layer_3",
     value: 1,
   });
 });
@@ -127,7 +122,7 @@ test("全 manipulator が内蔵キーボード限定になる", () => {
 test("layer 1 以上には variable_if が付く", () => {
   deepStrictEqual(byKey(DESIRED, "h")[0]?.conditions[1], {
     type: "variable_if",
-    name: "cornix_layer_1",
+    name: "keysync_layer_1",
     value: 1,
   });
 });
@@ -179,20 +174,20 @@ test("manipulator が 1 つも出ない layer は rule ごと省略する", () =
   const { rules } = generateKarabinerRules(documentOf([{ a: "KC_A" }, { a: "KC_A" }]));
   deepStrictEqual(
     rules.map((rule) => rule.description),
-    ["Cornix Bonsai layer 0"],
+    ["KeySync layer 0"],
   );
 });
 
 test("asset は lint に渡せる形になる", () => {
   const { asset } = generateKarabinerAsset(DESIRED);
-  strictEqual(asset.title, "Cornix Bonsai");
+  strictEqual(asset.title, "KeySync");
   strictEqual(asset.rules.length, 4);
 });
 
 test("profile は selected も simple_modifications も持たない", () => {
   // profile の切り替えはユーザーの操作（ADR 0022）。
-  const { profile } = generateCornixProfile(DESIRED);
-  strictEqual(profile.name, "Cornix Bonsai");
+  const { profile } = generateOwnedProfile(DESIRED);
+  strictEqual(profile.name, "KeySync");
   strictEqual("selected" in profile, false);
   strictEqual("simple_modifications" in profile, false);
   // DESIRED（fixture）は layout: jis なので keyboard_type_v2 も jis になる（ADR 0024）。
@@ -200,7 +195,7 @@ test("profile は selected も simple_modifications も持たない", () => {
 });
 
 test("keyboard_type_v2 は document の layout から導出する", () => {
-  const { profile } = generateCornixProfile(documentOf([{ a: "KC_A" }], "ansi"));
+  const { profile } = generateOwnedProfile(documentOf([{ a: "KC_A" }], "ansi"));
   deepStrictEqual(profile.virtual_hid_keyboard, { keyboard_type_v2: "ansi" });
 });
 
@@ -208,7 +203,7 @@ test("device_if の identifiers は document の devices から組む", () => {
   const document: MacKeymapDocument = {
     layout: "ansi",
     devices: [{ builtIn: true }, { vendorId: 1452, productId: 630 }],
-    profile: "Cornix Bonsai",
+    profile: "KeySync",
     layers: new Map([[0, new Map([["caps_lock", "KC_ESCAPE"]])]]),
   };
   const { rules } = generateKarabinerRules(document);
@@ -224,7 +219,7 @@ test("layer 1 以上でも device 条件は先頭に残る", () => {
   const document: MacKeymapDocument = {
     layout: "ansi",
     devices: [{ vendorId: 1452, productId: 630 }],
-    profile: "Cornix Bonsai",
+    profile: "KeySync",
     layers: new Map([
       [0, new Map([["caps_lock", "MO(1)"]])],
       [1, new Map([["h", "KC_LEFT"]])],
@@ -234,7 +229,7 @@ test("layer 1 以上でも device 条件は先頭に残る", () => {
   const layerOne = rules.find((rule) => rule.description.endsWith("layer 1"));
   deepStrictEqual(layerOne?.manipulators[0]?.conditions, [
     { type: "device_if", identifiers: [{ vendor_id: 1452, product_id: 630 }] },
-    { type: "variable_if", name: "cornix_layer_1", value: 1 },
+    { type: "variable_if", name: "keysync_layer_1", value: 1 },
   ]);
 });
 
