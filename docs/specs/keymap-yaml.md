@@ -24,7 +24,7 @@ top-level keyの順序は固定です。`layers`と`encoders`はlayerごとのbl
 **row 1本を1行のflow sequenceに置きます**。
 
 ```yaml
-schema: cornix-bonsai/keymap@1
+schema: keysync/keymap@1
 keyboard:
   uid: "16882930253541522617"
   name: "Cornix LP"
@@ -94,6 +94,10 @@ raw ドキュメントと`DefinitionBinding`を`keymap.yaml`テキストへ書�
 
 部分集合に限れるので、flow sequence 1行はそのまま`JSON.parse`に通せます。汎用YAMLの
 alias・anchor・複数documentなどを解釈する必要がありません。
+
+schemaは`keysync/keymap@1`のほか、改名前の`cornix-bonsai/keymap@1`も受け付けます（ADR 0036）。
+形式は同じなので、読んだ内容は変わりません。
+書き出すのは常に`keysync/keymap@1`で、開いただけではファイルを書き換えません。
 
 arityも検査します。`tapDance`が5要素でない、`combo`が文字列5個でない、encoderに数値が
 混ざっている場合は、通してから後段のvalidationに任せるのではなくparse時点で落とします。

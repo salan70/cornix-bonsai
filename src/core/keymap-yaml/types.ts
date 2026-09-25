@@ -25,7 +25,10 @@ export interface DefinitionBinding {
 }
 
 /** `keymap.yaml` の schema 識別子。互換性の無い変更でだけ上げる。 */
-export const KEYMAP_YAML_SCHEMA = "cornix-bonsai/keymap@1";
+export const KEYMAP_YAML_SCHEMA = "keysync/keymap@1";
+
+/** 改名前（ADR 0035）の schema 識別子。読み込みだけ受け付け、書き出さない（ADR 0036）。 */
+export const LEGACY_KEYMAP_YAML_SCHEMA = "cornix-bonsai/keymap@1";
 
 /** `keymap.yaml` が期待した形をしていないときに投げる。 */
 export class KeymapYamlParseError extends Error {}

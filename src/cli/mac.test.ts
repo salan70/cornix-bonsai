@@ -147,7 +147,7 @@ test("errorのあるdesired stateはgenerateしない", async () => {
   const { root, desired } = await workspace();
   await writeFile(
     desired,
-    'schema: cornix-bonsai/mac-keymap@1\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "TD(0)"\n',
+    'schema: keysync/mac-keymap@1\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "TD(0)"\n',
     "utf8",
   );
   const { code, json } = await captureJson([
@@ -352,7 +352,7 @@ test("errorのあるdesired stateは適用しない", async () => {
   const before = await readFile(karabiner, "utf8");
   await writeFile(
     desired,
-    'schema: cornix-bonsai/mac-keymap@1\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "TD(0)"\n',
+    'schema: keysync/mac-keymap@1\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "TD(0)"\n',
     "utf8",
   );
 

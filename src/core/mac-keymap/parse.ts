@@ -13,6 +13,7 @@
 import {
   DEFAULT_MAC_DEVICES,
   DEFAULT_MAC_LAYOUT,
+  LEGACY_MAC_KEYMAP_SCHEMA,
   MAC_KEYMAP_SCHEMA,
   MacKeymapParseError,
   type MacDeviceIdentifier,
@@ -41,7 +42,7 @@ export function parseMacKeymapYaml(text: string): MacKeymapDocument {
 
     if (line.startsWith("schema:")) {
       const schema = line.slice("schema:".length).trim();
-      if (schema !== MAC_KEYMAP_SCHEMA) {
+      if (schema !== MAC_KEYMAP_SCHEMA && schema !== LEGACY_MAC_KEYMAP_SCHEMA) {
         throw new MacKeymapParseError(`mac-keyboard.yaml の schema が未対応: ${schema}`);
       }
       continue;

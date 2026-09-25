@@ -6,6 +6,19 @@ export interface WorkspaceLabels {
   readonly keycodes: ReadonlyMap<string, string>;
 }
 
+/** `labels.yaml` の schema 識別子。書き出すのはこれだけ。 */
+const LABELS_SCHEMA = "keysync/labels@2";
+
+/**
+ * 読み込みだけ受け付ける schema 識別子。`labels@1` は layer 名だけの形式で、改名前（ADR 0035）の
+ * 識別子は ADR 0036 により読み込みだけ受け付ける。
+ */
+const READABLE_LABELS_SCHEMAS: ReadonlySet<string> = new Set([
+  LABELS_SCHEMA,
+  "cornix-bonsai/labels@1",
+  "cornix-bonsai/labels@2",
+]);
+
 export const EMPTY_LABELS: WorkspaceLabels = { layers: new Map(), keycodes: new Map() };
 
 /** @doc docs/specs/workspace-cli.md#表示名の仕様 */
@@ -22,7 +35,7 @@ export function parseLabelsYaml(text: string): WorkspaceLabels {
     }
     if (line.startsWith("schema:")) {
       const schema = line.slice("schema:".length).trim();
-      if (schema !== "cornix-bonsai/labels@1" && schema !== "cornix-bonsai/labels@2") {
+      if (!READABLE_LABELS_SCHEMAS.has(schema)) {
         throw new Error(`labels.yaml のschemaが未対応: ${schema}`);
       }
       continue;
@@ -60,7 +73,7 @@ export function parseLabelsYaml(text: string): WorkspaceLabels {
 
 /** @doc docs/specs/workspace-cli.md#表示名の仕様 */
 export function serializeLabelsYaml(labels: WorkspaceLabels): string {
-  const lines = ["schema: cornix-bonsai/labels@2", "layers:"];
+  const lines = [`schema: ${LABELS_SCHEMA}`, "layers:"];
   for (const [layer, name] of [...labels.layers.entries()].sort(([a], [b]) => a - b)) {
     lines.push(`  ${layer}: ${quote(name)}`);
   }

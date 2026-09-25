@@ -74,7 +74,7 @@ test("serialize は layer 昇順・key_code 名昇順で並べる", () => {
   strictEqual(
     text,
     [
-      "schema: cornix-bonsai/mac-keymap@1",
+      "schema: keysync/mac-keymap@1",
       "layout: jis",
       "devices:",
       "  - { built_in: true }",
@@ -93,7 +93,7 @@ test("serialize は layer 昇順・key_code 名昇順で並べる", () => {
 test("layout を省略すると jis になる", () => {
   // 既存の mac-keyboard.yaml（layout 行なし）を壊さないための既定（ADR 0024）。
   const document = parseMacKeymapYaml(
-    ["schema: cornix-bonsai/mac-keymap@1", 'profile: "x"', "layers:", "  0:"].join("\n"),
+    ["schema: keysync/mac-keymap@1", 'profile: "x"', "layers:", "  0:"].join("\n"),
   );
   strictEqual(document.layout, "jis");
 });
@@ -101,7 +101,7 @@ test("layout を省略すると jis になる", () => {
 test("layout: ansi の document も round-trip する", () => {
   const document = parseMacKeymapYaml(
     [
-      "schema: cornix-bonsai/mac-keymap@1",
+      "schema: keysync/mac-keymap@1",
       "layout: ansi",
       'profile: "x"',
       "layers:",
@@ -117,7 +117,7 @@ test("未対応の layout は読まずに落ちる", () => {
   throws(
     () =>
       parseMacKeymapYaml(
-        ["schema: cornix-bonsai/mac-keymap@1", "layout: iso", 'profile: "x"', "layers:"].join("\n"),
+        ["schema: keysync/mac-keymap@1", "layout: iso", 'profile: "x"', "layers:"].join("\n"),
       ),
     MacKeymapParseError,
   );
@@ -125,22 +125,33 @@ test("未対応の layout は読まずに落ちる", () => {
 
 test("layer 番号は連続していなくてよい", () => {
   const document = parseMacKeymapYaml(
-    [
-      "schema: cornix-bonsai/mac-keymap@1",
-      'profile: "x"',
-      "layers:",
-      "  5:",
-      '    "a": "KC_A"',
-    ].join("\n"),
+    ["schema: keysync/mac-keymap@1", 'profile: "x"', "layers:", "  5:", '    "a": "KC_A"'].join(
+      "\n",
+    ),
   );
   deepStrictEqual([...document.layers.keys()], [5]);
 });
 
 test("未対応の schema は読まずに落ちる", () => {
   throws(
-    () => parseMacKeymapYaml('schema: cornix-bonsai/mac-keymap@2\nprofile: "x"\nlayers:\n'),
+    () => parseMacKeymapYaml('schema: keysync/mac-keymap@2\nprofile: "x"\nlayers:\n'),
     MacKeymapParseError,
   );
+});
+
+test("改名前の schema ID の設定も読み、書き出しは新しい ID にする", () => {
+  // 旧 ID は読み込みだけ受け付ける。開いただけでは書き換えない（ADR 0036）。
+  const current = readFixture("desired.yaml");
+  const legacy = current.replace(
+    "schema: keysync/mac-keymap@1\n",
+    "schema: cornix-bonsai/mac-keymap@1\n",
+  );
+  strictEqual(legacy.includes("schema: cornix-bonsai/mac-keymap@1\n"), true);
+
+  const document = parseMacKeymapYaml(legacy);
+
+  deepStrictEqual(document, parseMacKeymapYaml(current));
+  strictEqual(serializeMacKeymapYaml(document).startsWith("schema: keysync/mac-keymap@1\n"), true);
 });
 
 test("解釈できない行は黙って捨てずに落ちる", () => {
@@ -148,13 +159,9 @@ test("解釈できない行は黙って捨てずに落ちる", () => {
   throws(
     () =>
       parseMacKeymapYaml(
-        [
-          "schema: cornix-bonsai/mac-keymap@1",
-          'profile: "x"',
-          "layers:",
-          "  0:",
-          "    a: KC_A",
-        ].join("\n"),
+        ["schema: keysync/mac-keymap@1", 'profile: "x"', "layers:", "  0:", "    a: KC_A"].join(
+          "\n",
+        ),
       ),
     MacKeymapParseError,
   );
@@ -165,7 +172,7 @@ test("同じ layer で key_code が重複したら落ちる", () => {
     () =>
       parseMacKeymapYaml(
         [
-          "schema: cornix-bonsai/mac-keymap@1",
+          "schema: keysync/mac-keymap@1",
           'profile: "x"',
           "layers:",
           "  0:",
@@ -178,16 +185,13 @@ test("同じ layer で key_code が重複したら落ちる", () => {
 });
 
 test("profile が無ければ落ちる", () => {
-  throws(
-    () => parseMacKeymapYaml("schema: cornix-bonsai/mac-keymap@1\nlayers:\n"),
-    MacKeymapParseError,
-  );
+  throws(() => parseMacKeymapYaml("schema: keysync/mac-keymap@1\nlayers:\n"), MacKeymapParseError);
 });
 
 test("devices を省略した設定は内蔵キーボードだけを対象にする", () => {
   const document = parseMacKeymapYaml(
     [
-      "schema: cornix-bonsai/mac-keymap@1",
+      "schema: keysync/mac-keymap@1",
       "layout: jis",
       'profile: "Cornix Bonsai"',
       "layers:",
@@ -215,7 +219,7 @@ test("内蔵と外付けを並べた devices が round-trip する", () => {
 
 test("devices を 2 回書いた設定は落ちる", () => {
   const text = [
-    "schema: cornix-bonsai/mac-keymap@1",
+    "schema: keysync/mac-keymap@1",
     "devices:",
     "  - { built_in: true }",
     "devices:",
@@ -228,7 +232,7 @@ test("devices を 2 回書いた設定は落ちる", () => {
 
 test("解釈できない devices の行は落ちる", () => {
   const text = [
-    "schema: cornix-bonsai/mac-keymap@1",
+    "schema: keysync/mac-keymap@1",
     "devices:",
     "  - { vendor_id: 1452 }",
     'profile: "Cornix Bonsai"',

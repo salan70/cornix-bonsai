@@ -17,7 +17,12 @@ import type {
   VilLayout,
   VilTapDanceEntry,
 } from "../vil/types.ts";
-import { KEYMAP_YAML_SCHEMA, KeymapYamlParseError, type DefinitionBinding } from "./types.ts";
+import {
+  KEYMAP_YAML_SCHEMA,
+  LEGACY_KEYMAP_YAML_SCHEMA,
+  KeymapYamlParseError,
+  type DefinitionBinding,
+} from "./types.ts";
 
 /** parse の結果。`keymap.yaml` は raw と対応づけの両方を運ぶ。 */
 export interface ParsedKeymapYaml {
@@ -190,7 +195,7 @@ export function parseKeymapYaml(text: string): ParsedKeymapYaml {
   );
 
   const schema = cursor.expect("schema: ");
-  if (schema !== KEYMAP_YAML_SCHEMA) {
+  if (schema !== KEYMAP_YAML_SCHEMA && schema !== LEGACY_KEYMAP_YAML_SCHEMA) {
     throw new KeymapYamlParseError(
       `未知の schema: ${schema}（期待した値は ${KEYMAP_YAML_SCHEMA}）`,
     );

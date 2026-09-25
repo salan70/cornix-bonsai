@@ -1,4 +1,4 @@
-schema: cornix-bonsai/mac-keymap@1
+schema: keysync/mac-keymap@1
 layout: ansi
 devices:
   - { built_in: true }

@@ -25,8 +25,8 @@ layer番号も`key_code`名も疎で、連続している必要はありませ�
 
 ## MacKeymapDocument
 
-desired stateの内容です。schema識別子は`cornix-bonsai/mac-keymap@1`で、
-`keymap.yaml`の`cornix-bonsai/keymap@1`とは別系統です。
+desired stateの内容です。schema識別子は`keysync/mac-keymap@1`で、
+`keymap.yaml`の`keysync/keymap@1`とは別系統です。
 
 `profile`はKeySyncが所有するKarabiner profileの名前です。`karabiner.json`の`profiles[]`の
 うちこの名前の1個だけを書き換え、`global`と他のprofile、`selected`には触りません。
@@ -49,7 +49,7 @@ YAMLでは省略でき、省略時は内蔵キーボードだけ（`DEFAULT_MAC_
 `mac-keyboard.<layout>.yaml`のテキストを組み立てます。
 
 ```text
-schema: cornix-bonsai/mac-keymap@1
+schema: keysync/mac-keymap@1
 layout: jis
 devices:
   - { built_in: true }
@@ -88,6 +88,9 @@ layers:
 `layout`は省略なら`jis`、`ansi` / `jis`以外の値なら落とします（ADR 0024）。
 `devices`が受け付けるのは`- { built_in: true }`と`- { vendor_id: N, product_id: N }`を
 2スペース字下げした2形だけで、省略なら内蔵キーボードだけ、2回書けば落とします（ADR 0026）。
+
+schemaは`keysync/mac-keymap@1`のほか、改名前の`cornix-bonsai/mac-keymap@1`も受け付けます（ADR 0036）。
+書き出すのは常に`keysync/mac-keymap@1`で、開いただけではファイルを書き換えません。
 
 `parse(serialize(x))`が`x`と等しくなることを`fixtures/mac-keyboard/desired.yaml`で検証します。
 

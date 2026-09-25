@@ -67,9 +67,10 @@ workspace共通の表示名を付けられる。表示名のkeyはraw式の完�
 Applyの入力には影響しない。
 
 `labels@1`はlayer名だけのlegacy形式として読み込み、保存時は`labels@2`へシリアライズする。
+改名前の`cornix-bonsai/labels@1`と`cornix-bonsai/labels@2`も読み込み、保存時は`keysync/labels@2`で書く（ADR 0036）。
 
 ```yaml
-schema: cornix-bonsai/labels@2
+schema: keysync/labels@2
 layers:
   0: "Base"
 keycodes:

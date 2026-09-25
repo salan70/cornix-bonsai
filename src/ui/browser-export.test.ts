@@ -33,7 +33,7 @@ test("browser import/export adapterはCoreのround-tripとrendererを使う", ()
 test("Karabinerのasset書き出しはerrorがあれば止まる", () => {
   // Browser UIから適用はしない。書き出す前に落とせないと分かった時点で止める（ADR 0022）。
   const broken = generateBrowserKarabiner(
-    'schema: cornix-bonsai/mac-keymap@1\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "TD(0)"\n',
+    'schema: keysync/mac-keymap@1\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "TD(0)"\n',
   );
   strictEqual(broken.asset, undefined);
   strictEqual(broken.summary.error, 1);

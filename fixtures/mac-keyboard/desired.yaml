@@ -3,7 +3,7 @@
 # 書かれていないキーは素通しなので、全キーを並べる必要がない。
 # layout は対象の物理配列。かな / 英数を使うので JIS 前提（ADR 0024）。
 # devices はこの設定を適用するデバイス。省略時は内蔵キーボードだけ（ADR 0026）。
-schema: cornix-bonsai/mac-keymap@1
+schema: keysync/mac-keymap@1
 layout: jis
 devices:
   - { built_in: true }

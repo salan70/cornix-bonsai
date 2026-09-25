@@ -18,9 +18,22 @@ test("labels@1はlayer名だけのlegacy形式として読み込める", () => {
   deepStrictEqual([...labels.keycodes], []);
 });
 
+test("改名前のlabels@2も読み、書き出しは新しいschema IDにする", () => {
+  // 旧 ID は読み込みだけ受け付ける。開いただけでは書き換えない（ADR 0036）。
+  const labels = parseLabelsYaml(
+    ["schema: cornix-bonsai/labels@2", "layers:", '  0: "Base"', "keycodes:", '  "KC_A": "A"'].join(
+      "\n",
+    ),
+  );
+
+  strictEqual(layerLabel(labels, 0), "Base");
+  strictEqual(keycodeLabel(labels, "KC_A"), "A");
+  strictEqual(serializeLabelsYaml(labels).startsWith("schema: keysync/labels@2\n"), true);
+});
+
 test("labels@2はkeycode式と日本語名をround-tripする", () => {
   const source = [
-    "schema: cornix-bonsai/labels@2",
+    "schema: keysync/labels@2",
     "layers:",
     '  0: "Base"',
     "keycodes:",
@@ -36,7 +49,7 @@ test("labels@2はkeycode式と日本語名をround-tripする", () => {
 
 test("表示名が空ならparseを拒否し、空のlabelsは安全な既定値になる", async () => {
   await rejects(
-    async () => parseLabelsYaml('schema: cornix-bonsai/labels@2\nkeycodes:\n  "KC_A": "  "'),
+    async () => parseLabelsYaml('schema: keysync/labels@2\nkeycodes:\n  "KC_A": "  "'),
     /名前が空/,
   );
   strictEqual(keycodeLabel(EMPTY_LABELS, "KC_A"), undefined);
@@ -45,7 +58,7 @@ test("表示名が空ならparseを拒否し、空のlabelsは安全な既定値
 test("serializeはkeycodeを安定した辞書順で出力する", () => {
   const labels = parseLabelsYaml(
     [
-      "schema: cornix-bonsai/labels@2",
+      "schema: keysync/labels@2",
       "layers:",
       "keycodes:",
       '  "SGUI(KC_2)": "画面切替"',
@@ -56,7 +69,7 @@ test("serializeはkeycodeを安定した辞書順で出力する", () => {
   strictEqual(
     serializeLabelsYaml(labels),
     [
-      "schema: cornix-bonsai/labels@2",
+      "schema: keysync/labels@2",
       "layers:",
       "keycodes:",
       '  "LCG(KC_Q)": "アプリ終了"',

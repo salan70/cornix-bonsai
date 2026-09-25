@@ -18,9 +18,9 @@ function fakeStore(files: Readonly<Record<string, string | undefined>>, modified
 }
 
 const jisYaml =
-  'schema: cornix-bonsai/mac-keymap@1\nlayout: jis\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "KC_B"\n';
+  'schema: keysync/mac-keymap@1\nlayout: jis\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "KC_B"\n';
 const ansiYaml =
-  'schema: cornix-bonsai/mac-keymap@1\nlayout: ansi\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "KC_C"\n';
+  'schema: keysync/mac-keymap@1\nlayout: ansi\nprofile: "Cornix Bonsai"\nlayers:\n  0:\n    "a": "KC_C"\n';
 
 test("新名の配列ファイルがあればreadyとpathを返す", async () => {
   const state = await probeMacKeymap(fakeStore({ [macKeymapPath("jis")]: jisYaml }), "jis");
@@ -51,7 +51,7 @@ test("旧名は中のlayout宣言で解決する", async () => {
 
 test("parse失敗はerrorに閉じ込め、例外を外へ出さない", async () => {
   const state = await probeMacKeymap(
-    fakeStore({ [macKeymapPath("jis")]: "schema: cornix-bonsai/mac-keymap@1\nlayout: dvorak\n" }),
+    fakeStore({ [macKeymapPath("jis")]: "schema: keysync/mac-keymap@1\nlayout: dvorak\n" }),
     "jis",
   );
   ok(state.kind === "error");

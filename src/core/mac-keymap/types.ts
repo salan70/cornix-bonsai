@@ -8,7 +8,10 @@
  */
 
 /** `mac-keyboard.yaml` の schema 識別子。互換性の無い変更でだけ上げる。 */
-export const MAC_KEYMAP_SCHEMA = "cornix-bonsai/mac-keymap@1";
+export const MAC_KEYMAP_SCHEMA = "keysync/mac-keymap@1";
+
+/** 改名前（ADR 0035）の schema 識別子。読み込みだけ受け付け、書き出さない（ADR 0036）。 */
+export const LEGACY_MAC_KEYMAP_SCHEMA = "cornix-bonsai/mac-keymap@1";
 
 /**
  * このドキュメントが対象にするキーボードの物理配列。値は Karabiner の `keyboard_type_v2`

@@ -99,11 +99,24 @@ test("comment は注記であって状態ではない", () => {
 test("未知の schema は読まずに落とす", () => {
   const document = parseVil(readFixture("baseline.vil"));
   const yaml = serializeKeymapYaml(document, bindingFor(document)).replace(
-    "cornix-bonsai/keymap@1",
-    "cornix-bonsai/keymap@2",
+    "keysync/keymap@1",
+    "keysync/keymap@2",
   );
 
   throws(() => parseKeymapYaml(yaml), KeymapYamlParseError);
+});
+
+test("改名前の schema ID の keymap.yaml も読み、書き出しは新しい ID にする", () => {
+  // 旧 ID は読み込みだけ受け付ける。開いただけでは書き換えない（ADR 0036）。
+  const document = parseVil(readFixture("baseline.vil"));
+  const yaml = serializeKeymapYaml(document, bindingFor(document));
+  const legacy = yaml.replace("schema: keysync/keymap@1\n", "schema: cornix-bonsai/keymap@1\n");
+  strictEqual(legacy.startsWith("schema: cornix-bonsai/keymap@1\n"), true);
+
+  const parsed = parseKeymapYaml(legacy);
+
+  deepStrictEqual(parsed.document, document);
+  strictEqual(serializeKeymapYaml(parsed.document, parsed.binding), yaml);
 });
 
 test("受け付ける部分集合の外は黙って読まずに落とす", () => {
