@@ -15,7 +15,7 @@ const baseline = (): KarabinerConfig =>
   JSON.parse(readFixture("karabiner-baseline.json")) as KarabinerConfig;
 
 test("所有 profile 以外には触らない", () => {
-  // Cornix が所有するのは name が一致する profile 1 個だけ（ADR 0022）。
+  // KeySync が所有するのは name が一致する profile 1 個だけ（ADR 0022）。
   const current = baseline();
   const { next } = planMacApply(current, DESIRED);
   deepStrictEqual(next["global"], current["global"]);

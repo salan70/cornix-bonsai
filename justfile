@@ -1,4 +1,4 @@
-# Cornix Bonsai のコマンド定義。
+# KeySync のコマンド定義。
 # ツールチェーンは flake.nix が固定し、コマンドはこのファイルが唯一の定義元。
 # direnv 済みシェル、または `nix develop -c just <recipe>` で実行する。
 
@@ -46,14 +46,14 @@ build:
 
 # CLIを実行する
 [positional-arguments]
-cornix *ARGS:
-    pnpm run cornix -- "$@"
+keysync *ARGS:
+    pnpm run keysync -- "$@"
 
 # MacBook内蔵キーボードの設定を扱う（例: just mac apply）
 # workspaceはこのリポジトリ。--workspace も --layout も既定で要らない。
 [positional-arguments]
 mac *ARGS:
-    pnpm run cornix -- mac "$@"
+    pnpm run keysync -- mac "$@"
 
 # コードを整形する
 # .claude / .agents は正本からコピーした vendor 資産のため整形しない。

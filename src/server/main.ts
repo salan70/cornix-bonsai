@@ -137,16 +137,16 @@ async function main(): Promise<void> {
   server.on("error", (error: NodeJS.ErrnoException) => {
     if (error.code === "EADDRINUSE") {
       console.error(
-        `cornix ui: port ${UI_PORT} は使用中。すでに起動していれば ${UI_ORIGIN}/ を開く`,
+        `keysync ui: port ${UI_PORT} は使用中。すでに起動していれば ${UI_ORIGIN}/ を開く`,
       );
     } else {
-      console.error(`cornix ui: ${error.message}`);
+      console.error(`keysync ui: ${error.message}`);
     }
     process.exit(1);
   });
   server.listen(UI_PORT, UI_HOST, () => {
-    console.log(`cornix ui: ${UI_ORIGIN}/ で起動した（Ctrl+C で終了）`);
-    console.log(`cornix ui: Mac の適用は ${root} の設定を読む`);
+    console.log(`keysync ui: ${UI_ORIGIN}/ で起動した（Ctrl+C で終了）`);
+    console.log(`keysync ui: Mac の適用は ${root} の設定を読む`);
     // 対象ブラウザは Chromium 系だけ（ADR 0004）。既定ブラウザが Safari でも Chrome で開く。
     // 開けなければ URL の表示だけで済ませる。
     execFile("/usr/bin/open", ["-a", "Google Chrome", `${UI_ORIGIN}/`], () => undefined);

@@ -97,7 +97,7 @@ export function generateKarabinerAsset(document: MacKeymapDocument): {
 }
 
 /**
- * `karabiner.json` の `profiles[]` へ差し込む profile 1 個。Cornix が所有する唯一の範囲。
+ * `karabiner.json` の `profiles[]` へ差し込む profile 1 個。KeySync が所有する唯一の範囲。
  *
  * `selected` は持たせない。profile の切り替えはユーザーの操作（ADR 0022）。
  *

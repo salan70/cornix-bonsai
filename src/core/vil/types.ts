@@ -41,7 +41,7 @@ export type VilTapDanceEntry = readonly [string, string, string, string, number]
 /** `combo[index]` = `[入力4, 出力1]` */
 export type VilComboEntry = readonly [string, string, string, string, string];
 
-/** raw 保持のための情報。key 順と、Cornix Bonsai が解釈しない未知 field。 */
+/** raw 保持のための情報。key 順と、KeySync が解釈しない未知 field。 */
 export interface VilRaw {
   /** 元ファイルに現れた top-level key の順序。export で復元する。 */
   readonly keyOrder: readonly string[];

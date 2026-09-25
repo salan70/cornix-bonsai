@@ -1,5 +1,5 @@
 {
-  description = "Cornix Bonsai — Cornix LP 向けキーマップ編集ツール";
+  description = "KeySync — 複数のキーボードのキーマップを管理するツール";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
@@ -35,7 +35,7 @@
           ];
 
           shellHook = ''
-            echo "🌱 Cornix Bonsai"
+            echo "🌱 KeySync"
             echo "  Node.js: $(node --version 2>/dev/null || echo 'not available')"
             echo "  pnpm:    $(pnpm --version 2>/dev/null || echo 'not available')"
             echo "  コマンド一覧: just --list"

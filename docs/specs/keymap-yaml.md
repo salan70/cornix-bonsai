@@ -56,7 +56,7 @@ raw:
     { "macro": [], "key_override": [], "alt_repeat_key": [], "unknown": {} }
 ```
 
-`raw.json`は**Cornix Bonsaiが解釈しないfield**の入れ物です。`macro`・`key_override`・
+`raw.json`は**KeySyncが解釈しないfield**の入れ物です。`macro`・`key_override`・
 `alt_repeat_key`・未知のtop-level fieldを、YAMLの構造へ展開せずJSONのまま運びます。
 展開すると解釈したことになるためです（ADR 0001）。`raw.keyOrder`は`.vil`のkey順の復元に使います。
 

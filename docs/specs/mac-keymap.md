@@ -28,7 +28,7 @@ layer番号も`key_code`名も疎で、連続している必要はありませ�
 desired stateの内容です。schema識別子は`cornix-bonsai/mac-keymap@1`で、
 `keymap.yaml`の`cornix-bonsai/keymap@1`とは別系統です。
 
-`profile`はCornixが所有するKarabiner profileの名前です。`karabiner.json`の`profiles[]`の
+`profile`はKeySyncが所有するKarabiner profileの名前です。`karabiner.json`の`profiles[]`の
 うちこの名前の1個だけを書き換え、`global`と他のprofile、`selected`には触りません。
 
 `layout`は対象の物理配列（`ansi` / `jis`）です。fromキーの妥当性が物理配列に依存するため
@@ -95,7 +95,7 @@ layers:
 
 ## KarabinerConfig
 
-`karabiner.json`のうち、Cornixが読み書きする範囲だけに型を付けたものです。`global`や
+`karabiner.json`のうち、KeySyncが読み書きする範囲だけに型を付けたものです。`global`や
 所有しないprofileの中身は解釈せず`unknown`のまま持ち回ります。解釈すると、Karabinerが
 増やしたfieldを書き戻しで落とす経路ができるためです（ADR 0001と同じ理由）。
 
@@ -221,7 +221,7 @@ document全体を見ないと決まらないものは`validateMacKeymap`の担�
 ## generateKarabinerAsset
 
 `karabiner_cli --lint-complex-modifications`が受け取るasset形式（`{ title, rules }`）です。
-Browser UIとCLIの`cornix mac generate`はこの形を`cornix/generated/`へ書き出します。
+Browser UIとCLIの`keysync mac generate`はこの形を`cornix/generated/`へ書き出します。
 
 `karabiner_cli`は**エラーがあってもexit codeを0で返します**。判定は出力が`: ok`で
 終わるかどうかで行います。
@@ -230,7 +230,7 @@ Browser UIとCLIの`cornix mac generate`はこの形を`cornix/generated/`へ書
 
 ## generateCornixProfile
 
-`karabiner.json`の`profiles[]`へ差し込むprofile 1個です。Cornixが所有する唯一の範囲で、
+`karabiner.json`の`profiles[]`へ差し込むprofile 1個です。KeySyncが所有する唯一の範囲で、
 `selected`も`simple_modifications`も持たせません。profileの切り替えはユーザーの操作です
 （ADR 0022）。
 
@@ -328,7 +328,7 @@ Web UIはこの関数を直接呼びません。
 `src/karabiner/node.ts`が担います。`~/.config/karabiner/karabiner.json`は**workspaceの外**に
 あり、`NodeWorkspaceStore`はpathを`root`からの相対で解決するため使えません。
 
-適用の手順は`src/mac/apply-service.ts`が持ち、CLIの`cornix mac apply`とローカルサーバーの
+適用の手順は`src/mac/apply-service.ts`が持ち、CLIの`keysync mac apply`とローカルサーバーの
 適用API（`local-server.md`）が同じ手順を通ります。`planMacApplyAt`が計画とasset生成・lintまで、
 `applyMacPlan`がbackupから選択までを行います。fingerprintの照合とlintの判定は呼び出し側が
 その間で行います。
@@ -379,7 +379,7 @@ backupは**読んだテキストをそのまま**書き戻します。再seriali
 
 `karabiner.json`の内容とdesired stateから適用計画を組みます。writeは行いません。
 
-Cornixが所有するのは`profiles[]`のうち名前が一致する**profile 1個だけ**です。`global`と
+KeySyncが所有するのは`profiles[]`のうち名前が一致する**profile 1個だけ**です。`global`と
 他のprofileには触りません。所有profileが無ければ末尾へ足します。
 
 所有profileが持っていた`selected`などのfieldは残します。生成するprofileは`selected`を
@@ -399,10 +399,10 @@ applyは成功したのに何も効かない状態になります。
 | `false`         | `mac-keymap/profile-not-selected`     | warning     |
 
 `fingerprint`は人間の確認と適用を結びつける同一性の指紋です。表示用ではありません。
-CLIの`cornix mac apply`は`--confirm <fingerprint>`が一致したときだけ書き込みます。
+CLIの`keysync mac apply`は`--confirm <fingerprint>`が一致したときだけ書き込みます。
 
 診断のidは指紋へ入るため、**`--no-select`はfingerprintを変えます**。CLIが返す確認文字列は
-`cornix mac apply --no-select --confirm <fingerprint>`の形でフラグを含み、フラグを
+`keysync mac apply --no-select --confirm <fingerprint>`の形でフラグを含み、フラグを
 取り違えた確認が黙って別の計画を通さないようにします。
 
 <!-- @code src/core/mac-keymap/apply.ts#diffOwnedProfile -->

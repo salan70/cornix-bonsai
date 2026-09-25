@@ -10,7 +10,7 @@ import type { VilDocument } from "../vil/types.ts";
 import { KEYMAP_YAML_SCHEMA, type DefinitionBinding } from "./types.ts";
 
 /**
- * Cornix Bonsai が解釈しない field をまとめて持ち回るための塊。
+ * KeySync が解釈しない field をまとめて持ち回るための塊。
  *
  * `macro` / `key_override` / `alt_repeat_key` / 未知の top-level field は、意味を持たせずに
  * そのまま往復させる（ADR 0001）。YAML の構造へ展開すると解釈したことになるため、

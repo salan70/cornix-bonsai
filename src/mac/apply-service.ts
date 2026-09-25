@@ -1,7 +1,7 @@
 /**
  * `karabiner.json` への適用を filesystem と `karabiner_cli` 越しに行う Node の手順。
  *
- * CLI（`cornix mac apply`）とローカルサーバーの適用 API（ADR 0034）が同じ手順を通る。
+ * CLI（`keysync mac apply`）とローカルサーバーの適用 API（ADR 0034）が同じ手順を通る。
  * 計画の組み立ては純関数の `planMacApply` が持ち、ここは read / 生成 / lint / backup /
  * write / verify / profile 選択の順序だけを持つ。
  */
@@ -120,7 +120,7 @@ export async function applyMacPlan(
  * 所有 profile を選び、選べたことを読み戻して確かめる。
  *
  * `selected` を `karabiner.json` へ書くのではなく `karabiner_cli` に選ばせる。動いている
- * Karabiner と食い違わないのはこちらだけで、Cornix が書く範囲は所有 profile 1 個のまま
+ * Karabiner と食い違わないのはこちらだけで、KeySync が書く範囲は所有 profile 1 個のまま
  * 変わらない（ADR 0028）。Karabiner が入っていなければ `null` を返す。
  *
  * @doc docs/specs/mac-keymap.md#適用の境界

@@ -123,7 +123,7 @@
 
 - **原因**: オプションの指定漏れや、Nix 外の Node.js 実行が原因です。
 - **対処**:
-  1. `just cornix <subcommand>` の形式で実行しているか確認します。
+  1. `just keysync <subcommand>` の形式で実行しているか確認します。
   2. `--workspace` のパスに `keymap.yaml` が存在するか確認します。
   3. `diff` コマンドに `--against` を指定しているか確認します。
   4. direnv 済みシェルまたは `nix develop` 内で実行してください。

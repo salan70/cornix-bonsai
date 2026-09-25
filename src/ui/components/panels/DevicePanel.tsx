@@ -257,7 +257,7 @@ export function MacDevicePanel({
         ) : (
           <p className="muted">{path} を読み込めていない。</p>
         )}
-        <p className="hint">適用先を増やすときは CLI の cornix mac devices を使う。</p>
+        <p className="hint">適用先を増やすときは CLI の keysync mac devices を使う。</p>
       </section>
       <section className="step">
         <h3 className="section-title">Karabiner asset</h3>

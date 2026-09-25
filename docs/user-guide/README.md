@@ -1,6 +1,6 @@
-# Cornix Bonsai 利用者ガイド
+# KeySync 利用者ガイド
 
-Cornix Bonsai は Cornix LP の設定編集ツールです。
+KeySync は Cornix LP と Mac のキーボードの設定を 1 か所で編集するツールです。
 ローカルの workspace へ保存し、Web UI や CLI で編集・検証します。
 Web UI では実機状態を読み取り、確認した差分だけを実機へ反映（Apply）できます。
 

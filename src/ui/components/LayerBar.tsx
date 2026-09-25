@@ -99,7 +99,7 @@ export function MacLayerBar({
       <span className="chip chip-quiet" title={deviceIfText(devices)}>
         適用先: {describeDevices(devices)}
       </span>
-      <span className="hint">追加は cornix mac devices</span>
+      <span className="hint">追加は keysync mac devices</span>
     </div>
   );
 }

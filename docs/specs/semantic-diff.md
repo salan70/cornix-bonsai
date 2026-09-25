@@ -18,7 +18,7 @@
 （ADR 0002）。表示名で比較すると、definitionを差し替えたときに「変更なし」と誤判定します。
 
 `settings`のqsidから設定名への対応表はVial側にあり、実機が対応qsidを申告します（ADR 0003）。
-Cornix Bonsaiはこれを**任意の表示辞書**として受け取ります。辞書の有無で差分の件数は
+KeySyncはこれを**任意の表示辞書**として受け取ります。辞書の有無で差分の件数は
 変わりません。
 
 diffは**単一のdefinition**を引数に取ります。definitionが違う2つのkeymapは`USERnn`の意味が

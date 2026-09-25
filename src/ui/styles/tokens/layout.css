@@ -1,5 +1,5 @@
 /*
- * Cornix Bonsai 固有の寸法と書体。uiux-numa の token（space / radius / border / size / typography / motion）に無い値だけを置く。
+ * KeySync 固有の寸法と書体。uiux-numa の token（space / radius / border / size / typography / motion）に無い値だけを置く。
  * 値は uiux-numa d2900ee の experiments/cornix-workbench board-desk のモックから写した。
  */
 :root {

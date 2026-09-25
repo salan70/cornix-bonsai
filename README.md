@@ -1,6 +1,7 @@
-# Cornix Bonsai
+# KeySync
 
-Cornix LP 向けのローカルファーストなキーマップ編集ツールです。
+複数のキーボードのキーマップを 1 か所で管理し、実機と OS へ同期するローカルファーストなツールです。
+対象は Cornix LP と Mac のキーボード（MacBook 内蔵、Magic Keyboard）です。
 ブラウザ、CLI、Git、AI から設定の読み取り、編集、検証、可視化、版管理を行えます。
 
 ## 今すぐ使う（Web UI）
@@ -33,8 +34,8 @@ Web UI は clone したリポジトリから `just ui` で起動し、<http://12
 ### 初回セットアップと起動
 
 ```bash
-git clone https://github.com/salan70/cornix-bonsai.git
-cd cornix-bonsai
+git clone https://github.com/salan70/keysync.git
+cd keysync
 direnv allow     # direnv 未設定の場合は nix develop
 just setup       # pre-commit / pre-push フックの導入
 just ui          # Web UI をビルドして起動（http://127.0.0.1:5178/）

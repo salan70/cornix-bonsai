@@ -1,5 +1,5 @@
 /**
- * `cornix mac` の検証。
+ * `keysync mac` の検証。
  *
  * `karabiner_cli` には依存しない。CI の macOS runner に入っていないため、
  * lint を通ることの確認はローカルで行う（ADR 0022）。
@@ -201,7 +201,7 @@ test("mac applyは--confirmが無ければ書かない", async () => {
   ]);
 
   strictEqual(code, 0);
-  strictEqual(json.confirm, `cornix mac apply --confirm ${json.fingerprint}`);
+  strictEqual(json.confirm, `keysync mac apply --confirm ${json.fingerprint}`);
   strictEqual(await readFile(karabiner, "utf8"), before);
 });
 
@@ -242,7 +242,7 @@ test("--no-selectはfingerprintを変え、確認文字列にもフラグが入�
   strictEqual(noSelect.json.fingerprint === plan.json.fingerprint, false);
   strictEqual(
     noSelect.json.confirm,
-    `cornix mac apply --no-select --confirm ${noSelect.json.fingerprint}`,
+    `keysync mac apply --no-select --confirm ${noSelect.json.fingerprint}`,
   );
 
   // 他方の fingerprint では書かない。

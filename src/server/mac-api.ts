@@ -1,7 +1,7 @@
 /**
  * ローカルサーバーの Mac 適用 API。
  *
- * 手順は CLI（`cornix mac apply`）と同じ `apply-service.ts` を通る。ここが足すのは、
+ * 手順は CLI（`keysync mac apply`）と同じ `apply-service.ts` を通る。ここが足すのは、
  * Web UI から呼ばれることで要る 2 つの突き合わせだけである（ADR 0034）。
  *
  * - **配列**: 編集対象の配列と、このマシンの内蔵配列が一致しなければ止める

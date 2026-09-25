@@ -75,7 +75,7 @@
 }
 
 /*
- * Cornix Bonsai 固有の派生 token。上の 24 役割だけから作り、hex を増やさない。
+ * KeySync 固有の派生 token。上の 24 役割だけから作り、hex を増やさない。
  * keycode の種類は強調色（primary / secondary / tertiary）の container で塗り分ける。
  * 良し悪しの色（success / warning / error）は種類にも layer にも使わない。
  * 種類は keycap の文字（役割名、modifier 記号、layer 名）でも読めるため、色は補助の手がかりにとどまる。

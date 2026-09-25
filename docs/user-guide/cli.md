@@ -22,8 +22,8 @@ MacBook 内蔵キーボードの設定のみ、CLI から差分確認と適用�
 CLI は clone したリポジトリの Nix 環境から実行します。
 
 ```bash
-git clone https://github.com/salan70/cornix-bonsai.git
-cd cornix-bonsai
+git clone https://github.com/salan70/keysync.git
+cd keysync
 direnv allow
 just setup
 ```
@@ -35,11 +35,11 @@ direnv を使わない場合は、先に `nix develop` へ入ってから実行�
 基本書式は次のとおりです。
 
 ```text
-just cornix <command> --workspace <directory>
+just keysync <command> --workspace <directory>
 ```
 
 - `--workspace` を省略すると、カレントディレクトリを対象にします。
-  ただし `mac` だけは cornix-bonsai リポジトリを既定にします。
+  ただし `mac` だけは keysync リポジトリを既定にします。
 - 相対パスは workspace ディレクトリを基準に解決されます。
 - エラー時は標準エラーへ理由を出力し、終了コード 1 を返します。
 - `validate` と `analyze` は、エラーがあれば終了コード 1、無ければ 0 を返します。
@@ -51,7 +51,7 @@ just cornix <command> --workspace <directory>
 `.vil` と定義ファイルを読み込み、workspace を作成します。
 
 ```bash
-just cornix import vil baseline.vil \
+just keysync import vil baseline.vil \
   --definition vial-definition.json \
   --workspace /path/to/workspace
 ```
@@ -64,7 +64,7 @@ just cornix import vil baseline.vil \
 workspace の設定を検証し、診断結果を JSON で出力します。
 
 ```bash
-just cornix validate --workspace /path/to/workspace
+just keysync validate --workspace /path/to/workspace
 ```
 
 警告のみの場合は終了コード 0、エラーが 1 件以上ある場合は 1 を返します。
@@ -75,7 +75,7 @@ CI や Git フックでの検証に適しています。
 各レイヤーへの到達性や、参照関係のエッジを解析します。
 
 ```bash
-just cornix analyze --workspace /path/to/workspace
+just keysync analyze --workspace /path/to/workspace
 ```
 
 到達できない孤立レイヤーや、未使用の動作定義の検出に使用します。
@@ -85,7 +85,7 @@ just cornix analyze --workspace /path/to/workspace
 指定した `.vil` と workspace の設定を比較し、意味差分を出力します。
 
 ```bash
-just cornix diff \
+just keysync diff \
   --against before.vil \
   --workspace /path/to/workspace
 ```
@@ -99,10 +99,10 @@ just cornix diff \
 
 ```bash
 # SVG の出力
-just cornix render --format svg --layer 0 --workspace /path/to/workspace
+just keysync render --format svg --layer 0 --workspace /path/to/workspace
 
 # PDF の出力
-just cornix render --format pdf --layer 0 --workspace /path/to/workspace
+just keysync render --format pdf --layer 0 --workspace /path/to/workspace
 ```
 
 - `--format`: `svg` または `pdf`（既定値: `svg`）。
@@ -116,7 +116,7 @@ PDF は外部ツールを使わず、ローカルで高品質なベクター PDF
 workspace の設定を `.vil` ファイルへ書き出します。
 
 ```bash
-just cornix export vil --out keymap.vil --workspace /path/to/workspace
+just keysync export vil --out keymap.vil --workspace /path/to/workspace
 ```
 
 ファイルを生成するのみで、実機へは書き込みません。
@@ -124,7 +124,7 @@ just cornix export vil --out keymap.vil --workspace /path/to/workspace
 ## MacBook 内蔵キーボード管理（mac）
 
 Mac のキーボード設定は、Karabiner-Elements を介して管理します。
-設定は cornix-bonsai リポジトリ直下の `mac-keyboard.<layout>.yaml` に置き、Git で管理します。
+設定は keysync リポジトリ直下の `mac-keyboard.<layout>.yaml` に置き、Git で管理します。
 `mac` コマンドの workspace は既定でこのリポジトリなので、`--workspace` は要りません。
 対象の配列は実行中の Mac から自動検出するため、`--layout` も要りません。
 別の場所を使う場合は `$CORNIX_WORKSPACE` か `--workspace` で指定します。
@@ -155,7 +155,7 @@ just mac apply --confirm v1-xxxx-yyyy   # 適用してプロファイル選択�
 4. 反映後のファイルを再読み込みし、内容の一致を検証する。
 5. `Cornix Bonsai` プロファイルを選択し、選べたことを読み戻して確認する。
 
-Cornix は `Cornix Bonsai` プロファイルのみを変更します。
+KeySync は `Cornix Bonsai` プロファイルのみを変更します。
 他のプロファイルや全体設定は変更しません。
 プロファイルの選択は `karabiner.json` へ直接書かず、`karabiner_cli` に任せます。
 
@@ -214,6 +214,6 @@ karabiner_cli --select-profile "Default profile"
 リポジトリを更新した後は、Nix 環境からコマンドを実行してください。
 
 ```bash
-cd /path/to/cornix-bonsai
+cd /path/to/keysync
 git pull
 ```

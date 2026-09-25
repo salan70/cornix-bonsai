@@ -130,9 +130,9 @@ Mac を編集しているときは、`Karabiner へ適用…`、適用先、`Kar
 - Karabiner で表現できない割り当ては picker で選べません。
 - 動作の種類は basic、mod-tap、layer switch、none です。
 - 編集パネルの `割り当てを外す（素通しへ戻す）` で割り当てを消せます。
-- layer の切替の右に適用先が表示されます。適用先の追加は `cornix mac devices` です。
+- layer の切替の右に適用先が表示されます。適用先の追加は `keysync mac devices` です。
 
-Mac の設定ファイルは cornix-bonsai リポジトリ直下に置きます。
+Mac の設定ファイルは keysync リポジトリ直下に置きます。
 Web UI で編集する場合は、そのリポジトリを workspace として開きます。
 
 ### Karabiner へ適用する

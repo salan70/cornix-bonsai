@@ -287,7 +287,7 @@ entry は `macBoardEntries` が物理配列を正として組む。
 割り当ての無いキーは素通しとして物理キャップ名を破線の枠で出す。
 選択は `{kind: "macKey", keyCode}` で、layer 番号空間は Vial と別に持つ。
 layer の切替は疎な layer 番号をそのまま並べ、「+ layer N を追加」を置く。
-layer の切替の右端に適用先の chip を置き、title は `device_if` の identifiers にし、追加は `cornix mac devices` であると明示する。
+layer の切替の右端に適用先の chip を置き、title は `device_if` の identifiers にし、追加は `keysync mac devices` であると明示する。
 
 keycode の選択は同じ picker を使い、`applyPick` の合成と `setMacAssignment` での保存は `App` が持つ。
 keycode 表示は Vial と同じ label 関数を使うが、layer 名は剥がして渡し、`createKeycodeTable` は呼ばない。
@@ -453,7 +453,7 @@ Karabiner の complex_modifications asset の書出は、Mac 表示中の実機�
 保存先は `cornix/generated/karabiner-complex-modifications.json` である。
 生成元は編集中の in-memory document であり、ディスクを再読しない（ADR 0025）。
 error が 1 件でもあれば書き出さない。
-`karabiner.json` へ触るのは CLI の `cornix mac apply` とローカルサーバーの適用 API だけで、Web UI 自身は触らない（ADR 0034）。
+`karabiner.json` へ触るのは CLI の `keysync mac apply` とローカルサーバーの適用 API だけで、Web UI 自身は触らない（ADR 0034）。
 
 <!-- @code src/ui/components/index.ts#BehaviorsPanel -->
 <!-- @code src/ui/components/index.ts#CornixReferences -->

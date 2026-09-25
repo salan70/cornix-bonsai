@@ -89,7 +89,7 @@ export function Header({
           🌱
         </span>
         <span>
-          <strong>Cornix Bonsai</strong>
+          <strong>KeySync</strong>
           <small>
             build {buildInfo.commitSha} ·{" "}
             <time dateTime={buildInfo.builtAt}>{formatBuildTime(buildInfo.builtAt)}</time>

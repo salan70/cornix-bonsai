@@ -3,7 +3,7 @@ import { Button } from "../Button.tsx";
 import { Icon } from "../Icon.tsx";
 
 export const USER_GUIDE_URL =
-  "https://github.com/salan70/cornix-bonsai/blob/main/docs/user-guide/web-ui.md";
+  "https://github.com/salan70/keysync/blob/main/docs/user-guide/web-ui.md";
 
 const ICON_STYLE_OPTIONS: readonly { readonly value: IconStyle; readonly label: string }[] = [
   { value: "dish", label: "凹みあり" },

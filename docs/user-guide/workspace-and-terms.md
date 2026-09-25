@@ -1,6 +1,6 @@
 # workspace と用語
 
-Cornix Bonsai の設定ファイル構造と重要用語を説明します。
+KeySync の設定ファイル構造と重要用語を説明します。
 
 ## 用語一覧
 
@@ -21,7 +21,7 @@ Cornix Bonsai の設定ファイル構造と重要用語を説明します。
 
 ## MacBook 内蔵キーボードの設定
 
-Mac の設定は Cornix LP 向けの workspace とは別で、cornix-bonsai リポジトリ直下に置きます。
+Mac の設定は Cornix LP 向けの workspace とは別で、keysync リポジトリ直下に置きます。
 
 | パス                     | 内容                              | Git 管理 |
 | ------------------------ | --------------------------------- | -------- |

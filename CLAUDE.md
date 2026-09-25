@@ -5,7 +5,8 @@
 
 ## プロジェクト
 
-Cornix BonsaiはCornix LP向けのキーマップ編集ツールです。
+KeySyncは複数のキーボードのキーマップを1か所で管理し、実機とOSへ同期するツールです。
+対象はCornix LPとMacのキーボード（MacBook内蔵、Magic Keyboard）です。
 
 ## クイックリファレンス
 

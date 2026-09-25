@@ -1,7 +1,7 @@
 /**
  * Karabiner-Elements の設定の型。
  *
- * `karabiner.json` の全体ではなく、**Cornix が読み書きする範囲だけ**に型を付ける。
+ * `karabiner.json` の全体ではなく、**KeySync が読み書きする範囲だけ**に型を付ける。
  * `global` や他 profile の中身は解釈せず `unknown` のまま持ち回る。解釈すると、
  * Karabiner が増やした field を書き戻しで落とす経路ができるため（ADR 0001 と同じ理由）。
  *
@@ -51,12 +51,12 @@ export interface KarabinerAsset {
   readonly rules: readonly KarabinerRule[];
 }
 
-/** `profiles[]` の 1 個。Cornix が所有するのは name が一致する 1 個だけ。 */
+/** `profiles[]` の 1 個。KeySync が所有するのは name が一致する 1 個だけ。 */
 export interface KarabinerProfile {
   readonly name: string;
   readonly complex_modifications: { readonly rules: readonly KarabinerRule[] };
   readonly virtual_hid_keyboard: { readonly keyboard_type_v2: string };
-  /** 所有しない profile を読み書きするときだけ現れる。Cornix は生成しない。 */
+  /** 所有しない profile を読み書きするときだけ現れる。KeySync は生成しない。 */
   readonly [field: string]: unknown;
 }
 

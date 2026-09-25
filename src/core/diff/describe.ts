@@ -7,7 +7,7 @@
  *     同じ `USER01` が definition ごとに別の keycode を指すため（ADR 0002）、表示名で比較すると
  *     definition を差し替えたときに「変更なし」と誤判定する
  *   - `settings` は qsid → 数値のまま比較する。qsid から設定名への対応表は Vial 側にあり、
- *     実機が対応 qsid を申告する（ADR 0003）。Cornix Bonsai は**任意の表示辞書**として受け取り、
+ *     実機が対応 qsid を申告する（ADR 0003）。KeySync は**任意の表示辞書**として受け取り、
  *     辞書に無い qsid は `qsid 22` と raw のまま出す
  *   - alias（`KC_BSPC` と `KC_BSPACE`）は raw では別物だが挙動は同じ。
  *     `canonicalKeycode`（語彙表と同じ場所に置く）で「表記だけの差」に分類する。
@@ -18,7 +18,7 @@
 import type { KeycodeTable } from "../keycode/table.ts";
 import { classifyKeycode } from "../validation/keycode-vocabulary.ts";
 
-/** qsid から設定名への任意の表示辞書。定義元は Vial 側で、Cornix Bonsai は持たない。 */
+/** qsid から設定名への任意の表示辞書。定義元は Vial 側で、KeySync は持たない。 */
 export interface SettingsVocabulary {
   readonly labels: ReadonlyMap<number, string>;
 }

@@ -104,7 +104,7 @@ export async function main(argv = process.argv.slice(2), deps: CliDeps = {}): Pr
     }
     throw new Error(`${command} の引数が不正`);
   } catch (error) {
-    console.error(`cornix: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`keysync: ${error instanceof Error ? error.message : String(error)}`);
     return 1;
   }
 }
@@ -136,7 +136,7 @@ function analyze(workspace: LoadedWorkspace): number {
 }
 
 async function diff(workspace: LoadedWorkspace, against: string): Promise<number> {
-  if (against === "") throw new Error("cornix diff --against <file.vil> が必要");
+  if (against === "") throw new Error("keysync diff --against <file.vil> が必要");
   const before = parseVil(await readFile(resolve(workspace.root, against), "utf8"));
   const result = diffDocuments(before, workspace.parsed.document, workspace.definition, {
     settings: { labels: CORNIX_LP_V112_SETTINGS },
@@ -179,7 +179,7 @@ async function exportVil(workspace: LoadedWorkspace, args: ParsedArgs): Promise<
 }
 
 async function importVil(root: string, input: string, args: ParsedArgs): Promise<number> {
-  if (input === "") throw new Error("cornix import vil <file.vil> が必要");
+  if (input === "") throw new Error("keysync import vil <file.vil> が必要");
   const definitionFile = String(args.definition ?? "");
   if (definitionFile === "")
     throw new Error(".vil importには --definition <definition.json> が必要");
@@ -220,7 +220,7 @@ async function mac(root: string, args: ParsedArgs, deps: CliDeps): Promise<numbe
   if (sub === "diff") return await macDiff(root, loaded, args);
   if (sub === "apply") return await macApply(root, loaded, args, cli);
   if (sub === "devices") return await macDevices(root, loaded, args);
-  throw new Error("cornix mac generate|diff|apply|devices が必要");
+  throw new Error("keysync mac generate|diff|apply|devices が必要");
 }
 
 /** `--layout` の明示指定。検出できない環境と、別配列の設定を触りたいときの入口。 */
@@ -318,7 +318,7 @@ async function macDevices(
       registered: keyboard.builtIn
         ? loaded.document.devices.some((device) => "builtIn" in device)
         : id !== undefined && registered.has(id),
-      add: id === undefined ? null : `cornix mac devices --layout ${loaded.layout} --add ${id}`,
+      add: id === undefined ? null : `keysync mac devices --layout ${loaded.layout} --add ${id}`,
     };
   });
   console.log(
@@ -460,7 +460,7 @@ async function macApply(
           fingerprint: plan.fingerprint,
           // `--no-select` は診断を変え、診断 id は指紋に入る。フラグを取り違えたまま
           // 確認すると黙って別の計画が通るので、確認文字列にフラグを含める。
-          confirm: `cornix mac apply${select ? "" : " --no-select"} --confirm ${plan.fingerprint}`,
+          confirm: `keysync mac apply${select ? "" : " --no-select"} --confirm ${plan.fingerprint}`,
         },
         null,
         2,
@@ -561,7 +561,7 @@ function mapReplacer(_key: string, value: unknown): unknown {
 }
 function printHelp(): void {
   console.log(
-    `cornix validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint> [--no-select]\n  mac devices [--devices <observed.json>] [--add <vendor_id>:<product_id>]\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）\n  mac ... の --workspace 既定は $CORNIX_WORKSPACE、無ければ cornix-bonsai リポジトリ`,
+    `keysync validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint> [--no-select]\n  mac devices [--devices <observed.json>] [--add <vendor_id>:<product_id>]\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）\n  mac ... の --workspace 既定は $CORNIX_WORKSPACE、無ければ keysync リポジトリ`,
   );
 }
 

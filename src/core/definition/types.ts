@@ -12,7 +12,7 @@ export interface CustomKeycodeDefinition {
   readonly shortName: string;
 }
 
-/** `vial.json` のうち Cornix Bonsai が解釈する範囲。 */
+/** `vial.json` のうち KeySync が解釈する範囲。 */
 export interface KeyboardDefinition {
   readonly name: string;
   readonly vendorId: string;

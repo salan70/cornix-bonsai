@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "cornix-bonsai-dev",
+      "name": "keysync-dev",
       "runtimeExecutable": "nix",
       "runtimeArgs": ["develop", "-c", "pnpm", "dev"],
       "port": 5173

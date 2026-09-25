@@ -38,14 +38,14 @@ ADR 0027より前の`mac-keyboard.yaml`は読み込み時の後方互換とし�
 
 ## defaultMacWorkspaceRoot
 
-`cornix mac`が`--workspace`無しで使うworkspaceです。優先順は`--workspace` >
-`$CORNIX_WORKSPACE` > **cornix-bonsaiリポジトリのroot**です（ADR 0028）。
+`keysync mac`が`--workspace`無しで使うworkspaceです。優先順は`--workspace` >
+`$CORNIX_WORKSPACE` > **keysyncリポジトリのroot**です（ADR 0028）。
 
 Macのdesired stateはこのリポジトリ自身が持ちます。Cornix LP向けのworkspaceは利用者が
 任意のディレクトリへ置きますが、Mac側は「どこに置くか」が決まっていないこと自体が
 運用の負担でした。
 
-**cwdへは倒しません。** `just cornix`がリポジトリrootで走るのはjustfileの副作用であり、
+**cwdへは倒しません。** `just keysync`がリポジトリrootで走るのはjustfileの副作用であり、
 これに依存すると「どこを見ているか分からない」という元の問題がそのまま残ります。
 
 既定が暗黙に効くので、`mac`の各サブコマンドは出力へ解決済みの`workspace`を必ず載せます。
@@ -130,11 +130,11 @@ writeはこのqueueが1本の列で行う。競合検査に使うtokenは、成�
 
 ## CLI
 
-同じCore表現を使い、`cornix validate`、`cornix analyze`、`cornix diff --against`、
-`cornix render --format svg|pdf`、`cornix export vil`を提供する。`.vil` importは
-`cornix import vil <file> --definition <definition.json>`でworkspaceへ初期化する。
+同じCore表現を使い、`keysync validate`、`keysync analyze`、`keysync diff --against`、
+`keysync render --format svg|pdf`、`keysync export vil`を提供する。`.vil` importは
+`keysync import vil <file> --definition <definition.json>`でworkspaceへ初期化する。
 
-MacBook内蔵キーボードは`cornix mac generate|diff|apply|devices`で扱う。仕様は
+MacBook内蔵キーボードは`keysync mac generate|diff|apply|devices`で扱う。仕様は
 `mac-keymap.md`にある。`keymap.yaml`もdefinitionも要らないため、`import vil`と同じく
 **workspaceを読み込む手前で分岐**する。`--karabiner <path>`の既定は
 `~/.config/karabiner/karabiner.json`。workspaceの既定だけ他のcommandと違い、
@@ -144,7 +144,7 @@ MacBook内蔵キーボードは`cornix mac generate|diff|apply|devices`で扱う
 （ADR 0027）、workspaceはこのリポジトリを既定にする（ADR 0028）。`mac`の全出力へ
 解決済みの`workspace`を載せる。
 
-適用はCLIとローカルサーバーの適用APIが行う（ADR 0034）。`cornix mac apply`は`--confirm`が無いうちはasset生成と
+適用はCLIとローカルサーバーの適用APIが行う（ADR 0034）。`keysync mac apply`は`--confirm`が無いうちはasset生成と
 lint、構造diff、fingerprintを出して終わり、人間が同じfingerprintを渡したときだけ
 `karabiner.json`を書く。手順は`mac-keymap.md`の「適用の境界」にある。error diagnosticが
 1件でもあれば適用せず、lintが落ちても書き込まない。
