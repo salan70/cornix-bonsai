@@ -62,7 +62,6 @@ icon を置く場所と大きさは次のとおりである。
 
 次の記号は icon に置き換えない。
 
-- brand の 🌱
 - keycap の刻印記号（⌘ ⌥ ⌃ ⇧ ⏎ など）。macOS と Vial の慣習に従う
 - CSS で描いた点（接続状態、差分、layer の色点）
 - 盤面の小さな診断の印（× と !）
@@ -171,7 +170,7 @@ layer を切り替えても選択中の位置は保ち、同じ位置を layer �
 
 ## Header and status
 
-header は brand、build 情報、workspace 名と切替、編集対象の radiogroup、Cornix LP の接続状態、テーマを 1 行に常設する。
+header は brand（ロゴと「KeySync」、[design-system.md](./design-system.md#logo)）、build 情報、workspace 名と切替、編集対象の radiogroup、Cornix LP の接続状態、テーマを 1 行に常設する。
 build 情報は短い commit SHA とローカル timezone の build 時刻で、`time` 要素の `dateTime` へ ISO 文字列を保持し、build 情報が無いときは開発用の fallback 表示にする。
 編集対象は `Cornix LP`、`Mac ANSI`、`Mac JIS` の radiogroup で、方向キーでも切り替えられる。
 各対象には読込状態の印（読込済み、ファイルなし、移行が必要、読込失敗）を形と色で付け、文言を読み上げ用に添える。

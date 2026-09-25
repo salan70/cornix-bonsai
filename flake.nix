@@ -35,7 +35,7 @@
           ];
 
           shellHook = ''
-            echo "🌱 KeySync"
+            echo "KeySync"
             echo "  Node.js: $(node --version 2>/dev/null || echo 'not available')"
             echo "  pnpm:    $(pnpm --version 2>/dev/null || echo 'not available')"
             echo "  コマンド一覧: just --list"

@@ -7,6 +7,7 @@ import { FitText as FitTextComponent } from "./FitText.tsx";
 import { Header as HeaderComponent } from "./Header.tsx";
 import { Icon as IconComponent } from "./Icon.tsx";
 import { Inspector as InspectorComponent } from "./Inspector.tsx";
+import { Logo as LogoComponent } from "./Logo.tsx";
 import { MacApplyDialog as MacApplyDialogComponent } from "./MacApplyDialog.tsx";
 import {
   CornixLayerBar as CornixLayerBarComponent,
@@ -114,3 +115,6 @@ export const FitText = FitTextComponent;
 
 /** @doc docs/specs/design-system.md#icon */
 export const Icon = IconComponent;
+
+/** @doc docs/specs/design-system.md#logo */
+export const Logo = LogoComponent;

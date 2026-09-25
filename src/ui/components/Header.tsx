@@ -3,6 +3,7 @@ import { buildInfo, formatBuildTime } from "../build-info.ts";
 import type { MacKeyboardLayout } from "../../core/mac-keymap/types.ts";
 import type { ThemePreference } from "../theme.ts";
 import type { EditTarget, TargetKey } from "../types.ts";
+import { Logo } from "./Logo.tsx";
 
 export type TargetLoadState = "ready" | "missing" | "legacy" | "error";
 export type DevicePhase = "disconnected" | "connected" | "reading" | "read";
@@ -85,9 +86,7 @@ export function Header({
   return (
     <header className="header">
       <div className="brand">
-        <span className="logo" aria-hidden="true">
-          🌱
-        </span>
+        <Logo />
         <span>
           <strong>KeySync</strong>
           <small>

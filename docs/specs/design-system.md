@@ -74,6 +74,22 @@ SVG は `keycap-squircle` を `src/ui/icons/squircle/`、`keycap-dish-fill` を 
 - 色は `currentColor` で、隣の語の色を継ぐ
 - CSS は `src/ui/styles/components/icon.css` で、SVG を枠の span いっぱいに描く
 
+<!-- @code src/ui/components/index.ts#Logo -->
+<!-- @code src/ui/logo.ts#LOGO_PART_CLASSES -->
+<!-- @code src/ui/logo.ts#prepareLogoSvg -->
+
+## Logo
+
+Logo は uiux-numa の `experiments/keysync-logo`（commit `3001a41`）で採用した `tilt-confetti` を inline の SVG で描く（ADR 0037）。
+盤面から 1 個のキーが傾いて浮くマークで、盤面のキーを青、赤橙、墨に散らし、浮いたキーだけを黄にする。
+SVG は `variants/tilt-confetti/dist/mark.svg` を `src/ui/icons/logo/keysync.svg` へそのまま写し、直接編集しない。
+
+- SVG は `?raw` で文字列として読み、読み込み時に 1 度だけ `prepareLogoSvg` で `<title>` と `role="img"` を外し、`part-mark-*` の id を `LOGO_PART_CLASSES` の class へ置き換える。対応の無い id は例外にする
+- 色は SVG に書かず、`.logo` の CSS が class ごとに塗る。`logo-pop` は `--color-primary`、`logo-blue` は `--color-secondary`、`logo-coral` は `--color-tertiary`、`logo-ink` は文字色（`--color-on-surface`）を継ぐ
+- 根の要素は `span.logo` で、`aria-hidden="true"` で読み上げから外す。名前は隣の「KeySync」か見出しが持つ
+- 大きさは `size` の `md`（`--size-logo`、36px、header）と `lg`（`--size-logo-large`、64px、workspace の入口）の 2 段で、箱や背景は持たない
+- favicon は `public/favicon.svg` で、同じ形に色を書く。タブには CSS が届かないため、墨のキーだけを `prefers-color-scheme` で `#1f1f1f` と `#f0f0f0` に切り替え、ほかの 3 色は `pop-toy` の値を固定で書く
+
 <!-- @code src/ui/components/index.ts#FitText -->
 <!-- @code src/ui/fit-text-bus.ts#subscribeFit -->
 <!-- @code src/ui/fit-text-bus.ts#notifyFit -->

@@ -3,6 +3,7 @@ import type { MacKeyboardLayout } from "../../core/mac-keymap/types.ts";
 import { macKeymapPath, WORKSPACE_LAYOUT } from "../../workspace/layout.ts";
 import type { WorkspaceIssue } from "../workspace-probe.ts";
 import { Button } from "./Button.tsx";
+import { Logo } from "./Logo.tsx";
 
 /**
  * workspace の入口。directory を開く前と、前回の directory へのアクセスをもう一度許可する必要があるとき。
@@ -27,9 +28,7 @@ export function WorkspaceGate({
   return (
     <main className="gate" id="main">
       <div className="gate-card">
-        <span className="logo logo-large" aria-hidden="true">
-          🌱
-        </span>
+        <Logo size="lg" />
         <h1>
           {permissionName === undefined ? "workspace を開く" : "workspace へのアクセスを許可する"}
         </h1>

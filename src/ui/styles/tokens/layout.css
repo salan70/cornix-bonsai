@@ -70,9 +70,7 @@
   --font-size-xs: 0.75rem;
   --font-size-2xs: 0.6875rem;
   --font-size-code: 0.8125rem;
-  --font-size-icon: 1.05rem;
   --font-size-cap: 1.25rem;
-  --font-size-logo-large: 2rem;
 
   /* modal の影。 */
   --shadow-panel: 0 1.5rem 3.75rem var(--color-shadow);

@@ -152,22 +152,32 @@
     color: var(--color-on-surface-variant);
     font-size: var(--font-size-xs);
   }
+  /* ロゴ。多色版を箱なしで置く。墨のキーは文字色を継ぎ、ほかは Pop Toy の 3 色で塗る。 */
   .logo {
     display: grid;
     flex: none;
     width: var(--size-logo);
     height: var(--size-logo);
     place-items: center;
-    border-radius: var(--radius-sm);
-    background: var(--color-primary);
-    box-shadow: inset 0 calc(var(--border-width-thick) * -1.5) 0 var(--color-key-shadow-strong);
-    font-size: var(--font-size-icon);
+    color: var(--color-on-surface);
+  }
+  .logo > svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .logo .logo-pop {
+    fill: var(--color-primary);
+  }
+  .logo .logo-blue {
+    fill: var(--color-secondary);
+  }
+  .logo .logo-coral {
+    fill: var(--color-tertiary);
   }
   .logo-large {
     width: var(--size-logo-large);
     height: var(--size-logo-large);
-    border-radius: var(--radius-card);
-    font-size: var(--font-size-logo-large);
   }
   .workspace {
     display: grid;
