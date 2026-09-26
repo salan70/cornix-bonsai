@@ -465,9 +465,6 @@ export function App({
         targetKey={cursor.key}
         targetStates={targetStates}
         onTarget={cursor.setTarget}
-        machineLayout={
-          macApply.machine.kind === "known" ? (macApply.machine.layout ?? undefined) : undefined
-        }
         device={devicePhase}
         productName={device.connection?.info.productName}
         theme={theme.preference}

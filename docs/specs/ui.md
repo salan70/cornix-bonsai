@@ -48,7 +48,7 @@ icon を置く場所と大きさは次のとおりである。
 
 | 場所                                                          | icon                                                                            | 大きさ |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------ |
-| 左端の入口（色のタイルの中）                                  | `keymap` `overview` `behaviors` `validation` `device` `files`                   | 20px   |
+| 左端の入口                                                    | `keymap` `overview` `behaviors` `validation` `device` `files`                   | 20px   |
 | status bar の診断件数、検証パネルの行、Apply の warning       | `error` `warning` `info`                                                        | 16px   |
 | Apply と実機パネルの「error があるため…」                     | `error`                                                                         | 16px   |
 | 編集パネルの保存状態                                          | 保存中 `saving`、保存済み `check`、失敗 `error`、競合 `warning`、変更なしは無し | 16px   |
@@ -133,9 +133,9 @@ CLI の `keysync migrate` も同じ関数を通る。
 机には layer の切替、盤面、keycode picker、編集パネルを常に同じ位置へ置き、連続した割り当てを妨げない。
 全体マップ、動作定義、検証、実機と適用、ファイルは、左端の入口から画面中央のパネルで開く。
 Apply だけは段階を終えるまで他の作業へ移れない modal として、パネルと区別する。
-workspace を開く前は header（brand、build、テーマ）と入口だけを出す。
+workspace を開く前は header（brand、テーマ）と入口だけを出す。
 1280 × 800 と 1024 × 768 で横スクロールを出さず、header は折り返さない。
-幅 1100px 以下では編集パネルを狭め、picker の行を低くし、header の補足（build、workspace の見出し）を隠す。
+幅 1100px 以下では編集パネルを狭め、picker の行を低くし、header の補足（workspace の見出し）を隠す。
 `App` は状態の hook を組み合わせ、部品へ値と操作を渡すだけにする。
 
 <!-- @code src/ui/state/use-workspace.ts#useWorkspace -->
@@ -173,12 +173,10 @@ layer を切り替えても選択中の位置は保ち、同じ位置を layer �
 
 ## Header and status
 
-header は brand（ロゴと「KeySync」、[design-system.md](./design-system.md#logo)）、build 情報、workspace 名、編集対象の radiogroup、Cornix LP の接続状態、テーマを 1 行に常設する。
+header は brand（ロゴと「KeySync」、[design-system.md](./design-system.md#logo)）、workspace 名、編集対象の radiogroup、Cornix LP の接続状態、テーマを 1 行に常設する。
 workspace 名はサーバーが開いた workspace の末尾の directory 名で、絶対 path を title に置く。
-build 情報は短い commit SHA とローカル timezone の build 時刻で、`time` 要素の `dateTime` へ ISO 文字列を保持し、build 情報が無いときは開発用の fallback 表示にする。
 編集対象は `Cornix LP`、`Mac ANSI`、`Mac JIS` の radiogroup で、方向キーでも切り替えられる。
 各対象には読込状態の印（読込済み、ファイルなし、移行が必要、読込失敗）を形と色で付け、文言を読み上げ用に添える。
-ローカルサーバーが検出したこのマシンの内蔵配列の対象には「この Mac」を添える。
 接続状態は色だけに頼らず、未接続、接続済み、読込中、読込済みと製品名を文字で示す。
 
 status bar は severity ごとの診断件数、保存状態と保存先、通知、実機との差分と Apply の入口を出す。
@@ -309,7 +307,7 @@ entry は `macBoardEntries` が物理配列を正として組む。
 割り当ての無いキーは素通しとして物理キャップ名を破線の枠で出す。
 選択は `{kind: "macKey", keyCode}` で、layer 番号空間は Vial と別に持つ。
 layer の切替は疎な layer 番号をそのまま並べ、「+ layer N を追加」を置く。
-layer の切替の右端に適用先の chip を置き、title は `device_if` の identifiers にし、追加は `keysync mac devices` であると明示する。
+layer の切替の右端に適用先の chip を置き、title は `device_if` の identifiers にする。
 
 keycode の選択は同じ picker を使い、`applyPick` の合成と `setMacAssignment` での保存は `App` が持つ。
 keycode 表示は Vial と同じ label 関数を使うが、layer 名は剥がして渡し、`createKeycodeTable` は呼ばない。

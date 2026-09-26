@@ -147,11 +147,6 @@
     font-size: var(--font-size-md);
     line-height: var(--font-line-height-tight);
   }
-  .brand small {
-    display: block;
-    color: var(--color-on-surface-variant);
-    font-size: var(--font-size-xs);
-  }
   /* ロゴ。多色版を箱なしで置く。墨のキーは文字色を継ぎ、ほかは Pop Toy の 3 色で塗る。 */
   .logo {
     display: grid;
@@ -312,9 +307,6 @@
     width: var(--size-rail-icon);
     height: var(--size-rail-icon);
     place-items: center;
-    border-radius: var(--radius-icon);
-    background: var(--tone);
-    color: var(--on-tone);
   }
   .rail-btn.is-on {
     border-color: var(--color-on-surface);
@@ -325,10 +317,6 @@
     background: var(--color-surface-container);
     color: var(--color-on-surface-variant);
     cursor: not-allowed;
-  }
-  .rail-btn[aria-disabled="true"] .rail-icon {
-    background: var(--color-surface-variant);
-    color: var(--color-on-surface-variant);
   }
   .rail-why {
     font-size: var(--font-size-2xs);
@@ -487,7 +475,6 @@
     .desk {
       grid-template-columns: minmax(0, 1fr) var(--layout-inspector-width-narrow);
     }
-    .brand small,
     .workspace > span {
       display: none;
     }
