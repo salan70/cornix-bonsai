@@ -181,8 +181,7 @@
   }
   .workspace {
     display: grid;
-    grid-template-columns: minmax(0, auto) auto;
-    gap: 0 var(--space-300);
+    grid-template-columns: minmax(0, auto);
     align-items: baseline;
     min-width: 0;
     padding-inline-start: var(--space-400);

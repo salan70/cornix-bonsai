@@ -14,7 +14,7 @@ const jisYaml =
 
 function fakeStore(files: Readonly<Record<string, string | undefined>>): UiWorkspaceStore {
   return {
-    directory: { name: "ws" },
+    root: "/ws",
     readText: (path) => Promise.resolve(files[path]),
     writeText: () => Promise.reject(new Error("write not used")),
     readBytes: (path) => {

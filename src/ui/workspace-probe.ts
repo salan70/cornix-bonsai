@@ -1,5 +1,5 @@
 /**
- * Browser workspace の読み込み。Cornix と Mac を独立に畳み、どちらか一方の不調で
+ * Web UI の workspace の読み込み。Cornix と Mac を独立に畳み、どちらか一方の不調で
  * 他方の編集を止めない。
  */
 
@@ -18,9 +18,9 @@ import type { WorkspaceConflictToken, WorkspaceFileStore } from "../workspace/ty
 import { probeMacKeymaps, type MacWorkspaceByLayout } from "./mac-workspace.ts";
 import type { EditTarget } from "./types.ts";
 
-/** Browser の具象 store と test fake が共有する面。 */
+/** サーバー経由の store と test fake が共有する面。`root` は表示用の絶対 path。 */
 export type UiWorkspaceStore = WorkspaceFileStore & {
-  readonly directory: { readonly name: string };
+  readonly root: string;
 };
 
 export type CornixWorkspaceState =
@@ -64,7 +64,7 @@ export type WorkspaceIssue =
   | { readonly kind: "unresolved"; readonly store: UiWorkspaceStore; readonly reason: string };
 
 /**
- * directory を開けた時点で workspace として成立させる。
+ * workspace を読めた時点で成立させる。
  *
  * `keymap.yaml` の欠落や parse 失敗は `cornix` に閉じ、Mac の読み込みを止めない。
  *

@@ -1,6 +1,6 @@
 # WorkspaceとCLI
 
-workspaceはBrowserのFile System Access APIまたはCLIのローカルディレクトリを入口にする。
+workspaceはkeysyncリポジトリのrootに固定し、CLIとローカルサーバーが同じ規則で決める（ADR 0038）。
 `keymap.yaml`がdesired stateで、definitionはSHA-256の先頭16文字を使ったcontent-addressed
 pathに保存する。`keysync/acknowledgements.json`はApply warningの確認IDを保持する。
 `keysync/backups/`と`keysync/generated/`は生成物で、keymapの競合検出は
@@ -39,23 +39,22 @@ documentである（ADR 0022）。仕様は`mac-keymap.md`にある。片方だ�
 ADR 0027より前の`mac-keyboard.yaml`は読み込み時の後方互換として残る。どの配列のものかは
 中の`layout`宣言で決まり、宣言が求めた配列と違えば「その配列の設定は無い」として扱う。
 
-<!-- @code src/workspace/default-root.ts#defaultMacWorkspaceRoot -->
+<!-- @code src/workspace/default-root.ts#defaultWorkspaceRoot -->
 
-## defaultMacWorkspaceRoot
+## defaultWorkspaceRoot
 
-`keysync mac`が`--workspace`無しで使うworkspaceです。優先順は`--workspace` >
-`$KEYSYNC_WORKSPACE` > **keysyncリポジトリのroot**です（ADR 0028）。
+`--workspace`無しで使うworkspaceです。優先順は`--workspace` >
+`$KEYSYNC_WORKSPACE` > **keysyncリポジトリのroot**です（ADR 0028、ADR 0038）。
 
-Macのdesired stateはこのリポジトリ自身が持ちます。Cornix LP向けのworkspaceは利用者が
-任意のディレクトリへ置きますが、Mac側は「どこに置くか」が決まっていないこと自体が
-運用の負担でした。
+Cornix LPとMacのdesired stateは、どちらもこのリポジトリ自身が持ちます。「どこに置くか」が
+決まっていないこと自体が運用の負担でした。CLIの全サブコマンドと、`just ui`・`just dev`の
+ローカルサーバーがこの規則を使います。
 
 **cwdへは倒しません。** `just keysync`がリポジトリrootで走るのはjustfileの副作用であり、
 これに依存すると「どこを見ているか分からない」という元の問題がそのまま残ります。
 
-既定が暗黙に効くので、`mac`の各サブコマンドは出力へ解決済みの`workspace`を必ず載せます。
-既定が変わるのは`mac`だけで、`validate` / `analyze` / `diff` / `render` / `export` /
-`import`は従来どおりcwdです。
+既定が暗黙に効くので、`mac`の各サブコマンドは出力へ、Web UIはheaderへ解決済みの
+`workspace`を必ず出します。
 
 <!-- @code src/workspace/mac-keymap-file.ts#readMacKeymapFor -->
 
@@ -141,15 +140,14 @@ writeはこのqueueが1本の列で行う。競合検査に使うtokenは、成�
 `keysync import vil <file> --definition <definition.json>`でworkspaceへ初期化する。
 
 `keysync migrate`は改名前の`cornix/`を指すworkspaceを`keysync/`へ移す（ADR 0036）。
-Web UIの移行と同じ`planLayoutMigration`と`writeLayoutMigration`を通り、`workspace`の既定はcwdである。
+Web UIの移行と同じ`planLayoutMigration`と`writeLayoutMigration`を通る。
 移す必要が無ければ`migrated: false`を返して何も書かない。
 `cornix/`を指したままのworkspaceへ他のcommandを使うと、`keysync migrate`を案内して止まる。
 
 MacBook内蔵キーボードは`keysync mac generate|diff|apply|devices`で扱う。仕様は
 `mac-keymap.md`にある。`keymap.yaml`もdefinitionも要らないため、`import vil`と同じく
 **workspaceを読み込む手前で分岐**する。`--karabiner <path>`の既定は
-`~/.config/karabiner/karabiner.json`。workspaceの既定だけ他のcommandと違い、
-`defaultMacWorkspaceRoot`が決める。
+`~/.config/karabiner/karabiner.json`。
 
 日常の操作は`--workspace`も`--layout`も要らない。配列は実行しているMacから検出し
 （ADR 0027）、workspaceはこのリポジトリを既定にする（ADR 0028）。`mac`の全出力へ

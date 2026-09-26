@@ -34,8 +34,7 @@ const STATE_VIEW: Readonly<
  * workspace を開くまでは brand、build、テーマだけを出す。
  */
 export function Header({
-  workspaceName,
-  onSwitchWorkspace,
+  workspaceRoot,
   targetKey,
   targetStates,
   onTarget,
@@ -45,8 +44,8 @@ export function Header({
   theme,
   onTheme,
 }: {
-  readonly workspaceName: string | undefined;
-  readonly onSwitchWorkspace: () => void;
+  /** サーバーが開いた workspace の絶対 path。末尾の directory 名だけを見せ、全体は title に置く。 */
+  readonly workspaceRoot: string | undefined;
   readonly targetKey: TargetKey;
   readonly targetStates: Readonly<Record<TargetKey, TargetLoadState>> | undefined;
   readonly onTarget: (target: EditTarget) => void;
@@ -95,14 +94,13 @@ export function Header({
           </small>
         </span>
       </div>
-      {workspaceName === undefined || targetStates === undefined ? null : (
+      {workspaceRoot === undefined || targetStates === undefined ? null : (
         <>
           <div className="workspace">
             <span className="muted">workspace</span>
-            <code title={workspaceName}>{workspaceName}</code>
-            <button type="button" className="link" onClick={onSwitchWorkspace}>
-              切り替える
-            </button>
+            <code title={workspaceRoot}>
+              {workspaceRoot.split("/").filter(Boolean).at(-1) ?? "/"}
+            </code>
           </div>
           <div className="targets" role="radiogroup" aria-label="編集対象">
             {TARGETS.map((item, index) => {
@@ -150,7 +148,7 @@ export function Header({
           </span>
         </>
       )}
-      {workspaceName === undefined ? <span className="spacer" /> : null}
+      {workspaceRoot === undefined ? <span className="spacer" /> : null}
       <label className="theme">
         <span className="visually-hidden">テーマ</span>
         <select

@@ -112,3 +112,48 @@ export interface MacPlanRequest {
 export interface MacApplyRequest extends MacPlanRequest {
   readonly fingerprint: string;
 }
+
+/**
+ * workspace のファイル API の path。Web UI は directory を選ばず、サーバーの workspace を
+ * これで読み書きする（ADR 0038）。
+ *
+ * @doc docs/specs/local-server.md#createworkspaceapi
+ */
+export const WORKSPACE_API = {
+  status: "/api/workspace/status",
+  read: "/api/workspace/read",
+  stat: "/api/workspace/stat",
+  write: "/api/workspace/write",
+  mkdir: "/api/workspace/mkdir",
+} as const;
+
+/** サーバーが開いている workspace。 */
+export interface WorkspaceStatusResponse {
+  readonly kind: "workspace";
+  /** workspace の絶対 path。 */
+  readonly root: string;
+}
+
+/** `read` の結果。ファイルが無ければ `base64` は `null`。 */
+export interface WorkspaceReadResponse {
+  readonly kind: "file";
+  readonly base64: string | null;
+}
+
+/** `stat` の結果。ファイルが無ければ `stat` は `null`。 */
+export interface WorkspaceStatResponse {
+  readonly kind: "stat";
+  readonly stat: { readonly modifiedAt: number; readonly contentHash?: string } | null;
+}
+
+/** `write` と `mkdir` の結果。 */
+export interface WorkspaceDoneResponse {
+  readonly kind: "done";
+}
+
+export type WorkspaceApiResponse =
+  | WorkspaceStatusResponse
+  | WorkspaceReadResponse
+  | WorkspaceStatResponse
+  | WorkspaceDoneResponse
+  | MacApiFailure;

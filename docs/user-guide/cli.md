@@ -38,8 +38,7 @@ direnv を使わない場合は、先に `nix develop` へ入ってから実行�
 just keysync <command> --workspace <directory>
 ```
 
-- `--workspace` を省略すると、カレントディレクトリを対象にします。
-  ただし `mac` だけは keysync リポジトリを既定にします。
+- `--workspace` を省略すると、keysync リポジトリを対象にします。`$KEYSYNC_WORKSPACE` があればそちらです。
 - 相対パスは workspace ディレクトリを基準に解決されます。
 - エラー時は標準エラーへ理由を出力し、終了コード 1 を返します。
 - `validate` と `analyze` は、エラーがあれば終了コード 1、無ければ 0 を返します。
@@ -125,7 +124,7 @@ just keysync export vil --out keymap.vil --workspace /path/to/workspace
 
 Mac のキーボード設定は、Karabiner-Elements を介して管理します。
 設定は keysync リポジトリ直下の `mac-keyboard.<layout>.yaml` に置き、Git で管理します。
-`mac` コマンドの workspace は既定でこのリポジトリなので、`--workspace` は要りません。
+workspace は既定でこのリポジトリなので、`--workspace` は要りません。
 対象の配列は実行中の Mac から自動検出するため、`--layout` も要りません。
 別の場所を使う場合は `$KEYSYNC_WORKSPACE` か `--workspace` で指定します。
 

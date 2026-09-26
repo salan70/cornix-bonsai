@@ -1,56 +1,40 @@
 import { Fragment } from "react";
 import type { MacKeyboardLayout } from "../../core/mac-keymap/types.ts";
 import { macKeymapPath, WORKSPACE_LAYOUT } from "../../workspace/layout.ts";
+import type { WorkspaceConnection } from "../state/use-workspace.ts";
 import type { WorkspaceIssue } from "../workspace-probe.ts";
 import { Button } from "./Button.tsx";
 import { Logo } from "./Logo.tsx";
 
 /**
- * workspace の入口。directory を開く前と、前回の directory へのアクセスをもう一度許可する必要があるとき。
- * directory 自体を読めなかったときは、理由と再読込をここで出す。
+ * workspace の入口。サーバーの workspace を開くまでと、開けなかったとき。
+ * directory は選ばない（ADR 0038）。workspace 自体を読めなかったときは、理由と再読込を出す。
  */
 export function WorkspaceGate({
-  permissionName,
+  connection,
   issue,
   message,
-  onOpen,
-  onGrant,
   onReload,
 }: {
-  /** 前回の directory 名。権限の再確認が要るときだけ渡す。 */
-  readonly permissionName: string | undefined;
+  readonly connection: WorkspaceConnection;
   readonly issue: WorkspaceIssue | undefined;
   readonly message: string;
-  readonly onOpen: () => void;
-  readonly onGrant: () => void;
   readonly onReload: () => void;
 }): React.JSX.Element {
+  const view = GATE_VIEW[connection.kind];
   return (
     <main className="gate" id="main">
       <div className="gate-card">
         <Logo size="lg" />
-        <h1>
-          {permissionName === undefined ? "workspace を開く" : "workspace へのアクセスを許可する"}
-        </h1>
-        <p>
-          {permissionName === undefined
-            ? "keymap.yaml や mac-keyboard.<layout>.yaml を置いた directory を選ぶ。keymap.yaml が無くても開け、Mac キーボードだけを編集できる。設定は外部へ送らない。"
-            : `前回の workspace（${permissionName}）を開くには、ブラウザの権限をもう一度許可する。`}
-        </p>
-        <div className="row">
-          {permissionName === undefined ? null : (
-            <Button size="large" onClick={onGrant}>
-              アクセスを許可する
+        <h1>{view.title}</h1>
+        <p>{connection.kind === "failed" ? connection.message : view.body}</p>
+        {connection.kind === "opening" ? null : (
+          <div className="row">
+            <Button size="large" onClick={onReload}>
+              もう一度開く
             </Button>
-          )}
-          <Button
-            size="large"
-            appearance={permissionName === undefined ? "primary" : "secondary"}
-            onClick={onOpen}
-          >
-            {permissionName === undefined ? "Workspace を開く" : "別の directory を開く"}
-          </Button>
-        </div>
+          </div>
+        )}
         <p className="hint">macOS の Chrome / Chromium だけに対応する。</p>
         <p className="hint" role="status" aria-live="polite">
           {message}
@@ -68,6 +52,24 @@ export function WorkspaceGate({
     </main>
   );
 }
+
+const GATE_VIEW: Readonly<
+  Record<WorkspaceConnection["kind"], { readonly title: string; readonly body: string }>
+> = {
+  opening: {
+    title: "workspace を開いている",
+    body: "ローカルサーバーから workspace を読んでいる。",
+  },
+  opened: {
+    title: "workspace を読み込めなかった",
+    body: "外部エディタで原因を直してから、もう一度開く。",
+  },
+  unreachable: {
+    title: "ローカルサーバーに接続できない",
+    body: "just ui で起動したサーバーから開く。workspace の読み書きはサーバーが行う。",
+  },
+  failed: { title: "workspace を開けなかった", body: "" },
+};
 
 /**
  * Cornix LP を読み込めないときの復旧。`keymap.yaml` が無い、旧 digest の binding、改名前の
@@ -92,8 +94,7 @@ export function CornixRecovery({
       <section className="recovery" aria-labelledby="recovery-title" data-recovery="missing-keymap">
         <h2 id="recovery-title">! keymap.yaml が無い</h2>
         <p>
-          <code>{issue.store.directory.name}</code> には Cornix LP の設定がまだ無い。実機を full
-          read して、
+          <code>{issue.store.root}</code> には Cornix LP の設定がまだ無い。実機を full read して、
           <code>{WORKSPACE_LAYOUT.keymap}</code> と{" "}
           <code>{WORKSPACE_LAYOUT.definitions}/&lt;digest&gt;.json</code>{" "}
           を作る。実機には書き込まない。
@@ -197,7 +198,7 @@ export function CornixRecovery({
     >
       <h2 id="recovery-title">! workspace を読み込めなかった</h2>
       <p className="bad">{issue.reason}</p>
-      <p>外部エディタで原因を直してから再読込する。別の directory を開いてもよい。</p>
+      <p>外部エディタで原因を直してから再読込する。</p>
       <div className="row">
         <Button appearance="secondary" disabled={busy} onClick={onReload}>
           ディスクから再読込

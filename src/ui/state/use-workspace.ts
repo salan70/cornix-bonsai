@@ -21,9 +21,9 @@ import {
   serializeBrowserVil,
 } from "../browser-export.ts";
 import { pickVilText } from "../browser-files.ts";
-import { pickWorkspace, restoreWorkspace, type RestoredWorkspace } from "../browser-workspace.ts";
 import { initialMacKeymapYaml } from "../mac-workspace.ts";
 import { saveFailureState, type SaveState } from "../save-state.ts";
+import { openServerWorkspace } from "../server-workspace.ts";
 import {
   probeStore,
   type UiWorkspaceStore,
@@ -33,7 +33,13 @@ import {
 import { errorMessage } from "./use-status.ts";
 
 type CornixReady = Extract<WorkspaceModel["cornix"], { kind: "ready" }>;
-type PermissionPrompt = Extract<RestoredWorkspace, { kind: "prompt" }>;
+
+/** サーバーの workspace を開くまでの状態。開けた後は `workspace` か `issue` が持つ。 */
+export type WorkspaceConnection =
+  | { readonly kind: "opening" }
+  | { readonly kind: "opened" }
+  | { readonly kind: "unreachable" }
+  | { readonly kind: "failed"; readonly message: string };
 
 export interface WorkspaceOptions {
   readonly say: (message: string) => void;
@@ -52,7 +58,7 @@ export interface WorkspaceOptions {
 export function useWorkspace({ say, onAdopt }: WorkspaceOptions) {
   const [workspace, setWorkspace] = useState<WorkspaceModel | undefined>();
   const [issue, setIssue] = useState<WorkspaceIssue | undefined>();
-  const [permission, setPermission] = useState<PermissionPrompt | undefined>();
+  const [connection, setConnection] = useState<WorkspaceConnection>({ kind: "opening" });
   const [keymapSave, setKeymapSave] = useState<SaveState>({ kind: "idle" });
   const [labelsSave, setLabelsSave] = useState<SaveState>({ kind: "idle" });
   const [macSaves, setMacSaves] = useState<Partial<Record<MacKeyboardLayout, SaveState>>>({});
@@ -135,7 +141,6 @@ export function useWorkspace({ say, onAdopt }: WorkspaceOptions) {
     preserveTarget = false,
   ): Promise<void> {
     const probe = await probeStore(store);
-    setPermission(undefined);
     if (probe.kind === "ready") {
       setIssue(undefined);
       adoptWorkspace(probe.model, preserveTarget);
@@ -151,47 +156,34 @@ export function useWorkspace({ say, onAdopt }: WorkspaceOptions) {
     say("workspaceを読み込めなかった");
   }
 
-  useEffect(() => {
-    void restoreWorkspace()
-      .then((restored) => {
-        if (restored === undefined) return;
-        if (restored.kind === "prompt") {
-          setPermission(restored);
-          say(`前回のworkspace（${restored.name}）を開くには、アクセスをもう一度許可してください`);
-          return;
-        }
-        return adoptStore(restored.store, "前回のworkspaceへ復帰した");
-      })
-      .catch((error: unknown) => say(errorMessage(error)));
-    // 起動時に一度だけ復帰を試みる。
-  }, []);
-
-  async function openWorkspace(): Promise<void> {
+  /** サーバーの workspace を開く。directory は選ばない（ADR 0038）。 */
+  async function connect(): Promise<void> {
+    setConnection({ kind: "opening" });
     try {
-      await adoptStore(await pickWorkspace(), "workspaceを開いた");
-    } catch (error) {
-      say(errorMessage(error));
-    }
-  }
-
-  /** 前回の directory へのアクセスを求める。ユーザー操作の中でだけ呼ぶ。 */
-  async function grantPermission(): Promise<void> {
-    if (permission === undefined) return;
-    try {
-      const store = await permission.request();
-      if (store === undefined) {
-        say("アクセスが許可されなかった。Workspaceを開くから選び直してください");
+      const opened = await openServerWorkspace();
+      // 理由は入口のカードが出す。通知へは重ねない。
+      if (opened.kind !== "opened") {
+        setConnection(opened);
         return;
       }
-      await adoptStore(store, "前回のworkspaceへ復帰した");
+      setConnection({ kind: "opened" });
+      await adoptStore(opened.store, "workspaceを開いた");
     } catch (error) {
-      say(errorMessage(error));
+      setConnection({ kind: "failed", message: errorMessage(error) });
     }
   }
+
+  useEffect(() => {
+    void connect();
+    // 起動時に一度だけ開く。
+  }, []);
 
   async function reload(): Promise<void> {
     const store = workspace?.store ?? issue?.store;
-    if (store === undefined) return;
+    if (store === undefined) {
+      await connect();
+      return;
+    }
     try {
       await adoptStore(store, "workspaceを再読み込みした", true);
     } catch (error) {
@@ -420,13 +412,11 @@ export function useWorkspace({ say, onAdopt }: WorkspaceOptions) {
     workspace,
     cornix,
     issue,
-    permission,
+    connection,
     keymapSave,
     labelsSave,
     macSaves,
     adoptStore,
-    openWorkspace,
-    grantPermission,
     reload,
     migrateBinding,
     migrateLayout,

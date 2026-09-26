@@ -378,8 +378,7 @@ export function App({
     return (
       <div className="app is-gate">
         <Header
-          workspaceName={undefined}
-          onSwitchWorkspace={() => void ws.openWorkspace()}
+          workspaceRoot={undefined}
           targetKey={cursor.key}
           targetStates={undefined}
           onTarget={cursor.setTarget}
@@ -389,11 +388,9 @@ export function App({
           onTheme={theme.setPreference}
         />
         <WorkspaceGate
-          permissionName={ws.permission?.name}
+          connection={ws.connection}
           issue={ws.issue}
           message={status.message}
-          onOpen={() => void ws.openWorkspace()}
-          onGrant={() => void ws.grantPermission()}
           onReload={() => void ws.reload()}
         />
       </div>
@@ -464,8 +461,7 @@ export function App({
         盤面へ移動
       </a>
       <Header
-        workspaceName={workspace.store.directory.name}
-        onSwitchWorkspace={() => void ws.openWorkspace()}
+        workspaceRoot={workspace.store.root}
         targetKey={cursor.key}
         targetStates={targetStates}
         onTarget={cursor.setTarget}

@@ -17,7 +17,7 @@ import {
 } from "../server/protocol.ts";
 import type { MacKeyboardLayout } from "../core/mac-keymap/types.ts";
 
-/** サーバーへ届かなかった。`just ui` 以外（`just dev` など）で開いたときもこれになる。 */
+/** サーバーへ届かなかった。`just ui` と `just dev` 以外（静的配信だけのサーバーなど）で開いたときもこれになる。 */
 export interface MacServerUnreachable {
   readonly kind: "unreachable";
 }
@@ -55,7 +55,8 @@ export async function selectMacProfileRemote(
   return await post(fetcher, MAC_API.select, { layout });
 }
 
-async function post<T>(fetcher: Fetch, path: string, body: unknown): Promise<Reached<T>> {
+/** 同じ origin の API へ JSON を POST する。届かなければ `unreachable` を返し、例外を外へ出さない。 */
+export async function post<T>(fetcher: Fetch, path: string, body: unknown): Promise<Reached<T>> {
   let response: Response;
   try {
     response = await fetcher(path, {
@@ -66,7 +67,7 @@ async function post<T>(fetcher: Fetch, path: string, body: unknown): Promise<Rea
   } catch {
     return { kind: "unreachable" };
   }
-  // 静的配信しか無いサーバー（`vite` の開発サーバーなど）は JSON を返さない。
+  // 静的配信しか無いサーバーは JSON を返さない。
   if (!(response.headers.get("content-type") ?? "").startsWith("application/json")) {
     return { kind: "unreachable" };
   }

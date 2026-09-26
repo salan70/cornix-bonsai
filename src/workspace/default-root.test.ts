@@ -8,27 +8,27 @@
 import { strictEqual } from "node:assert/strict";
 import { resolve } from "node:path";
 import { test } from "node:test";
-import { defaultMacWorkspaceRoot, WORKSPACE_ENV } from "./default-root.ts";
+import { defaultWorkspaceRoot, WORKSPACE_ENV } from "./default-root.ts";
 
 test("既定はリポジトリのroot", () => {
-  strictEqual(defaultMacWorkspaceRoot({}), resolve(import.meta.dirname, "..", ".."));
+  strictEqual(defaultWorkspaceRoot({}), resolve(import.meta.dirname, "..", ".."));
 });
 
 test("KEYSYNC_WORKSPACEがあればそちらを絶対パスで返す", () => {
-  strictEqual(defaultMacWorkspaceRoot({ [WORKSPACE_ENV]: "/tmp/elsewhere" }), "/tmp/elsewhere");
+  strictEqual(defaultWorkspaceRoot({ [WORKSPACE_ENV]: "/tmp/elsewhere" }), "/tmp/elsewhere");
 });
 
 test("改名前のCORNIX_WORKSPACEは読まない", () => {
   // 黙って読むと「どこを見ているか分からない」が戻る（ADR 0036）。
   strictEqual(
-    defaultMacWorkspaceRoot({ CORNIX_WORKSPACE: "/tmp/elsewhere" }),
+    defaultWorkspaceRoot({ CORNIX_WORKSPACE: "/tmp/elsewhere" }),
     resolve(import.meta.dirname, "..", ".."),
   );
 });
 
 test("空のKEYSYNC_WORKSPACEは無視する", () => {
   strictEqual(
-    defaultMacWorkspaceRoot({ [WORKSPACE_ENV]: "" }),
+    defaultWorkspaceRoot({ [WORKSPACE_ENV]: "" }),
     resolve(import.meta.dirname, "..", ".."),
   );
 });

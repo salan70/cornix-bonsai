@@ -38,7 +38,7 @@ import {
   readDefinitionBinding,
   WORKSPACE_LAYOUT,
 } from "../workspace/layout.ts";
-import { defaultMacWorkspaceRoot } from "../workspace/default-root.ts";
+import { defaultWorkspaceRoot } from "../workspace/default-root.ts";
 import { parseLabelsYaml, EMPTY_LABELS } from "../workspace/labels.ts";
 import { CORNIX_LP_V112_SETTINGS } from "../workspace/settings.ts";
 import { NodeWorkspaceStore } from "../workspace/node.ts";
@@ -81,16 +81,17 @@ export async function main(argv = process.argv.slice(2), deps: CliDeps = {}): Pr
     return 0;
   }
   const args = parseArgs(rest);
-  const explicit = args.workspace === undefined ? undefined : resolve(String(args.workspace));
+  // 既定は全サブコマンドで同じ keysync repository。cwd へは倒さない（ADR 0038）。
+  const root =
+    args.workspace === undefined ? defaultWorkspaceRoot() : resolve(String(args.workspace));
   try {
     if (command === "import" && args._[0] === "vil")
-      return await importVil(explicit ?? process.cwd(), String(args._[1] ?? ""), args);
+      return await importVil(root, String(args._[1] ?? ""), args);
     // mac 系は keymap.yaml も definition も要らない。loadWorkspace の手前で分ける（ADR 0022）。
-    // 既定 workspace も mac だけ違う。ほかは従来どおり cwd（ADR 0028）。
-    if (command === "mac") return await mac(explicit ?? defaultMacWorkspaceRoot(), args, deps);
+    if (command === "mac") return await mac(root, args, deps);
     // 改名前の `cornix/` を指す workspace は loadWorkspace が読めない。その手前で移す（ADR 0036）。
-    if (command === "migrate") return await migrate(explicit ?? process.cwd());
-    const workspace = await loadWorkspace(explicit ?? process.cwd());
+    if (command === "migrate") return await migrate(root);
+    const workspace = await loadWorkspace(root);
     switch (command) {
       case "validate":
         return validate(workspace);
@@ -604,7 +605,7 @@ function mapReplacer(_key: string, value: unknown): unknown {
 }
 function printHelp(): void {
   console.log(
-    `keysync validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  migrate （改名前の cornix/ を keysync/ へ移す）\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint> [--no-select]\n  mac devices [--devices <observed.json>] [--add <vendor_id>:<product_id>]\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）\n  mac ... の --workspace 既定は $KEYSYNC_WORKSPACE、無ければ keysync リポジトリ`,
+    `keysync validate|analyze|diff|render|export vil\n  --workspace <dir>\n  diff --against <file.vil>\n  render --format svg|pdf --out <file> --layer <n>\n  import vil <file.vil> --definition <definition.json>\n  migrate （改名前の cornix/ を keysync/ へ移す）\n  mac generate --out <file>\n  mac diff --karabiner <karabiner.json>\n  mac apply --karabiner <karabiner.json> --confirm <fingerprint> [--no-select]\n  mac devices [--devices <observed.json>] [--add <vendor_id>:<product_id>]\n  mac ... --layout ansi|jis （既定は実行中のMacの内蔵配列を検出）\n  --workspace の既定は $KEYSYNC_WORKSPACE、無ければ keysync リポジトリ`,
   );
 }
 

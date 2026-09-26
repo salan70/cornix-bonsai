@@ -4,24 +4,24 @@ KeySync の設定ファイル構造と重要用語を説明します。
 
 ## 用語一覧
 
-| 用語          | 意味                                                         |
-| ------------- | ------------------------------------------------------------ |
-| workspace     | `keymap.yaml` と関連ファイルを置く専用ディレクトリです。     |
-| desired state | workspace に保存された、実機へ反映したい目標設定です。       |
-| current state | 最後の読み取りで取得した、実機の現在設定です。               |
-| full read     | キーマップや定義など、実機状態を一括取得する操作です。       |
-| definition    | キーの物理配置やカスタムキーコードを解釈する定義データです。 |
-| VIL           | Vial が扱うキーマップファイル（`.vil`）の形式です。          |
-| validation    | 設定の構造、キーコード、参照関係、整合性を検証する処理です。 |
-| semantic diff | 単なる文字列比較ではなく、意味単位で算出する設定差分です。   |
-| Apply         | 差分を実機へ書き込み、直後の再読み込みで検証する操作です。   |
-| WebHID        | ブラウザから USB / BLE HID 機器へ接続する Web API です。     |
-| UID           | キーボード個体を識別し、別機器への誤書き込みを防ぐ値です。   |
-| digest        | definition ファイルの内容から計算する SHA-256 値です。       |
+| 用語          | 意味                                                            |
+| ------------- | --------------------------------------------------------------- |
+| workspace     | 設定ファイルを置くディレクトリ。既定は keysync リポジトリです。 |
+| desired state | workspace に保存された、実機へ反映したい目標設定です。          |
+| current state | 最後の読み取りで取得した、実機の現在設定です。                  |
+| full read     | キーマップや定義など、実機状態を一括取得する操作です。          |
+| definition    | キーの物理配置やカスタムキーコードを解釈する定義データです。    |
+| VIL           | Vial が扱うキーマップファイル（`.vil`）の形式です。             |
+| validation    | 設定の構造、キーコード、参照関係、整合性を検証する処理です。    |
+| semantic diff | 単なる文字列比較ではなく、意味単位で算出する設定差分です。      |
+| Apply         | 差分を実機へ書き込み、直後の再読み込みで検証する操作です。      |
+| WebHID        | ブラウザから USB / BLE HID 機器へ接続する Web API です。        |
+| UID           | キーボード個体を識別し、別機器への誤書き込みを防ぐ値です。      |
+| digest        | definition ファイルの内容から計算する SHA-256 値です。          |
 
 ## MacBook 内蔵キーボードの設定
 
-Mac の設定は Cornix LP 向けの workspace とは別で、keysync リポジトリ直下に置きます。
+Mac の設定も Cornix LP と同じく、keysync リポジトリ直下に置きます。
 
 | パス                     | 内容                              | Git 管理 |
 | ------------------------ | --------------------------------- | -------- |
@@ -59,7 +59,8 @@ workspace の推奨ディレクトリ構成です。
 | `keysync/backups/`              | Apply 前に退避した実機状態            | 管理外   |
 | `keysync/generated/`            | 書き出した VIL、SVG、PDF などの成果物 | 管理外   |
 
-workspace を Git で管理する場合は、`.gitignore` へ以下を追加してください。
+keysync リポジトリの `.gitignore` は、生成物の 2 つを除外済みです。
+`KEYSYNC_WORKSPACE` で別のディレクトリを Git 管理する場合は、`.gitignore` へ以下を追加してください。
 
 ```gitignore
 keysync/backups/
@@ -70,14 +71,13 @@ keysync/generated/
 
 KeySync へ改名する前に作った workspace は、定義ファイルなどを `cornix/` に置いています。
 Web UI で開くと Cornix LP の位置に移行のカードが出るので、`keysync/ へ移行する` を押します。
-CLI では `just keysync migrate --workspace <workspace>` で同じ移行を行えます。
+CLI では `just keysync migrate` で同じ移行を行えます。
 
 移行では定義ファイル、`labels.yaml`、`acknowledgements.json` を `keysync/` へ写し、`keymap.yaml` の参照先を書き直します。
 `cornix/` は削除しません。
 `backups/` と `generated/` は写さないため、移行後に内容を確かめ、不要なら `cornix/` を削除します。
 
-改名後に初めて Web UI を開くときは、workspace のディレクトリを選び直します。
-テーマとアイコンの見た目の設定も既定に戻ります。
+改名後に初めて Web UI を開くと、テーマとアイコンの見た目の設定は既定に戻ります。
 
 ## `keymap.yaml` が正本である理由
 

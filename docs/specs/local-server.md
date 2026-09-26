@@ -1,7 +1,7 @@
 # Local server
 
 `just ui`が起動するローカルサーバーの仕様です。
-判断はADR 0033（配布をローカルサーバーへ寄せる）とADR 0034（Macの適用API）にあります。
+判断はADR 0033（配布をローカルサーバーへ寄せる）、ADR 0034（Macの適用API）、ADR 0038（workspaceのファイルAPI）にあります。
 
 サーバーは`src/server/`にあり、Nodeで動きます。
 Web UIのコード（`src/ui/`）からは呼び出さず、HTTPだけで接続します。
@@ -10,10 +10,9 @@ Web UIのコード（`src/ui/`）からは呼び出さず、HTTPだけで接続�
 
 ## createUiServer
 
-`dist/`を配信し、`/api/`配下を適用APIへ渡すHTTPサーバーを作ります。
+`dist/`を配信し、`/api/`配下を`createApiHandler`へ渡すHTTPサーバーを作ります。
 listenは呼び出し側が行います。
-`/api/`配下は`rejectApiRequest`を通ったものだけを渡します。
-本文は16 KiBまでで、JSONとして読めなければ400を返します。
+起動時のworkspaceは`defaultWorkspaceRoot`が決め、起動時に絶対pathを表示します。
 
 | 項目   | 値                                                     |
 | ------ | ------------------------------------------------------ |
@@ -23,7 +22,29 @@ listenは呼び出し側が行います。
 | 起動後 | `open -a "Google Chrome"`で開く。失敗してもURLだけ表示 |
 
 portを固定するのは、originにportが入るためです。
-変わるとworkspaceの権限とテーマの保存が起動のたびに消えます。
+変わるとテーマの保存とWebHIDのdevice権限が起動のたびに消えます。
+
+<!-- @code src/server/api.ts#createApiHandler -->
+
+## createApiHandler
+
+`/api/`配下のリクエストを受けます。
+`just ui`のサーバーと、`just dev`のVite開発サーバーのmiddlewareが同じものを使います（ADR 0038）。
+`rejectApiRequest`を通ったものだけをAPIへ渡します。
+本文は16 MiBまでで、JSONとして読めなければ400を返します。
+workspaceへ書くPDFとdefinitionを、base64にして載せるためです。
+
+| 起動       | origin                  |
+| ---------- | ----------------------- |
+| `just ui`  | `http://127.0.0.1:5178` |
+| `just dev` | `http://127.0.0.1:5173` |
+
+<!-- @code src/server/api.ts#createLocalApi -->
+
+## createLocalApi
+
+workspaceのファイルAPIとMacの適用APIを1つにまとめます。
+どちらも同じworkspace rootを使います。
 
 <!-- @code src/server/static.ts#serveStatic -->
 
@@ -44,13 +65,13 @@ URLのpathを`dist/`配下のファイルへ解決して読みます。
 `/api/`配下へのリクエストを、ヘッダーだけで受けるか決めます（ADR 0034）。
 拒否すると403と`{kind: "rejected", reason}`を返します。
 
-| 確認             | 条件                                        | 防ぐもの        |
-| ---------------- | ------------------------------------------- | --------------- |
-| method           | `POST`だけ                                  | —               |
-| `Content-Type`   | `application/json`だけ                      | form からの送信 |
-| `Host`           | `127.0.0.1:5178`と一致                      | DNS rebinding   |
-| `Origin`         | `http://127.0.0.1:5178`と一致。無ければ拒否 | CSRF            |
-| `Sec-Fetch-Site` | `same-origin`だけ                           | CSRF            |
+| 確認             | 条件                       | 防ぐもの        |
+| ---------------- | -------------------------- | --------------- |
+| method           | `POST`だけ                 | —               |
+| `Content-Type`   | `application/json`だけ     | form からの送信 |
+| `Host`           | originのauthorityと一致    | DNS rebinding   |
+| `Origin`         | originと一致。無ければ拒否 | CSRF            |
+| `Sec-Fetch-Site` | `same-origin`だけ          | CSRF            |
 
 守る相手はブラウザで開いている別のサイトです。
 同じマシンで同じユーザーとして動く別のプロセスは対象外にします。
@@ -86,3 +107,31 @@ Macの適用APIです。
 `apply`は計画を組み直し、fingerprintが違えば書かずに新しい計画を`fingerprint-mismatch`で返します。
 書き込みとverifyの後にprofileの切り替えだけが失敗したら、巻き戻さずに`select-failed`を返します。
 想定外の例外は500と`{kind: "failed", message}`にします。
+
+<!-- @code src/server/workspace-api.ts#createWorkspaceApi -->
+<!-- @code src/server/workspace-api.ts#workspacePath -->
+<!-- @code src/server/protocol.ts#WORKSPACE_API -->
+
+## createWorkspaceApi
+
+workspaceのファイルAPIです。
+Web UIはdirectoryを選ばず、これでサーバーのworkspaceを読み書きします（ADR 0038）。
+中身は`NodeWorkspaceStore`の操作をそのままHTTPへ出したものです。
+
+| path                    | 本文             | 行うこと                                     |
+| ----------------------- | ---------------- | -------------------------------------------- |
+| `/api/workspace/status` | `{}`             | workspaceの絶対pathを返す                    |
+| `/api/workspace/read`   | `{path}`         | 中身をbase64で返す。無ければ`null`           |
+| `/api/workspace/stat`   | `{path}`         | 更新時刻とcontent hashを返す。無ければ`null` |
+| `/api/workspace/write`  | `{path, base64}` | 親directoryを作って書く                      |
+| `/api/workspace/mkdir`  | `{path}`         | directoryを作る                              |
+
+`path`はworkspace rootからの相対pathです。
+`workspacePath`が次を拒否し、`{kind: "failed", message}`を返します。
+
+- `..`、`.`、空の区切り、`\`を含むpath
+- workspaceの配置（`workspace-cli.md`の「配置」）の外
+
+root直下で扱えるのは`keymap.yaml`と`mac-keyboard*.yaml`だけです。
+directoryは`keysync/`と、移行が読む改名前の`cornix/`だけです。
+Web UIの不具合でrepositoryの他のファイルを書き換えないためです。

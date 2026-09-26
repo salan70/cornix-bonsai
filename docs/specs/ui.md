@@ -68,16 +68,18 @@ icon を置く場所と大きさは次のとおりである。
 - 全体マップの参照元の「←」と、読み上げから外した mini 盤面の ↺ ↻
 - 文中の差分の「→」、件数の「×」、動作定義の保存失敗の「×」
 
-<!-- @code src/ui/browser-workspace.ts#pickWorkspace -->
-<!-- @code src/ui/browser-workspace.ts#restoreWorkspace -->
+<!-- @code src/ui/server-workspace.ts#openServerWorkspace -->
 
 ## Workspace入口
 
-File System Access API で directory を選び、directory handle を IndexedDB（DB `keysync`、store `workspace`、key `directory`）へ保存する。
-改名前の DB `cornix-bonsai` は読まず、改名後は directory を 1 回選び直す（ADR 0036）。
-`keymap.yaml` が無くても directory は開ける。
-reload 後は権限が `granted` なら再選択なしに復帰する。
-権限が `prompt` のときは、入口に前回の directory 名と「アクセスを許可する」を出し、押したときだけ権限を求める。
+Web UI は directory を選ばない（ADR 0038）。
+起動するとローカルサーバーへ workspace を訊き、その workspace を開く。
+ファイルの読み書きはすべてサーバーの workspace API（`local-server.md`）を通す。
+`keymap.yaml` が無くても workspace は開ける。
+
+サーバーへ届かないときは、入口に「ローカルサーバーに接続できない」と `just ui` での起動を出す。
+サーバーが拒否したときや読めなかったときは、入口に理由を出す。
+どちらも「もう一度開く」で開き直せる。
 keymap の保存は workspace adapter の競合検出を通す。
 
 <!-- @code src/workspace/bootstrap.ts#planWorkspaceInit -->
@@ -87,7 +89,7 @@ keymap の保存は workspace adapter の競合検出を通す。
 
 Cornix を初期化するときは、実機の full read から `keymap.yaml` と `keysync/definitions/<digest>.json` を作る。
 CLI の `import vil` と同じ組み立てを browser 側で行うもので、実機へは書き込まない。
-directory を開くこと自体は `keymap.yaml` を要求しない。
+workspace を開くこと自体は `keymap.yaml` を要求しない。
 definition を先に書き、途中で中断しても「binding が指す先が無い」状態を作らない。
 
 <!-- @code src/workspace/bootstrap.ts#planBindingMigration -->
@@ -170,7 +172,8 @@ layer を切り替えても選択中の位置は保ち、同じ位置を layer �
 
 ## Header and status
 
-header は brand（ロゴと「KeySync」、[design-system.md](./design-system.md#logo)）、build 情報、workspace 名と切替、編集対象の radiogroup、Cornix LP の接続状態、テーマを 1 行に常設する。
+header は brand（ロゴと「KeySync」、[design-system.md](./design-system.md#logo)）、build 情報、workspace 名、編集対象の radiogroup、Cornix LP の接続状態、テーマを 1 行に常設する。
+workspace 名はサーバーが開いた workspace の末尾の directory 名で、絶対 path を title に置く。
 build 情報は短い commit SHA とローカル timezone の build 時刻で、`time` 要素の `dateTime` へ ISO 文字列を保持し、build 情報が無いときは開発用の fallback 表示にする。
 編集対象は `Cornix LP`、`Mac ANSI`、`Mac JIS` の radiogroup で、方向キーでも切り替えられる。
 各対象には読込状態の印（読込済み、ファイルなし、移行が必要、読込失敗）を形と色で付け、文言を読み上げ用に添える。
@@ -323,7 +326,7 @@ Karabiner への適用はローカルサーバーが行い、Web UI は差分を
 Web UI は `karabiner.json` にも `karabiner_cli` にも触れず、同じ origin へ JSON を POST するだけである（ADR 0034）。
 
 起動時に 1 回だけ、このマシンの内蔵配列をサーバーへ訊く。
-サーバーへ届かない（`just dev` で開いた、サーバーを止めた）ときは `unreachable` として扱う。
+サーバーへ届かない（サーバーを止めた、静的配信だけで開いた）ときは `unreachable` として扱う。
 
 押せない理由は `macApplyBlockedReason` が次の順で 1 つだけ返す。
 前のものが解決しないと後ろを直しても押せないためである。
@@ -345,6 +348,7 @@ Web UI は `karabiner.json` にも `karabiner_cli` にも触れず、同じ orig
 
 計画の段階で止まったときは、`karabiner.json` に触れていないと明示して理由を出す。
 digest が一致しないときは、画面の内容とサーバーが読んだファイルの絶対 path が違うと示し、再読込を置く。
+保存の途中や、外部エディタや Git で書き換えた後に古い画面から適用するのを止めるためである。
 
 適用すると、計画の fingerprint を送り返す。
 計画の後に内容が変わっていれば、サーバーが返した新しい計画を見せ直す。
@@ -459,7 +463,7 @@ SVG / PDF の書出は、盤面で選択中の layer を `keysync/generated/keym
 
 ファイルパネルは `.vil` の読込・書出、ディスクからの再読込、利用者ガイドへの外部 link を置く。
 Cornix が ready でなければ `.vil` の読込・書出を無効にし、理由を出す。
-再読込は directory が開いていれば使える。
+再読込は workspace が開いていれば使える。
 
 `.vil` 読込はファイル選択後に parse し、現在 workspace の definition binding を維持したまま `keymap.yaml` の desired state へ保存する。
 UID や容量が実機と異なる場合は通常の validation / Apply gate で止める。
@@ -502,10 +506,10 @@ Mac の参照はファイル、物理配列、適用先、`device_if` 相当、l
 
 ## Workspace recovery
 
-directory を開けた時点で workspace として成立する。
+workspace を読めた時点で成立する。
 `keymap.yaml` の欠落や parse 失敗は Cornix 対象へ閉じ、Mac の編集を止めない。
 Cornix を選んだときだけ、盤面の位置に keymap 欠落、旧 digest binding、改名前の管理ディレクトリ、その他の読み込み失敗を分けて復旧操作を出す。
 keymap 欠落からの初期化は、接続が無ければ機器の選択を開いてから full read し、workspace ファイルを作るだけで実機へ write しない。
 Mac の配列ファイルが無い、または読めないときも、その配列を選んだときだけ盤面の位置に復旧を出す。
 復旧の間は編集パネルに編集できない理由を出し、picker を出さない。
-directory 自体を読めなかったときは、入口に理由と再読込を出す。
+workspace 自体を読めなかったときは、入口に理由と再読込を出す。
