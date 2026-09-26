@@ -540,7 +540,6 @@ export function App({
                 layers={macLayerNumbers(macReady.document)}
                 layer={layer}
                 nextLayer={nextMacLayer(macReady.document)}
-                devices={macReady.document.devices}
                 onLayer={cursor.setLayer}
                 onAddLayer={(next) => {
                   ws.updateMac(macLayout, (document) => addMacLayer(document, next));

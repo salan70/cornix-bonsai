@@ -20,7 +20,7 @@ export const PANELS: readonly {
 /**
  * 左端の入口。割り当て（常設の盤面）と、画面中央のパネルで開く 5 つの作業。
  *
- * 選んだ対象で使えない入口は位置を保ったまま aria-disabled にし、理由を出す。
+ * 選んだ対象で使えない入口は位置を保ったまま aria-disabled にし、理由は読み上げだけに渡す。
  */
 export function Rail({
   panel,
@@ -77,7 +77,7 @@ export function Rail({
               </span>
             )}
             {reason === undefined ? null : (
-              <span id={`rail-why-${item.id}`} className="rail-why">
+              <span id={`rail-why-${item.id}`} className="visually-hidden">
                 {reason}
               </span>
             )}

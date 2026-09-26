@@ -1,7 +1,5 @@
 import { useState } from "react";
-import type { MacDeviceIdentifier } from "../../core/mac-keymap/types.ts";
 import { layerLabel, type WorkspaceLabels } from "../../workspace/labels.ts";
-import { describeDevices, deviceIfText } from "../mac-references.ts";
 
 /** layer の色。番号の順に強調色 3 色を巡らせる。色は補助で、番号と名前が識別子になる。 */
 export const LAYER_TONES = ["tone-primary", "tone-secondary", "tone-tertiary"] as const;
@@ -62,20 +60,18 @@ export function CornixLayerBar({
 }
 
 /**
- * Mac の layer の切替。layer 番号は Vial と別の空間で、疎な番号をそのまま並べる。適用先を右端に出す。
+ * Mac の layer の切替。layer 番号は Vial と別の空間で、疎な番号をそのまま並べる。
  */
 export function MacLayerBar({
   layers,
   layer,
   nextLayer,
-  devices,
   onLayer,
   onAddLayer,
 }: {
   readonly layers: readonly number[];
   readonly layer: number;
   readonly nextLayer: number;
-  readonly devices: readonly MacDeviceIdentifier[];
   readonly onLayer: (layer: number) => void;
   readonly onAddLayer: (layer: number) => void;
 }): React.JSX.Element {
@@ -95,10 +91,6 @@ export function MacLayerBar({
       <button type="button" className="layer layer-add" onClick={() => onAddLayer(nextLayer)}>
         + layer {nextLayer} を追加
       </button>
-      <span className="spacer" />
-      <span className="chip chip-quiet" title={deviceIfText(devices)}>
-        適用先: {describeDevices(devices)}
-      </span>
     </div>
   );
 }

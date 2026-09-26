@@ -135,7 +135,7 @@ CLI の `keysync migrate` も同じ関数を通る。
 Apply だけは段階を終えるまで他の作業へ移れない modal として、パネルと区別する。
 workspace を開く前は header（brand、テーマ）と入口だけを出す。
 1280 × 800 と 1024 × 768 で横スクロールを出さず、header は折り返さない。
-幅 1100px 以下では編集パネルを狭め、picker の行を低くし、header の補足（workspace の見出し）を隠す。
+幅 1100px 以下では編集パネルを狭め、picker の行を低くし、header の余白を詰める。
 `App` は状態の hook を組み合わせ、部品へ値と操作を渡すだけにする。
 
 <!-- @code src/ui/state/use-workspace.ts#useWorkspace -->
@@ -173,8 +173,7 @@ layer を切り替えても選択中の位置は保ち、同じ位置を layer �
 
 ## Header and status
 
-header は brand（ロゴと「KeySync」、[design-system.md](./design-system.md#logo)）、workspace 名、編集対象の radiogroup、Cornix LP の接続状態、テーマを 1 行に常設する。
-workspace 名はサーバーが開いた workspace の末尾の directory 名で、絶対 path を title に置く。
+header は brand（ロゴと「KeySync」、[design-system.md](./design-system.md#logo)）、編集対象の radiogroup、Cornix LP の接続状態、テーマを 1 行に常設する。
 編集対象は `Cornix LP`、`Mac ANSI`、`Mac JIS` の radiogroup で、方向キーでも切り替えられる。
 各対象には読込状態の印（読込済み、ファイルなし、移行が必要、読込失敗）を形と色で付け、文言を読み上げ用に添える。
 接続状態は色だけに頼らず、未接続、接続済み、読込中、読込済みと製品名を文字で示す。
@@ -194,7 +193,8 @@ Apply の gate と診断の severity を UI 表示上で混同しない。
 ## Rail and panels
 
 左端の入口は `割り当て`、`全体`、`動作`、`検証`、`実機`、`ファイル` の順に固定する。
-選んだ対象で使えない入口は位置を動かさず、`aria-disabled` にして理由（Mac では「Cornix のみ」、Cornix を読み込めていなければ「keymap.yaml 未読込」）を出す。
+入口はすべて同じ大きさにする。
+選んだ対象で使えない入口は位置を動かさず、`aria-disabled` にして理由（Mac では「Cornix のみ」、Cornix を読み込めていなければ「keymap.yaml 未読込」）を読み上げだけに渡す。
 検証の入口には error と warning の件数、実機の入口には読込済みのときの差分件数を添える。
 
 パネルは native の `<dialog>` を `showModal()` で画面中央に開き、開いたら見出しへ focus を移す。
@@ -307,7 +307,6 @@ entry は `macBoardEntries` が物理配列を正として組む。
 割り当ての無いキーは素通しとして物理キャップ名を破線の枠で出す。
 選択は `{kind: "macKey", keyCode}` で、layer 番号空間は Vial と別に持つ。
 layer の切替は疎な layer 番号をそのまま並べ、「+ layer N を追加」を置く。
-layer の切替の右端に適用先の chip を置き、title は `device_if` の identifiers にする。
 
 keycode の選択は同じ picker を使い、`applyPick` の合成と `setMacAssignment` での保存は `App` が持つ。
 keycode 表示は Vial と同じ label 関数を使うが、layer 名は剥がして渡し、`createKeycodeTable` は呼ばない。

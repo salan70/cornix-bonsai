@@ -26,7 +26,7 @@ const STATE_VIEW: Readonly<
 };
 
 /**
- * 常設の header。brand、workspace、編集対象の切替、実機の接続状態、テーマ。
+ * 常設の header。brand、編集対象の切替、実機の接続状態、テーマ。
  *
  * workspace を開くまでは brand とテーマだけを出す。
  */
@@ -40,7 +40,7 @@ export function Header({
   theme,
   onTheme,
 }: {
-  /** サーバーが開いた workspace の絶対 path。末尾の directory 名だけを見せ、全体は title に置く。 */
+  /** サーバーが開いた workspace の絶対 path。開くまでは undefined。 */
   readonly workspaceRoot: string | undefined;
   readonly targetKey: TargetKey;
   readonly targetStates: Readonly<Record<TargetKey, TargetLoadState>> | undefined;
@@ -84,12 +84,6 @@ export function Header({
       </div>
       {workspaceRoot === undefined || targetStates === undefined ? null : (
         <>
-          <div className="workspace">
-            <span className="muted">workspace</span>
-            <code title={workspaceRoot}>
-              {workspaceRoot.split("/").filter(Boolean).at(-1) ?? "/"}
-            </code>
-          </div>
           <div className="targets" role="radiogroup" aria-label="編集対象">
             {TARGETS.map((item, index) => {
               const state = STATE_VIEW[targetStates[item.key]];

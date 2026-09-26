@@ -54,7 +54,7 @@
 - **原因**: workspace に Cornix LP の設定ファイルがありません。
 - **対処**:
   - 新規作成の場合: `実機 read で workspace を作成` を選びます。
-  - 既存の設定がある場合: ヘッダーの workspace 名にマウスを重ね、表示される path が正しいか確認します。`KEYSYNC_WORKSPACE` を設定していないかも確認します。
+  - 既存の設定がある場合: `just ui` のターミナルに表示される workspace の path が正しいか確認します。`KEYSYNC_WORKSPACE` を設定していないかも確認します。
 
 ### definition の digest またはパスが一致しない
 

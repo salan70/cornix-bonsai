@@ -9,8 +9,6 @@
   --layout-inspector-width-narrow: 16.5rem;
   --layout-status-min-height: 3.25rem;
   --layout-header-stripe: 0.3125rem;
-  --layout-workspace-name-max: 15rem;
-  --layout-workspace-name-max-narrow: 9rem;
   --layout-app-min-height: 36rem;
 
   /* 画面中央のパネルと Apply の modal。 */
@@ -48,6 +46,7 @@
   --size-logo: 2.25rem;
   --size-logo-large: 4rem;
   --size-rail-icon: 2rem;
+  --size-rail-btn: 4.75rem;
   --size-cap: 3.75rem;
   --size-step-no: 1.6rem;
   --size-badge: 0.95rem;
