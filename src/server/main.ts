@@ -60,7 +60,13 @@ export function createUiServer(
 }
 
 async function main(): Promise<void> {
-  const root = defaultWorkspaceRoot();
+  let root: string;
+  try {
+    root = defaultWorkspaceRoot();
+  } catch (error) {
+    console.error(`keysync ui: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
   const server = createUiServer({ api: createLocalApi(root) });
   server.on("error", (error: NodeJS.ErrnoException) => {
     if (error.code === "EADDRINUSE") {

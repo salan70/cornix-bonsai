@@ -50,7 +50,7 @@ keysync *ARGS:
     pnpm run keysync -- "$@"
 
 # MacBook内蔵キーボードの設定を扱う（例: just mac apply）
-# workspaceはこのリポジトリ。--workspace も --layout も既定で要らない。
+# workspaceは$KEYSYNC_WORKSPACE。設定していれば --workspace も --layout も要らない。
 [positional-arguments]
 mac *ARGS:
     pnpm run keysync -- mac "$@"

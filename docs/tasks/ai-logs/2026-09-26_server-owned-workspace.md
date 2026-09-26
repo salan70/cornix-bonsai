@@ -22,6 +22,15 @@ CLI の全サブコマンドも同じ既定を使う。
 
 - Mac 適用の digest 照合は、別 directory を選ぶ事故が無くなっても、保存途中や外部変更後の古い画面からの適用を止める役目が残る。
 
+## 追記: workspace を dotfiles へ移す
+
+`mac-keyboard.ansi.yaml` を keysync リポジトリで commit するか相談され、利用者は dotfiles で管理する運用を選んだ。
+未設定時の挙動は、エラーで止める案を利用者が選んだ。
+
+- Fact: dotfiles は `config/<app>/` に設定を置き、zsh の `zshrc.d/` は `~/.config/zsh/` から dotfiles の実体へ symlink されている。`${(%):-%x}:A` で dotfiles の位置が求まることを確かめた。
+- Decision: ADR 0039 に記録した。`$KEYSYNC_WORKSPACE` を必須にし、keysync リポジトリの root から `mac-keyboard.ansi.yaml` を外した。
+- dotfiles 側は `config/keysync/` を作り、適用済みの `mac-keyboard.ansi.yaml` と Karabiner のバックアップを移した。`30-tools.zsh` が `KEYSYNC_WORKSPACE` を export する。dotfiles は利用者の指示で commit していない。
+
 ## Open Question
 
-- 利用者の Cornix LP の `keymap.yaml` はまだ無い。実機の full read か `just keysync import vil` で repository 直下に作るかは利用者が決める。
+- 利用者の Cornix LP の `keymap.yaml` はまだ無い。実機の full read か `just keysync import vil` で dotfiles の workspace に作るかは利用者が決める。

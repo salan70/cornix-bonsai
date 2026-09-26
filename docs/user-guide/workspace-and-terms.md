@@ -4,24 +4,24 @@ KeySync の設定ファイル構造と重要用語を説明します。
 
 ## 用語一覧
 
-| 用語          | 意味                                                            |
-| ------------- | --------------------------------------------------------------- |
-| workspace     | 設定ファイルを置くディレクトリ。既定は keysync リポジトリです。 |
-| desired state | workspace に保存された、実機へ反映したい目標設定です。          |
-| current state | 最後の読み取りで取得した、実機の現在設定です。                  |
-| full read     | キーマップや定義など、実機状態を一括取得する操作です。          |
-| definition    | キーの物理配置やカスタムキーコードを解釈する定義データです。    |
-| VIL           | Vial が扱うキーマップファイル（`.vil`）の形式です。             |
-| validation    | 設定の構造、キーコード、参照関係、整合性を検証する処理です。    |
-| semantic diff | 単なる文字列比較ではなく、意味単位で算出する設定差分です。      |
-| Apply         | 差分を実機へ書き込み、直後の再読み込みで検証する操作です。      |
-| WebHID        | ブラウザから USB / BLE HID 機器へ接続する Web API です。        |
-| UID           | キーボード個体を識別し、別機器への誤書き込みを防ぐ値です。      |
-| digest        | definition ファイルの内容から計算する SHA-256 値です。          |
+| 用語          | 意味                                                               |
+| ------------- | ------------------------------------------------------------------ |
+| workspace     | 設定ファイルを置くディレクトリ。`KEYSYNC_WORKSPACE` で指定します。 |
+| desired state | workspace に保存された、実機へ反映したい目標設定です。             |
+| current state | 最後の読み取りで取得した、実機の現在設定です。                     |
+| full read     | キーマップや定義など、実機状態を一括取得する操作です。             |
+| definition    | キーの物理配置やカスタムキーコードを解釈する定義データです。       |
+| VIL           | Vial が扱うキーマップファイル（`.vil`）の形式です。                |
+| validation    | 設定の構造、キーコード、参照関係、整合性を検証する処理です。       |
+| semantic diff | 単なる文字列比較ではなく、意味単位で算出する設定差分です。         |
+| Apply         | 差分を実機へ書き込み、直後の再読み込みで検証する操作です。         |
+| WebHID        | ブラウザから USB / BLE HID 機器へ接続する Web API です。           |
+| UID           | キーボード個体を識別し、別機器への誤書き込みを防ぐ値です。         |
+| digest        | definition ファイルの内容から計算する SHA-256 値です。             |
 
 ## MacBook 内蔵キーボードの設定
 
-Mac の設定も Cornix LP と同じく、keysync リポジトリ直下に置きます。
+Mac の設定も Cornix LP と同じく、workspace 直下に置きます。
 
 | パス                     | 内容                              | Git 管理 |
 | ------------------------ | --------------------------------- | -------- |
@@ -31,7 +31,7 @@ Mac の設定も Cornix LP と同じく、keysync リポジトリ直下に置き
 | `keysync/backups/`       | 適用前に退避した `karabiner.json` | 管理外   |
 
 どちらのファイルを使うかは、実行している Mac の内蔵配列から自動で決まります。
-`$KEYSYNC_WORKSPACE` を設定すると、別のディレクトリを対象にできます。
+workspace は `$KEYSYNC_WORKSPACE` で指定し、keysync リポジトリには置きません。
 改名前の `$CORNIX_WORKSPACE` は読まないため、設定していた場合は名前を変えます。
 
 ## ファイル配置と Git 管理
@@ -59,8 +59,7 @@ workspace の推奨ディレクトリ構成です。
 | `keysync/backups/`              | Apply 前に退避した実機状態            | 管理外   |
 | `keysync/generated/`            | 書き出した VIL、SVG、PDF などの成果物 | 管理外   |
 
-keysync リポジトリの `.gitignore` は、生成物の 2 つを除外済みです。
-`KEYSYNC_WORKSPACE` で別のディレクトリを Git 管理する場合は、`.gitignore` へ以下を追加してください。
+workspace を Git 管理するときは、workspace 直下の `.gitignore` へ以下を追加してください。
 
 ```gitignore
 keysync/backups/

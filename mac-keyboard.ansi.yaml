@@ -1,7 +1,0 @@
-schema: keysync/mac-keymap@1
-layout: ansi
-devices:
-  - { built_in: true }
-profile: "KeySync"
-layers:
-  0:

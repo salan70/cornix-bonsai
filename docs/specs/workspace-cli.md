@@ -1,6 +1,6 @@
 # WorkspaceとCLI
 
-workspaceはkeysyncリポジトリのrootに固定し、CLIとローカルサーバーが同じ規則で決める（ADR 0038）。
+workspaceは`$KEYSYNC_WORKSPACE`で指定し、CLIとローカルサーバーが同じ規則で決める（ADR 0038、ADR 0039）。
 `keymap.yaml`がdesired stateで、definitionはSHA-256の先頭16文字を使ったcontent-addressed
 pathに保存する。`keysync/acknowledgements.json`はApply warningの確認IDを保持する。
 `keysync/backups/`と`keysync/generated/`は生成物で、keymapの競合検出は
@@ -43,15 +43,12 @@ ADR 0027より前の`mac-keyboard.yaml`は読み込み時の後方互換とし�
 
 ## defaultWorkspaceRoot
 
-`--workspace`無しで使うworkspaceです。優先順は`--workspace` >
-`$KEYSYNC_WORKSPACE` > **keysyncリポジトリのroot**です（ADR 0028、ADR 0038）。
+`--workspace`無しで使うworkspaceです。`$KEYSYNC_WORKSPACE`を絶対pathにして返します。
+優先順は`--workspace` > `$KEYSYNC_WORKSPACE`で、どちらも無ければ例外にします（ADR 0039）。
+CLIの全サブコマンドと、`just ui`・`just dev`のローカルサーバーがこの規則を使います。
 
-Cornix LPとMacのdesired stateは、どちらもこのリポジトリ自身が持ちます。「どこに置くか」が
-決まっていないこと自体が運用の負担でした。CLIの全サブコマンドと、`just ui`・`just dev`の
-ローカルサーバーがこの規則を使います。
-
-**cwdへは倒しません。** `just keysync`がリポジトリrootで走るのはjustfileの副作用であり、
-これに依存すると「どこを見ているか分からない」という元の問題がそのまま残ります。
+**keysyncリポジトリのrootにもcwdにも倒しません。** 倒すと、変数を付け忘れた起動で
+Git管理されない場所へ設定が黙って書かれます。keysyncリポジトリは利用者の設定を持ちません。
 
 既定が暗黙に効くので、`mac`の各サブコマンドは出力へ、Web UIはheaderへ解決済みの
 `workspace`を必ず出します。
@@ -150,7 +147,7 @@ MacBook内蔵キーボードは`keysync mac generate|diff|apply|devices`で扱�
 `~/.config/karabiner/karabiner.json`。
 
 日常の操作は`--workspace`も`--layout`も要らない。配列は実行しているMacから検出し
-（ADR 0027）、workspaceはこのリポジトリを既定にする（ADR 0028）。`mac`の全出力へ
+（ADR 0027）、workspaceは`$KEYSYNC_WORKSPACE`から決める（ADR 0039）。`mac`の全出力へ
 解決済みの`workspace`を載せる。
 
 適用はCLIとローカルサーバーの適用APIが行う（ADR 0034）。`keysync mac apply`は`--confirm`が無いうちはasset生成と
