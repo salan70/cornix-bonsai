@@ -50,8 +50,8 @@ CLIの全サブコマンドと、`just ui`・`just dev`のローカルサーバ�
 **keysyncリポジトリのrootにもcwdにも倒しません。** 倒すと、変数を付け忘れた起動で
 Git管理されない場所へ設定が黙って書かれます。keysyncリポジトリは利用者の設定を持ちません。
 
-既定が暗黙に効くので、`mac`の各サブコマンドは出力へ、Web UIはheaderへ解決済みの
-`workspace`を必ず出します。
+既定が暗黙に効くので、`mac`の各サブコマンドは出力へ、ローカルサーバーは起動時のターミナルへ
+解決済みの`workspace`を必ず出します。
 
 <!-- @code src/workspace/mac-keymap-file.ts#readMacKeymapFor -->
 

@@ -17,8 +17,8 @@ export const WORKSPACE_ENV = "KEYSYNC_WORKSPACE";
  * `$KEYSYNC_WORKSPACE` が無ければ例外にする。**repository root にも cwd にも倒さない。**
  * 倒すと、付け忘れたときに設定が Git 管理されない場所へ黙って書かれる。
  *
- * 既定が暗黙に効くので、`mac` の各サブコマンドは出力へ、Web UI は header へ解決済みの
- * `workspace` を必ず出す。
+ * 既定が暗黙に効くので、`mac` の各サブコマンドは出力へ、ローカルサーバーは起動時のターミナルへ
+ * 解決済みの `workspace` を必ず出す。
  *
  * @doc docs/specs/workspace-cli.md#defaultworkspaceroot
  */
