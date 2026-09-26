@@ -81,7 +81,7 @@ export function App({
 }: {
   readonly initialTheme: ThemePreference;
 }): React.JSX.Element {
-  const status = useStatus("workspaceを選択してください");
+  const status = useStatus("workspaceを開いている");
   const { say } = status;
   const theme = useTheme(initialTheme);
   const iconStyle = useIconStyle();

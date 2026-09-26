@@ -53,3 +53,21 @@ test("サーバーへ届かなければ unreachable を返す", async () => {
   const opened = await openServerWorkspace(() => Promise.reject(new TypeError("offline")));
   deepStrictEqual(opened, { kind: "unreachable" });
 });
+
+test("workspace API を持たない古いサーバーには起動し直しを案内する", async () => {
+  const opened = await openServerWorkspace(
+    async () =>
+      new Response(
+        JSON.stringify({ kind: "failed", message: "未知の API: /api/workspace/status" }),
+        {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        },
+      ),
+  );
+  deepStrictEqual(opened, {
+    kind: "failed",
+    message:
+      "サーバーが古い可能性がある。just ui を起動し直す（未知の API: /api/workspace/status）",
+  });
+});

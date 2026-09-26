@@ -95,8 +95,13 @@ export async function openServerWorkspace(fetcher: Fetch = fetch): Promise<Opene
       return { kind: "opened", store: new ServerWorkspaceStore(status.root, fetcher) };
     case "unreachable":
       return status;
+    // 今のサーバーは status で失敗しない。失敗するのは workspace API を持たない古いサーバーで、
+    // 起動中に `dist/` だけが作り直されたときに起きる。
     case "failed":
-      return status;
+      return {
+        kind: "failed",
+        message: `サーバーが古い可能性がある。just ui を起動し直す（${status.message}）`,
+      };
     case "rejected":
       return { kind: "failed", message: status.reason };
   }
